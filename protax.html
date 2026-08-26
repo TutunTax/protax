@@ -896,7 +896,7 @@ var st,ct,ut,lt,dt,ht,pt,gt,ft,mt=function(){function t(e,t,r){this.networkInter
     <div id="empty-state">
       <div class="es-icon">📋</div>
       <h3>No client selected</h3>
-      <p>Load your JSON file then select a client from the sidebar, or add a new one.</p>
+      <p>Select a client from the sidebar to get started, or add a new one.</p>
     </div>
     <div id="client-form" style="display:none"></div>
   </div>
@@ -1275,10 +1275,10 @@ async function loadAllData() {
   setSyncStatus('Loading clients…');
   try {
     const clientItems = await getAllListItems(LIST_CLIENTS,
-      '$select=id&$expand=fields($select=Title,ClientId,ClientData,Inactive)');
+      '$select=id&$expand=fields($select=Title,ClientID,ClientData,Inactive,CompanyName,ContactName,EntityType,YearEnd,TaxRef,Email,AssignedTo,TaxClearance)');
     setSyncStatus('Loading returns…');
     const returnItems = await getAllListItems(LIST_RETURNS,
-      '$select=id&$expand=fields($select=ClientId,ReturnType,ReturnNo,Status,ReturnData)');
+      '$select=id&$expand=fields($select=ClientID,ReturnID,ReturnType,ReturnNo,DueDate,Status,PaymentStatus,AssignedTo,ReturnData,Notes)');
 
     appData.clients = [];
     _clientEtags = {}; _returnEtags = {};
@@ -1289,8 +1289,16 @@ async function loadAllData() {
       const f = item.fields;
       let obj = {};
       try { obj = JSON.parse(f.ClientData||'{}'); } catch {}
-      obj.id          = f.ClientId || item.id;
-      obj.companyName = f.Title || obj.companyName || '';
+      // Use dedicated columns first, fall back to ClientData JSON
+      obj.id          = f.ClientID || obj.id || item.id;
+      obj.companyName = f.CompanyName || f.Title || obj.companyName || '';
+      obj.contactName = f.ContactName || obj.contactName || '';
+      obj.entityType  = f.EntityType  || obj.entityType  || '';
+      obj.yearEnd     = f.YearEnd     || obj.yearEnd     || '';
+      obj.taxRef      = f.TaxRef      || obj.taxRef      || '';
+      obj.email       = f.Email       || obj.email       || '';
+      obj.assignedTo  = f.AssignedTo  || obj.assignedTo  || '';
+      obj.taxClearance= f.TaxClearance|| obj.taxClearance|| '';
       obj.inactive    = !!(f.Inactive);
       obj.returns     = [];
       appData.clients.push(obj);
@@ -1303,13 +1311,17 @@ async function loadAllData() {
       const f = item.fields;
       let ret = {};
       try { ret = JSON.parse(f.ReturnData||'{}'); } catch {}
-      ret.returnType = f.ReturnType || ret.returnType || 'irp6';
-      ret.returnNo   = f.ReturnNo   || ret.returnNo   || '';
-      ret.status     = f.Status     || ret.status     || 'todo';
+      ret.id         = f.ReturnID    || ret.id         || item.id;
+      ret.returnType = f.ReturnType  || ret.returnType  || 'irp6';
+      ret.returnNo   = f.ReturnNo    || ret.returnNo    || '';
+      ret.status     = f.Status      || ret.status      || 'todo';
+      ret.dueDate    = f.DueDate     || ret.dueDate     || '';
+      ret.paymentStatus = f.PaymentStatus || ret.paymentStatus || 'na';
+      ret.notes      = f.Notes       || ret.notes       || '';
       if (!ret.id) ret.id = item.id;
       _spReturnIds[ret.id] = item.id;
       _returnEtags[ret.id] = item['@odata.etag'] || '*';
-      const client = clientMap[f.ClientId];
+      const client = clientMap[f.ClientID];
       if (client) client.returns.push(ret);
     });
 
@@ -1330,12 +1342,20 @@ async function loadAllData() {
 async function spSaveClient(client) {
   const siteId = await getSiteId();
   const spId   = _spClientIds[client.id];
-  const { returns, id, companyName, inactive, ...rest } = client;
+  const { returns, id, companyName, contactName, entityType, yearEnd, taxRef, email, assignedTo, taxClearance, inactive, ...rest } = client;
   const fields = {
-    Title:      companyName,
-    ClientId:   id,
-    ClientData: JSON.stringify({ ...rest, id }),
-    Inactive:   !!inactive
+    Title:        companyName,
+    CompanyName:  companyName,
+    ClientID:     id,
+    ContactName:  contactName  || '',
+    EntityType:   entityType   || '',
+    YearEnd:      yearEnd      || '',
+    TaxRef:       taxRef       || '',
+    Email:        email        || '',
+    AssignedTo:   assignedTo   || '',
+    TaxClearance: taxClearance || '',
+    ClientData:   JSON.stringify({ ...rest, id }),
+    Inactive:     !!inactive
   };
   if (spId) {
     const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${LIST_CLIENTS}/items/${spId}/fields`;
@@ -1360,13 +1380,17 @@ async function spSaveClient(client) {
 async function spSaveReturn(clientId, ret) {
   const siteId = await getSiteId();
   const spId   = _spReturnIds[ret.id];
-  const { id, returnType, returnNo, status, ...rest } = ret;
+  const { id, returnType, returnNo, status, dueDate, paymentStatus, notes, ...rest } = ret;
   const fields = {
-    ClientId:   clientId,
-    ReturnType: returnType,
-    ReturnNo:   returnNo,
-    Status:     status,
-    ReturnData: JSON.stringify({ ...rest, id })
+    ClientID:      clientId,
+    ReturnID:      id,
+    ReturnType:    returnType,
+    ReturnNo:      returnNo,
+    Status:        status,
+    DueDate:       dueDate       || '',
+    PaymentStatus: paymentStatus || 'na',
+    Notes:         notes         || '',
+    ReturnData:    JSON.stringify({ ...rest, id })
   };
   if (spId) {
     const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${LIST_RETURNS}/items/${spId}/fields`;
