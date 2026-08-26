@@ -1297,7 +1297,9 @@ async function loadAllData() {
       let obj = {};
       try { obj = JSON.parse(f.ClientData||'{}'); } catch {}
       // Use dedicated columns first, fall back to ClientData JSON
-      obj.id          = f.ClientID || obj.id || item.id;
+      // ClientID column may have SP row numbers - use ClientData JSON id as primary
+      const parsedId = obj.id; // already parsed from ClientData above
+      obj.id          = parsedId || f.ClientID || item.id;
       obj.companyName = f.CompanyName || f.Title || obj.companyName || '';
       obj.contactName = f.ContactName || obj.contactName || '';
       obj.entityType  = f.EntityType  || obj.entityType  || '';
@@ -1311,8 +1313,9 @@ async function loadAllData() {
       appData.clients.push(obj);
       _spClientIds[obj.id] = item.id;
       _clientEtags[obj.id] = item['@odata.etag'] || '*';
-      clientMap[obj.id]    = obj;  // keyed by app ClientID
-      clientMap[item.id]   = obj;  // also keyed by SP item id as fallback
+      clientMap[obj.id]       = obj;  // keyed by parsed ClientData id
+      clientMap[item.id]      = obj;  // keyed by SP item id
+      if (f.ClientID) clientMap[f.ClientID] = obj;  // keyed by ClientID column value
     });
 
     // DEBUG - remove after confirming
