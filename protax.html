@@ -1314,6 +1314,11 @@ async function loadAllData() {
       clientMap[obj.id]    = obj;
     });
 
+    // DEBUG - remove after confirming
+    if (returnItems.length > 0) {
+      console.log('Sample return item fields:', JSON.stringify(returnItems[0].fields));
+      console.log('ClientMap keys (first 3):', Object.keys(clientMap).slice(0,3));
+    }
     returnItems.forEach(item => {
       const f = item.fields;
       let ret = {};
