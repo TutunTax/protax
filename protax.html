@@ -1521,7 +1521,6 @@ function renderClientList() {
     const allReturns=(c.returns||[]).filter(r=>r.returnType===activeReturnType);
     const ret=allReturns.find(r=>r.returnNo===activePeriod);
     if(activePeriod&&!ret) return;
-    if(!activePeriod&&allReturns.length===0) return;
     const status=ret?ret.status:'todo';
     if(filter&&status!==filter) return;
     if(assigned&&(c.assignedTo||'')!==assigned) return;
