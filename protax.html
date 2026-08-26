@@ -1308,7 +1308,7 @@ async function loadAllData() {
       obj.email       = f.Email       || obj.email       || '';
       obj.assignedTo  = f.AssignedTo  || obj.assignedTo  || '';
       obj.taxClearance= f.TaxClearance|| obj.taxClearance|| '';
-      obj.inactive    = !!(f.Inactive);
+      obj.inactive    = f.Inactive === true || f.Inactive === 'Yes' || f.Inactive === 1;
       obj.returns     = [];
       appData.clients.push(obj);
       _spClientIds[obj.id] = item.id;
