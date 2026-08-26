@@ -1311,7 +1311,8 @@ async function loadAllData() {
       appData.clients.push(obj);
       _spClientIds[obj.id] = item.id;
       _clientEtags[obj.id] = item['@odata.etag'] || '*';
-      clientMap[obj.id]    = obj;
+      clientMap[obj.id]    = obj;  // keyed by app ClientID
+      clientMap[item.id]   = obj;  // also keyed by SP item id as fallback
     });
 
     // DEBUG - remove after confirming
