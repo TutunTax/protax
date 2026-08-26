@@ -1285,7 +1285,7 @@ async function loadAllData() {
       '$select=id&$expand=fields($select=Title,ClientID,ClientData,Inactive,CompanyName,ContactName,EntityType,YearEnd,TaxRef,Email,AssignedTo,TaxClearance)');
     setSyncStatus('Loading returns…');
     const returnItems = await getAllListItems(LIST_RETURNS,
-      '$select=id&$expand=fields($select=ClientID,ReturnID,ReturnType,ReturnNo,DueDate,Status,PaymentStatus,AssignedTo,ReturnData,Notes)');
+      '$select=id&$expand=fields($select=Title,ClientID,ReturnType,ReturnNo,DueDate,Status,PaymentStatus,AssignedTo,ReturnData,Notes)');
 
     appData.clients = [];
     _clientEtags = {}; _returnEtags = {};
@@ -1318,7 +1318,7 @@ async function loadAllData() {
       const f = item.fields;
       let ret = {};
       try { ret = JSON.parse(f.ReturnData||'{}'); } catch {}
-      ret.id         = f.ReturnID    || ret.id         || item.id;
+      ret.id         = f.Title       || ret.id         || item.id;
       ret.returnType = f.ReturnType  || ret.returnType  || 'irp6';
       ret.returnNo   = f.ReturnNo    || ret.returnNo    || '';
       ret.status     = f.Status      || ret.status      || 'todo';
@@ -1393,8 +1393,8 @@ async function spSaveReturn(clientId, ret) {
   const spId   = _spReturnIds[ret.id];
   const { id, returnType, returnNo, status, dueDate, paymentStatus, notes, ...rest } = ret;
   const fields = {
+    Title:         id,
     ClientID:      clientId,
-    ReturnID:      id,
     ReturnType:    returnType,
     ReturnNo:      returnNo,
     Status:        status,
@@ -2417,10 +2417,10 @@ async function runDataImport() {
     // Get existing ReturnIDs
     setSyncStatus('Checking existing returns…');
     const existing = new Set();
-    let url = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${LIST_RETURNS}/items?$top=999&$select=id&$expand=fields($select=ReturnID)`;
+    let url = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${LIST_RETURNS}/items?$top=999&$select=id&$expand=fields($select=Title)`;
     while (url) {
       const data = await graphGet(url);
-      (data.value||[]).forEach(item => { if (item.fields?.ReturnID) existing.add(item.fields.ReturnID); });
+      (data.value||[]).forEach(item => { if (item.fields?.Title) existing.add(item.fields.Title); });
       url = data['@odata.nextLink'] || null;
     }
     
@@ -2437,8 +2437,8 @@ async function runDataImport() {
         await graphPost(
           `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${LIST_RETURNS}/items`,
           { fields: {
+            Title:         ret.returnId,
             ClientID:      ret.clientId,
-            ReturnID:      ret.returnId,
             ReturnType:    ret.returnType,
             ReturnNo:      ret.returnNo,
             Status:        ret.status,
