@@ -1308,6 +1308,7 @@ async function loadAllData() {
       obj.email       = f.Email       || obj.email       || '';
       obj.assignedTo  = f.AssignedTo  || obj.assignedTo  || '';
       obj.taxClearance= f.TaxClearance|| obj.taxClearance|| '';
+      obj._inactiveRaw = f.Inactive;
       obj.inactive    = f.Inactive === true || f.Inactive === 'Yes' || f.Inactive === 1;
       obj.returns     = [];
       appData.clients.push(obj);
@@ -1342,6 +1343,9 @@ async function loadAllData() {
     });
 
     appData.clients.sort((a,b) => a.companyName.localeCompare(b.companyName));
+    console.log('First 3 clients after load:', appData.clients.slice(0,3).map(c=>({
+      id: c.id, name: c.companyName, inactive: c.inactive, inactiveRaw: c._inactiveRaw, returns: c.returns.length
+    })));
     const totalReturns = appData.clients.reduce((s,c)=>s+(c.returns||[]).length, 0);
     setSyncStatus('✓ Loaded '+appData.clients.length+' clients — '+new Date().toLocaleTimeString('en-ZA'), true);
     setAuthPill('connected');
