@@ -1002,178 +1002,230 @@ function selectReturn(retId){
 function renderWizard(c,p){
   const isSecond=p.returnPeriod?.endsWith('-02');
   const wizEl=$('wizard-area');
-  wizEl.innerHTML=
-    '<div class="status-row">'
-    +'<div class="status-group"><span class="status-label">Status</span>'
-    +'<select class="status-input" id="f-status" onchange="captureForm();renderReturnList()">'
-    +'<option value="todo" '+(p.status==='todo'?'selected':'')+'>📋 To Do</option>'
-    +'<option value="inprogress" '+(p.status==='inprogress'?'selected':'')+'>🔄 In Progress</option>'
-    +'<option value="awaiting" '+(p.status==='awaiting'?'selected':'')+'>⏳ Awaiting Info</option>'
-    +'<option value="emailsent" '+(p.status==='emailsent'?'selected':'')+'>📧 Email Sent</option>'
-    +'<option value="submitted" '+(p.status==='submitted'?'selected':'')+'>✅ Submitted</option>'
-    +'</select></div>'
-    +'<div class="status-group"><span class="status-label">Payment</span>'
-    +'<select class="status-input" id="f-pay" style="width:130px;">'
-    +'<option value="na" '+(p.paymentStatus==='na'?'selected':'')+'>N/A</option>'
-    +'<option value="confirmed" '+(p.paymentStatus==='confirmed'?'selected':'')+'>✅ Confirmed</option>'
-    +'</select></div>'
-    +'<div class="status-group"><span class="status-label">Due Date</span>'
-    +'<input class="status-input" id="f-due" value="'+(p.dueDate||'')+'" maxlength="20" placeholder="20260831" style="width:180px;" onblur="formatDateInput(this);wizCalc()"></div>'
-    +'<div class="status-group"><span class="status-label">Contact</span>'
-    +'<input class="status-input" id="f-contact" value="'+(p.contactName||c.contactName||'')+'" placeholder="Contact name" style="width:160px;"></div>'
-    +'</div>'
-    +'<div class="wiz-bar">'
-    +'<div class="wiz-tab active" id="wt1" onclick="wizGo(1)">1. Basic Amount</div>'
-    +'<div class="wiz-tab" id="wt2" onclick="wizGo(2)">2. Prior Year</div>'
-    +'<div class="wiz-tab" id="wt3" onclick="wizGo(3)">3. Current Position</div>'
-    +'<div class="wiz-tab" id="wt4" onclick="wizGo(4)">4. Tax Adjustments</div>'
-    +'<div class="wiz-tab" id="wt5" onclick="wizGo(5)">5. Payments</div>'
-    +'<div class="wiz-tab" id="wt6" onclick="wizGo(6)">6. Recommendation</div>'
-    +'</div>'
-    +'<div class="card">'
+  const sel=(id,opts,cur,extra)=>{
+    let s='<select id="'+id+'" '+(extra||'')+' onchange="captureForm();wizCalc()">';
+    opts.forEach(([v,label])=>{s+='<option value="'+v+'" '+(cur===v?'selected':'')+'>'+label+'</option>';});
+    return s+'</select>';
+  };
+  const H=[
+    '<div class="status-row">',
+      '<div class="status-group"><span class="status-label">Status</span>',
+        sel('f-status',[['todo','📋 To Do'],['inprogress','🔄 In Progress'],['awaiting','⏳ Awaiting Info'],['emailsent','📧 Email Sent'],['submitted','✅ Submitted']],p.status||'todo',''),
+      '</div>',
+      '<div class="status-group"><span class="status-label">Payment</span>',
+        sel('f-pay',[['na','N/A'],['confirmed','✅ Confirmed']],p.paymentStatus||'na','style="width:130px;"'),
+      '</div>',
+      '<div class="status-group"><span class="status-label">Due Date</span>',
+        '<input class="status-input" id="f-due" value="'+(p.dueDate||'')+'" maxlength="20" placeholder="20260831" style="width:180px;" onblur="formatDateInput(this);wizCalc()">',
+      '</div>',
+      '<div class="status-group"><span class="status-label">Contact</span>',
+        '<input class="status-input" id="f-contact" value="'+(p.contactName||c.contactName||'')+'" placeholder="Contact name" style="width:160px;">',
+      '</div>',
+    '</div>',
+    '<div class="wiz-bar">',
+      '<div class="wiz-tab active" id="wt1" onclick="wizGo(1)">1. Basic Amount</div>',
+      '<div class="wiz-tab" id="wt2" onclick="wizGo(2)">2. Prior Year</div>',
+      '<div class="wiz-tab" id="wt3" onclick="wizGo(3)">3. Current Position</div>',
+      '<div class="wiz-tab" id="wt4" onclick="wizGo(4)">4. Tax Adjustments</div>',
+      '<div class="wiz-tab" id="wt5" onclick="wizGo(5)">5. Payments</div>',
+      '<div class="wiz-tab" id="wt6" onclick="wizGo(6)">6. Recommendation</div>',
+    '</div>',
+    '<div class="card">',
 
-    // ── STEP 1: Basic Amount ─────────────────────────────────────────────
-    +'<div class="wiz-screen active" id="ws1">'
-    +'<div class="card-header"><div class="step-circle">1</div><div class="card-title">SARS Basic Amount</div></div>'
-    +'<div class="form-row">'
-    +'<div class="fg"><label>SARS Basic Amount</label><div class="rw"><span class="pre">R</span><input type="number" id="f-basic" value="'+(p.basicAmount||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Basic Amount Tax Year</label><input id="f-basic-yr" value="'+(p.basicAmountYear||'')+'" placeholder="e.g. 2025" oninput="wizCalc()"></div>'
-    +'</div>'
-    +'<div class="form-row">'
-    +'<div class="fg"><label>Date of Assessment (YYYYMMDD)</label><input id="f-assess-date" value="'+(p.assessmentDate||'')+'" maxlength="20" placeholder="20260228" onblur="formatDateInput(this);wizCalc()"></div>'
-    +'<div class="fg"><label>Taxable Income on Assessment</label><div class="rw"><span class="pre">R</span><input type="number" id="f-assess-ti" value="'+(p.assessedTI||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div class="form-row">'
-    +'<div class="fg"><label>Prior Taxable Capital Gain (exclude from basic)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-prior-tcg" value="'+(p.priorTCG||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>SARS Basic Amount Result</label><select id="f-basic-result">'
-    +'<option value="no-payment" '+((p.basicAmountResult||'no-payment')==='no-payment'?'selected':'')+'>No provisional tax payment is due</option>'
-    +'<option value="payment-due" '+(p.basicAmountResult==='payment-due'?'selected':'')+'>A payment is due based on basic amount</option>'
-    +'</select></div>'
-    +'</div>'
-    +'<div id="w1-msg"></div>'
-    +'<div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizGo(2)">Next →</button></div>'
-    +'</div>'
+    // STEP 1 - Basic Amount
+    '<div class="wiz-screen active" id="ws1">',
+      '<div class="card-header"><div class="step-circle">1</div><div class="card-title">SARS Basic Amount</div></div>',
+      '<div class="form-row">',
+        '<div class="fg"><label>SARS Basic Amount</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-basic" value="'+(p.basicAmount||'')+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>Basic Amount Tax Year</label>',
+          '<input id="f-basic-yr" value="'+(p.basicAmountYear||'')+'" placeholder="e.g. 2025">',
+        '</div>',
+      '</div>',
+      '<div class="form-row">',
+        '<div class="fg"><label>Date of Assessment (YYYYMMDD)</label>',
+          '<input id="f-assess-date" value="'+(p.assessmentDate||'')+'" maxlength="20" placeholder="20260228" onblur="formatDateInput(this);wizCalc()">',
+        '</div>',
+        '<div class="fg"><label>Taxable Income on Assessment</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-assess-ti" value="'+(p.assessedTI||'')+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+      '</div>',
+      '<div class="form-row">',
+        '<div class="fg"><label>Prior Taxable Capital Gain (exclude from basic)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-prior-tcg" value="'+(p.priorTCG||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>SARS Basic Amount Result</label>',
+          sel('f-basic-result',[['no-payment','No provisional tax payment is due'],['payment-due','A payment is due based on basic amount']],p.basicAmountResult||'no-payment',''),
+        '</div>',
+      '</div>',
+      '<div id="w1-msg"></div>',
+      '<div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizGo(2)">Next →</button></div>',
+    '</div>',
 
-    // ── STEP 2: Prior Year (unfiled financial year) ──────────────────────
-    +'<div class="wiz-screen" id="ws2">'
-    +'<div class="card-header"><div class="step-circle">2</div><div class="card-title">Prior Financial Year — Unfiled Return</div></div>'
-    +'<div class="info-note">ℹ️ If a financial year ended between the basic amount date and today but has not yet been assessed by SARS, capture those figures here. They are critical context for estimating the current year and comparing trend.</div>'
-    +'<div class="form-row">'
-    +'<div class="fg"><label>Prior Year Available?</label>'
-    +'<select id="f-py-avail" onchange="togglePriorYear();wizCalc()">'
-    +'<option value="no" '+((p.priorYearAvail||\'no\')===\'no\'?\'selected\':\'\')+\'>No — basic amount is current</option>\'
-    +'<option value="yes" '+(p.priorYearAvail===\'yes\'?\'selected\':\'\')+\'>Yes — there is a more recent unfiled year</option>\'
-    +'</select></div>'
-    +'<div class="fg"><label>Prior Year Financial Year End</label>'
-    +'<input id="f-py-yend" value="'+(p.priorYearEnd||'')+'" maxlength="20" placeholder="20260228" onblur="formatDateInput(this);wizCalc()"></div>'
-    +'</div>'
-    +'<div id="py-fields">'
-    +'<div class="form-row triple">'
-    +'<div class="fg"><label>Prior Year Turnover / Gross Income</label><div class="rw"><span class="pre">R</span><input type="number" id="f-py-turnover" value="'+(p.priorYearTurnover||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Prior Year Taxable Income / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-py-ti" value="'+(p.priorYearTI||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Prior Year Normal Tax</label><div class="rw"><span class="pre">R</span><input type="number" id="f-py-tax" value="'+(p.priorYearTax||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div class="form-row">'
-    +'<div class="fg"><label>Source of Prior Year Figures</label>'
-    +'<select id="f-py-source">'
-    +'<option value="afs" '+((p.priorYearSource||\'afs\')===\'afs\'?\'selected\':\'\')+\'>Annual Financial Statements</option>\'
-    +'<option value="mgmt" '+(p.priorYearSource===\'mgmt\'?\'selected\':\'\')+\'>Management Accounts</option>\'
-    +'<option value="draft" '+(p.priorYearSource===\'draft\'?\'selected\':\'\')+\'>Draft / Unaudited</option>\'
-    +'</select></div>'
-    +'<div class="fg"><label>Notes on Prior Year</label><input id="f-py-note" value="'+(p.priorYearNote||'')+'" placeholder="e.g. Return being prepared — AFS signed"></div>'
-    +'</div>'
-    +'<div id="w2-trend"></div>'
-    +'</div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(1)">← Back</button><button class="btn btn-primary" onclick="wizGo(3)">Next →</button></div>'
-    +'</div>'
+    // STEP 2 - Prior Year
+    '<div class="wiz-screen" id="ws2">',
+      '<div class="card-header"><div class="step-circle">2</div><div class="card-title">Prior Financial Year — Unfiled Return</div></div>',
+      '<div class="info-note">ℹ️ If a financial year ended between the basic amount date and today but has not yet been assessed, capture those figures here. They inform the trend analysis and estimate.</div>',
+      '<div class="form-row">',
+        '<div class="fg"><label>Prior Year Available?</label>',
+          sel('f-py-avail',[['no','No — basic amount is current'],['yes','Yes — there is a more recent unfiled year']],p.priorYearAvail||'no','onchange="togglePriorYear();wizCalc()"'),
+        '</div>',
+        '<div class="fg"><label>Prior Year Financial Year End (YYYYMMDD)</label>',
+          '<input id="f-py-yend" value="'+(p.priorYearEnd||'')+'" maxlength="20" placeholder="20260228" onblur="formatDateInput(this)">',
+        '</div>',
+      '</div>',
+      '<div id="py-fields">',
+        '<div class="form-row triple">',
+          '<div class="fg"><label>Prior Year Turnover / Gross Income</label><div class="rw"><span class="pre">R</span>',
+            '<input type="number" id="f-py-turnover" value="'+(p.priorYearTurnover||0)+'" placeholder="0.00" oninput="wizCalc()">',
+          '</div></div>',
+          '<div class="fg"><label>Prior Year Taxable Income / (Loss)</label><div class="rw"><span class="pre">R</span>',
+            '<input type="number" id="f-py-ti" value="'+(p.priorYearTI||0)+'" placeholder="0.00" oninput="wizCalc()">',
+          '</div></div>',
+          '<div class="fg"><label>Prior Year Normal Tax</label><div class="rw"><span class="pre">R</span>',
+            '<input type="number" id="f-py-tax" value="'+(p.priorYearTax||0)+'" placeholder="0.00" oninput="wizCalc()">',
+          '</div></div>',
+        '</div>',
+        '<div class="form-row">',
+          '<div class="fg"><label>Source of Prior Year Figures</label>',
+            sel('f-py-source',[['afs','Annual Financial Statements'],['mgmt','Management Accounts'],['draft','Draft / Unaudited']],p.priorYearSource||'afs',''),
+          '</div>',
+          '<div class="fg"><label>Notes on Prior Year</label>',
+            '<input id="f-py-note" value="'+(p.priorYearNote||'')+'" placeholder="e.g. Return being prepared — AFS signed">',
+          '</div>',
+        '</div>',
+        '<div id="w2-trend"></div>',
+      '</div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(1)">← Back</button><button class="btn btn-primary" onclick="wizGo(3)">Next →</button></div>',
+    '</div>',
 
-    // ── STEP 3: Current Position ─────────────────────────────────────────
-    +'<div class="wiz-screen" id="ws3">'
-    +'<div class="card-header"><div class="step-circle">3</div><div class="card-title">Current Financial Position</div></div>'
-    +'<div class="form-row triple">'
-    +'<div class="fg"><label>Mgmt Accounts From (YYYYMMDD)</label><input id="f-ma-from" value="'+(p.maFrom||'')+'" maxlength="20" placeholder="20260301" onblur="formatDateInput(this);wizCalc()"></div>'
-    +'<div class="fg"><label>Mgmt Accounts To (YYYYMMDD)</label><input id="f-ma-to" value="'+(p.maTo||'')+'" maxlength="20" placeholder="20260731" onblur="formatDateInput(this);wizCalc()"></div>'
-    +'<div class="fg"><label>Forecast Method</label><select id="f-forecast" onchange="toggleForecast();wizCalc()">'
-    +'<option value="annualise" '+((p.forecastMethod||\'annualise\')===\'annualise\'?\'selected\':\'\')+\'>Annualise current result</option>\'
-    +'<option value="remaining" '+(p.forecastMethod===\'remaining\'?\'selected\':\'\')+\'>Add expected remaining profit</option>\'
-    +'<option value="fullyear" '+(p.forecastMethod===\'fullyear\'?\'selected\':\'\')+\'>Enter full-year profit directly</option>\'
-    +'</select></div>'
-    +'</div>'
-    +'<div class="form-row">'
-    +'<div class="fg"><label>YTD Turnover / Gross Income</label><div class="rw"><span class="pre">R</span><input type="number" id="f-ytd-turn" value="'+(p.ytdTurnover||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>YTD Accounting Profit / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-ytd-p" value="'+(p.ytdProfit||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div class="form-row">'
-    +'<div class="fg" id="f-remaining-wrap" style="display:none"><label>Expected Remaining Profit / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-remaining" value="'+(p.remainingProfit||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg" id="f-fullyear-wrap" style="display:none"><label>Expected Full-Year Profit / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-fullyear" value="'+(p.fullYearProfit||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div class="form-row single"><div class="fg"><label>Forecast Basis Note</label><input id="f-forecast-note" value="'+(p.forecastNote||'')+'" placeholder="e.g. 5 months known, strong Q4 expected"></div></div>'
-    +'<div id="w3-msg"></div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(2)">← Back</button><button class="btn btn-primary" onclick="wizGo(4)">Next →</button></div>'
-    +'</div>'
+    // STEP 3 - Current Position
+    '<div class="wiz-screen" id="ws3">',
+      '<div class="card-header"><div class="step-circle">3</div><div class="card-title">Current Financial Position</div></div>',
+      '<div class="form-row triple">',
+        '<div class="fg"><label>Mgmt Accounts From (YYYYMMDD)</label>',
+          '<input id="f-ma-from" value="'+(p.maFrom||'')+'" maxlength="20" placeholder="20260301" onblur="formatDateInput(this);wizCalc()">',
+        '</div>',
+        '<div class="fg"><label>Mgmt Accounts To (YYYYMMDD)</label>',
+          '<input id="f-ma-to" value="'+(p.maTo||'')+'" maxlength="20" placeholder="20260731" onblur="formatDateInput(this);wizCalc()">',
+        '</div>',
+        '<div class="fg"><label>Forecast Method</label>',
+          sel('f-forecast',[['annualise','Annualise current result'],['remaining','Add expected remaining profit'],['fullyear','Enter full-year profit directly']],p.forecastMethod||'annualise','onchange="toggleForecast();wizCalc()"'),
+        '</div>',
+      '</div>',
+      '<div class="form-row">',
+        '<div class="fg"><label>YTD Turnover / Gross Income</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-ytd-turn" value="'+(p.ytdTurnover||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>YTD Accounting Profit / (Loss)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-ytd-p" value="'+(p.ytdProfit||'')+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+      '</div>',
+      '<div class="form-row">',
+        '<div class="fg" id="f-remaining-wrap" style="display:none"><label>Expected Remaining Profit / (Loss)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-remaining" value="'+(p.remainingProfit||'')+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg" id="f-fullyear-wrap" style="display:none"><label>Expected Full-Year Profit / (Loss)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-fullyear" value="'+(p.fullYearProfit||'')+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+      '</div>',
+      '<div class="form-row single"><div class="fg"><label>Forecast Basis Note</label>',
+        '<input id="f-forecast-note" value="'+(p.forecastNote||'')+'" placeholder="e.g. 5 months known, strong Q4 expected">',
+      '</div></div>',
+      '<div id="w3-msg"></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(2)">← Back</button><button class="btn btn-primary" onclick="wizGo(4)">Next →</button></div>',
+    '</div>',
 
-    // ── STEP 4: Tax Adjustments ──────────────────────────────────────────
-    +'<div class="wiz-screen" id="ws4">'
-    +'<div class="card-header"><div class="step-circle">4</div><div class="card-title">Tax Adjustments</div></div>'
-    +'<div class="info-note">Only enter adjustments that apply. Leave at zero if not applicable.</div>'
-    +'<div class="form-row triple">'
-    +'<div class="fg"><label>Accounting Depreciation (add back)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-acct-dep" value="'+(p.acctDep||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Tax Wear-and-Tear / Allowances</label><div class="rw"><span class="pre">R</span><input type="number" id="f-tax-dep" value="'+(p.taxDep||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Other Tax Add-Backs</label><div class="rw"><span class="pre">R</span><input type="number" id="f-addbacks" value="'+(p.addbacks||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div class="form-row triple">'
-    +'<div class="fg"><label>Other Tax Deductions</label><div class="rw"><span class="pre">R</span><input type="number" id="f-deductions" value="'+(p.deductions||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Taxable Capital Gain (current year)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-curr-tcg" value="'+(p.currentTCG||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Assessed Loss Available</label><div class="rw"><span class="pre">R</span><input type="number" id="f-loss" value="'+(p.assessedLoss||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div id="w4-msg"></div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(3)">← Back</button><button class="btn btn-primary" onclick="wizGo(5)">Next →</button></div>'
-    +'</div>'
+    // STEP 4 - Tax Adjustments
+    '<div class="wiz-screen" id="ws4">',
+      '<div class="card-header"><div class="step-circle">4</div><div class="card-title">Tax Adjustments</div></div>',
+      '<div class="info-note">Only enter adjustments that apply. Leave at zero if not applicable.</div>',
+      '<div class="form-row triple">',
+        '<div class="fg"><label>Accounting Depreciation (add back)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-acct-dep" value="'+(p.acctDep||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>Tax Wear-and-Tear / Allowances</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-tax-dep" value="'+(p.taxDep||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>Other Tax Add-Backs</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-addbacks" value="'+(p.addbacks||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+      '</div>',
+      '<div class="form-row triple">',
+        '<div class="fg"><label>Other Tax Deductions</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-deductions" value="'+(p.deductions||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>Taxable Capital Gain (current year)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-curr-tcg" value="'+(p.currentTCG||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>Assessed Loss Available</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-loss" value="'+(p.assessedLoss||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+      '</div>',
+      '<div id="w4-msg"></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(3)">← Back</button><button class="btn btn-primary" onclick="wizGo(5)">Next →</button></div>',
+    '</div>',
 
-    // ── STEP 5: Payments ─────────────────────────────────────────────────
-    +'<div class="wiz-screen" id="ws5">'
-    +'<div class="card-header"><div class="step-circle">5</div><div class="card-title">Tax Rate & Payments Made</div></div>'
-    +'<div class="info-note">Standard rate is 27%. For SBCs or trusts where a sliding scale or different rate applies, calculate the tax liability manually and enter it directly in the <strong>Tax Liability Override</strong> field — the override takes precedence over the rate calculation.</div>'
-    +'<div class="form-row triple">'
-    +'<div class="fg"><label>Tax Rate % (standard 27%)</label><input type="number" id="f-tax-rate" value="'+(p.taxRate||27)+'" step="0.01" oninput="wizCalc()"></div>'
-    +'<div class="fg"><label>Tax Liability Override <span style="font-weight:400;font-size:12px;">(SBC / sliding scale)</span></label><div class="rw"><span class="pre">R</span><input type="number" id="f-tax-override" value="'+(p.taxOverride||'')+'" placeholder="Leave blank to use rate%" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>PAYE / Tax Credits</label><div class="rw"><span class="pre">R</span><input type="number" id="f-credits" value="'+(p.credits||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div class="form-row">'
-    +'<div class="fg"><label>'+(isSecond?'1st Provisional Payment Made':'Prior Provisional Payment')+'</label><div class="rw"><span class="pre">R</span><input type="number" id="f-prev-pay" value="'+(p.prevPayment||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>S89Quat(2) Interest (if applicable)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-89quat" value="'+(p.s89quat||0)+'" placeholder="0.00"></div></div>'
-    +'</div>'
-    +'<div class="form-row single"><div class="fg"><label>Internal Notes</label><input id="f-notes" value="'+(p.notes||'')+'" placeholder="Internal notes…"></div></div>'
-    +'<div id="w5-msg"></div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(4)">← Back</button><button class="btn btn-primary" onclick="wizGo(6)">Calculate Recommendation →</button></div>'
-    +'</div>'
+    // STEP 5 - Payments
+    '<div class="wiz-screen" id="ws5">',
+      '<div class="card-header"><div class="step-circle">5</div><div class="card-title">Tax Rate & Payments Made</div></div>',
+      '<div class="info-note">Standard rate is 27%. For SBCs where a sliding scale applies, calculate the liability manually and enter it in the <strong>Tax Liability Override</strong> field below — it takes precedence over the rate.</div>',
+      '<div class="form-row triple">',
+        '<div class="fg"><label>Tax Rate % (standard 27%)</label>',
+          '<input type="number" id="f-tax-rate" value="'+(p.taxRate||27)+'" step="0.01" oninput="wizCalc()">',
+        '</div>',
+        '<div class="fg"><label>Tax Liability Override (SBC / sliding scale)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-tax-override" value="'+(p.taxOverride!=null?p.taxOverride:'')+'" placeholder="Leave blank to use rate%" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>PAYE / Tax Credits</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-credits" value="'+(p.credits||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+      '</div>',
+      '<div class="form-row">',
+        '<div class="fg"><label>'+(isSecond?'1st Provisional Payment Made':'Prior Provisional Payment')+'</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-prev-pay" value="'+(p.prevPayment||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+        '<div class="fg"><label>S89Quat(2) Interest (if applicable)</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-89quat" value="'+(p.s89quat||0)+'" placeholder="0.00">',
+        '</div></div>',
+      '</div>',
+      '<div class="form-row single"><div class="fg"><label>Internal Notes</label>',
+        '<input id="f-notes" value="'+(p.notes||'')+'" placeholder="Internal notes…">',
+      '</div></div>',
+      '<div id="w5-msg"></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(4)">← Back</button><button class="btn btn-primary" onclick="wizGo(6)">Calculate Recommendation →</button></div>',
+    '</div>',
 
-    // ── STEP 6: Recommendation ───────────────────────────────────────────
-    +'<div class="wiz-screen" id="ws6">'
-    +'<div class="card-header"><div class="step-circle">6</div><div class="card-title">Recommendation</div></div>'
-    +'<div id="w6-result"></div>'
-    +'<div class="form-row" style="margin-top:16px;">'
-    +'<div class="fg"><label>Recommendation</label><select id="f-rec" onchange="wizCalc()">'
-    +'<option value="payment" '+(p.recommendation===\'payment\'?\'selected\':\'\')+\'>Proceed with calculated estimate — payment due</option>\'
-    +'<option value="nil" '+((p.recommendation||\'nil\')===\'nil\'?\'selected\':\'\')+\'>Calculated estimate confirms nil payment</option>\'
-    +'<option value="basic" '+(p.recommendation===\'basic\'?\'selected\':\'\')+\'>Stick to the basic amount</option>\'
-    +'</select></div>'
-    +'<div class="fg"><label>Final Amount Payable</label><div class="rw"><span class="pre">R</span><input type="number" id="f-payable" value="'+(p.amountPayable||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'</div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(5)">← Back</button>'
-    +'<div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="openWorkpaper()">📄 Workpaper</button>'
-    +'<button class="btn btn-secondary" onclick="openEmail()">📧 Email</button>'
-    +'<button class="btn btn-primary" onclick="saveReturn()">💾 Save</button></div></div>'
-    +'</div>'
-    +'</div>';
+    // STEP 6 - Recommendation
+    '<div class="wiz-screen" id="ws6">',
+      '<div class="card-header"><div class="step-circle">6</div><div class="card-title">Recommendation</div></div>',
+      '<div id="w6-result"></div>',
+      '<div class="form-row" style="margin-top:16px;">',
+        '<div class="fg"><label>Recommendation</label>',
+          sel('f-rec',[['payment','Proceed with calculated estimate — payment due'],['nil','Calculated estimate confirms nil payment'],['basic','Stick to the basic amount']],p.recommendation||'nil',''),
+        '</div>',
+        '<div class="fg"><label>Final Amount Payable</label><div class="rw"><span class="pre">R</span>',
+          '<input type="number" id="f-payable" value="'+(p.amountPayable||0)+'" placeholder="0.00" oninput="wizCalc()">',
+        '</div></div>',
+      '</div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(5)">← Back</button>',
+        '<div style="display:flex;gap:8px;">',
+          '<button class="btn btn-ghost" onclick="openWorkpaper()">📄 Workpaper</button>',
+          '<button class="btn btn-secondary" onclick="openEmail()">📧 Email</button>',
+          '<button class="btn btn-primary" onclick="saveReturn()">💾 Save</button>',
+        '</div>',
+      '</div>',
+    '</div>',
 
-  _wizStep=p.wizStep||1;wizGo(_wizStep,true);toggleForecast();togglePriorYear();wizCalc();
-}
-
-function togglePriorYear(){
-  const v=gv('f-py-avail');
-  const el=document.getElementById('py-fields');
-  if(el)el.style.display=v==='yes'?'block':'none';
+    '</div>'  // close .card
+  ];
+  wizEl.innerHTML=H.join('');
+  _wizStep=p.wizStep||1;
+  wizGo(_wizStep,true);
+  toggleForecast();
+  togglePriorYear();
+  wizCalc();
 }
 function wizGo(step,silent){
   _wizStep=step;
@@ -1596,11 +1648,7 @@ window.selectReturn=function(retId){
   }
 };
 
-initAuth();
 
-</script>
-</body>
-</html
 function wizCalc(){
   // ── Step 1: Basic Amount ──────────────────────────────────────────────
   const sarsBasic=_n('f-basic'),assessedTI=_n('f-assess-ti'),priorTCG=_n('f-prior-tcg');
@@ -1711,4 +1759,9 @@ function wizCalc(){
   }
   window._calc={forecast,ti,rawTI,tax,calcPay,rate,sarsBasic,calcBasic,annualisedTurnover,taxOverride,pyTI,pyTurn};
 }
->
+
+initAuth();
+
+</script>
+</body>
+</html>
