@@ -493,7 +493,8 @@ const MSAL_CONFIG={auth:{clientId:'b650f7f7-44c6-403f-808f-fd459f12b36c',authori
 const SP_HOST='tutinsa.sharepoint.com',SITE_PATH='/sites/TutinBusinessAdminServices',SCOPES=['https://graph.microsoft.com/.default'];
 const L_CLIENTS='Tutin_Client_Register',L_DIRECTORS='Tutin_Directors_Register',L_RETURNS='Tutin_Client_ProTaxReturns';
 let msalApp=null,_account=null,_siteId=null,_spReturnMap={};
-let _retColMap={};  // display->internal for returns list, populated on load
+let _retColMap={};
+let _retFieldsByDisplay={};  // display->internal for returns list, populated on load
 let DB={clients:[],directors:{},returns:[]};
 let activeClientKey=null,activeReturnId=null,activeType='irp6',activePeriod=null,activeAssignee='',activePane='details';
 let _wizStep=1,_saving=false;
@@ -639,13 +640,10 @@ async function loadAll(){
       }
       const map={};
       (d.value||[]).forEach(col=>{
-        // Try all possible property names for internal name and display name
-        const internalName = col.name || col.internalName || col.id || '';
+        const internalName = col.name || '';
         const displayName  = col.displayName || col.title || col.name || '';
-        if(internalName && displayName){
+        if(internalName && displayName && !internalName.startsWith('_')){
           map[internalName] = displayName;
-          // ALSO map by displayName->internalName for reverse lookup
-          map['__rev__'+displayName] = internalName;
         }
       });
       console.log('Column map for '+listName+':', map);
@@ -653,25 +651,29 @@ async function loadAll(){
     }
     // Enhanced fByDisplay that also tries the reverse map
     function fByDisplay(fields, colMap, displayName, fallbacks=[]){
-      // Try: find internal name from reverse map
-      const internalName = colMap['__rev__'+displayName];
+      // Find the internal name (e.g. field_0) for this display name (e.g. ClientKey)
+      const internalName = Object.entries(colMap).find(([k,v])=>v===displayName)?.[0];
       if(internalName && fields[internalName] != null) return fields[internalName];
-      // Try direct key (sometimes internal = display)
+      // Try direct key match (Title is always Title)
       if(fields[displayName] != null) return fields[displayName];
-      // Try case-insensitive scan of all field keys
+      // Try case-insensitive scan
       const lcDisplay = displayName.toLowerCase().replace(/[^a-z0-9]/g,'');
       const match = Object.keys(fields).find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'') === lcDisplay);
       if(match && fields[match] != null) return fields[match];
-      // Try fallbacks
       for(const fb of fallbacks) if(fields[fb] != null) return fields[fb];
       return '';
     }
     const clientColMap = await getColMap(L_CLIENTS);
     const dirColMap    = await getColMap(L_DIRECTORS);
     const retColMap    = await getColMap(L_RETURNS);
-    // Store reverse map (display->internal) globally for use in save
-    _retColMap={};
-    Object.entries(retColMap).forEach(([internal,display])=>{_retColMap[display]=internal;});
+    // Build clean display->internal map for saves (exclude __rev__ entries)
+    _retFieldsByDisplay={};
+    Object.entries(retColMap).forEach(([internal,display])=>{
+      if(!internal.startsWith('__rev__') && !display.startsWith('__rev__')){
+        _retFieldsByDisplay[display]=internal;
+      }
+    });
+    console.log('Return field map (display->internal):', _retFieldsByDisplay);
 
     // fByDisplay is now defined inside getColMap block above
 
@@ -1279,23 +1281,24 @@ async function spSaveReturn(ret){
   const c=getClient(ret.clientKey);
   const{id,clientKey,returnType,returnPeriod,status,dueDate,assignedTo,...dataFields}=ret;
   const effectiveAssignedTo=assignedTo||c?.assignedTo||'';
-  // Use internal field names for saving (reverse lookup from display names)
-  function retField(displayName){return _retColMap[displayName]||displayName;}
+  // _retFieldsByDisplay maps displayName->internalName (e.g. 'ClientKey'->'field_0')
+  // Fall back to the display name itself if not found (for Title which is always Title)
+  const fi=(displayName)=>_retFieldsByDisplay[displayName]||displayName;
   const fields={
     Title:id,
-    [retField('ClientKey')]:clientKey,
-    [retField('ReturnType')]:returnType,
-    [retField('ReturnPeriod')]:returnPeriod,
-    [retField('Status')]:status,
-    [retField('DueDate')]:dueDate||'',
-    [retField('AssignedTo')]:effectiveAssignedTo,
-    [retField('ReturnData')]:JSON.stringify(dataFields)
+    [fi('ClientKey')]:clientKey,
+    [fi('ReturnType')]:returnType,
+    [fi('ReturnPeriod')]:returnPeriod,
+    [fi('Status')]:status,
+    [fi('DueDate')]:dueDate||'',
+    [fi('AssignedTo')]:effectiveAssignedTo,
+    [fi('ReturnData')]:JSON.stringify(dataFields)
   };
-  // Remove undefined keys (if retField returned same name for Title, avoid duplicate)
-  delete fields['undefined'];
-  const spId=_spReturnMap[ret.id];
-  if(spId){
-    await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_RETURNS+'/items/'+spId+'/fields',fields);
+  // Remove any undefined or empty keys
+  Object.keys(fields).forEach(k=>{if(!k||k==='undefined')delete fields[k];});
+  console.log('Saving fields:', JSON.stringify(fields));
+  if(_spReturnMap[ret.id]){
+    await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_RETURNS+'/items/'+_spReturnMap[ret.id]+'/fields',fields);
   }else{
     const result=await gPost('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_RETURNS+'/items',{fields});
     if(result?.id)_spReturnMap[ret.id]=result.id;
