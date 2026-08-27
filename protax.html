@@ -1225,8 +1225,8 @@ function renderWizard(c,p){
   wizEl.innerHTML=H.join('');
   _wizStep=p.wizStep||1;
   wizGo(_wizStep,true);
-  toggleForecast();
-  togglePriorYear();
+  try{toggleForecast();}catch(e){}
+  try{togglePriorYear();}catch(e){}
   wizCalc();
 }
 function wizGo(step,silent){
@@ -1365,13 +1365,15 @@ async function saveReturn(){
   const btn=$('btn-save-return');if(btn){btn.disabled=true;btn.textContent='⟳ Saving…';}
   try{
     await spSaveReturn(ret);
-    setSave('saved');toast('✅ Saved to SharePoint','success');renderReturnList();
+    setSave('saved');toast('✅ Saved to SharePoint','success');
   }catch(e){
     console.error('Save failed:',e);setSave('failed',e.message);
     toast('⚠ Save failed: '+e.message,'error',8000);
   }finally{
     _saving=false;if(btn){btn.disabled=false;btn.textContent='💾 Save Return';}
   }
+  // Refresh list outside try/catch so SP save errors aren't masked by render errors
+  try{renderReturnList();}catch(e){console.warn('renderReturnList after save:',e);}
 }
 
 // ── Add / delete return ───────────────────────────────────────────────────
