@@ -1178,7 +1178,7 @@ function renderWizard(c,p){
           '<input type="number" id="f-tax-rate" value="'+(p.taxRate||27)+'" step="0.01" oninput="wizCalc()">',
         '</div>',
         '<div class="fg"><label>Tax Liability Override (SBC / sliding scale)</label><div class="rw"><span class="pre">R</span>',
-          '<input type="number" id="f-tax-override" value="'+(p.taxOverride!=null&&p.taxOverride!==0?p.taxOverride:'')+'" placeholder="Leave blank to use rate%" oninput="wizCalc()">',
+          '<input type="number" id="f-tax-override" value="'+(p.taxOverride!=null?p.taxOverride:'')+'" placeholder="Leave blank to use rate%" oninput="wizCalc()">',
         '</div></div>',
         '<div class="fg"><label>PAYE / Tax Credits</label><div class="rw"><span class="pre">R</span>',
           '<input type="number" id="f-credits" value="'+(p.credits||0)+'" placeholder="0.00" oninput="wizCalc()">',
@@ -1397,7 +1397,7 @@ function blankReturn(type,period,due,clientKey,assignedTo){
     assessmentDate:'',assessedTI:0,priorTCG:0,maFrom:'',maTo:'',ytdProfit:0,
     forecastMethod:'annualise',remainingProfit:0,fullYearProfit:0,forecastNote:'',
     acctDep:0,taxDep:0,addbacks:0,deductions:0,currentTCG:0,assessedLoss:0,
-    taxRate:27,prevPayment:0,credits:0,s89quat:0,recommendation:'nil',amountPayable:0,notes:''};
+    taxRate:27,taxOverride:null,prevPayment:0,credits:0,s89quat:0,recommendation:'nil',amountPayable:0,notes:''};
   return{...base,checks:{},notes:''};
 }
 
