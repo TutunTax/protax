@@ -491,7 +491,8 @@ var st,ct,ut,lt,dt,ht,pt,gt,ft,mt=function(){function t(e,t,r){this.networkInter
 const MSAL_CONFIG={auth:{clientId:'b650f7f7-44c6-403f-808f-fd459f12b36c',authority:'https://login.microsoftonline.com/93c093ef-7bd4-4c11-b658-80e6abb197ed',redirectUri:window.location.href.split('?')[0].split('#')[0]},cache:{cacheLocation:'localStorage',storeAuthStateInCookie:false}};
 const SP_HOST='tutinsa.sharepoint.com',SITE_PATH='/sites/TutinBusinessAdminServices',SCOPES=['https://graph.microsoft.com/.default'];
 const L_CLIENTS='Tutin_Client_Register',L_DIRECTORS='Tutin_Directors_Register',L_RETURNS='Tutin_Client_ProTaxReturns';
-let msalApp=null,_account=null,_siteId=null,_spReturnMap={};
+let msalApp=null,_account=null,_siteId=null;
+let _spReturnMap={};
 let _retColMap={};
 let _retFieldsByDisplay={};  // display->internal for returns list, populated on load
 let DB={clients:[],directors:{},returns:[]};
@@ -508,6 +509,7 @@ const openModal=id=>$(id).classList.add('open');
 const closeModal=id=>$(id).classList.remove('open');
 const ENTITY_LABEL={company:'Company (Pty) Ltd',cc:'CC',soleprop:'Sole Proprietor',individual:'Individual',trust:'Trust'};
 const eLabel=t=>ENTITY_LABEL[t]||t||'—';
+const escHtml=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const S_LABEL={todo:'To Do',inprogress:'In Progress',awaiting:'Awaiting Info',emailsent:'Email Sent',submitted:'Submitted'};
 const S_CLASS={todo:'b-todo',inprogress:'b-inprogress',awaiting:'b-awaiting',emailsent:'b-emailsent',submitted:'b-submitted'};
 const T_CLASS={irp6:'t-irp6',itr14:'t-itr14',itr12:'t-itr12'};
@@ -924,7 +926,6 @@ function renderDirectors(clientKey){
   ).join('');
 }
 
-function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ── Returns pane ──────────────────────────────────────────────────────────
 function renderReturnsPane(){
@@ -1242,6 +1243,12 @@ function toggleForecast(){
   const v=gv('f-forecast');
   const rw=$('f-remaining-wrap');if(rw)rw.style.display=v==='remaining'?'':'none';
   const fw=$('f-fullyear-wrap');if(fw)fw.style.display=v==='fullyear'?'':'none';
+}
+
+function togglePriorYear(){
+  const v=gv('f-py-avail');
+  const el=document.getElementById('py-fields');
+  if(el)el.style.display=v==='yes'?'block':'none';
 }
 
 
