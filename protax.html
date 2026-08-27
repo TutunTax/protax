@@ -499,7 +499,8 @@ let activeClientKey=null,activeReturnId=null,activeType='irp6',activePeriod=null
 let _wizStep=1,_saving=false;
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const Rfmt=n=>{const v=parseFloat(n)||0;return'R\u00a0'+v.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});};
-const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():'';}
+const _n=id=>{const e=document.getElementById(id);return e?parseFloat(e.value.replace(/,/g,''))||0:0;};;
 const gn=id=>{const e=document.getElementById(id);return e?parseFloat(e.value.replace(/,/g,''))||0:0;};
 const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=String(v??'');};
 const $=id=>document.getElementById(id);
