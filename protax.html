@@ -283,7 +283,6 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
         <div id="client-header-title">—</div>
         <div id="client-header-actions">
           <button class="btn btn-ghost btn-sm" onclick="openEditModal()">✏️ Edit</button>
-          <button class="btn btn-primary btn-sm" id="btn-save-return" onclick="saveReturn()" style="display:none;">💾 Save Return</button>
         </div>
       </div>
 
@@ -873,7 +872,7 @@ function showClientPane(pane){
     if(t.classList.contains('placeholder'))return;
     t.classList.toggle('active',t.id==='tab-'+pane);
   });
-  $('btn-save-return').style.display=pane==='returns'&&activeReturnId?'inline-flex':'none';
+
   if(pane==='details')renderDetailsPane();
   if(pane==='returns')renderReturnsPane();
 }
@@ -994,12 +993,13 @@ function renderReturnList(){
 function selectReturn(retId){
   try{captureForm();}catch(e){}
   activeReturnId=retId;
-  $('btn-save-return').style.display='inline-flex';
+  
   renderReturnList();
 }
 
 // ── IRP6 Wizard ───────────────────────────────────────────────────────────
 function renderWizard(c,p){
+  activeReturnId=p.id;  // ensure getReturn() works from wizard buttons
   const isSecond=p.returnPeriod?.endsWith('-02');
   const wizEl=$('wizard-area');
   const sel=(id,opts,cur,extra)=>{
@@ -1376,7 +1376,7 @@ function addReturn(){
   DB.returns.push(ret);activeReturnId=ret.id;
   if(activePeriod!==period){activePeriod=period;renderPeriodPills();}
   renderReturnList();
-  $('btn-save-return').style.display='inline-flex';
+  
   toast(T_LABEL[type]+' '+period+' created — fill in details and click Save','info',5000);
 }
 
@@ -1441,7 +1441,7 @@ async function deleteReturn(){
     catch(e){toast('⚠ Could not delete from SharePoint: '+e.message,'error');return;}
   }
   DB.returns=DB.returns.filter(r=>r.id!==rid);
-  if(activeReturnId===rid){activeReturnId=null;$('btn-save-return').style.display='none';}
+  if(activeReturnId===rid){activeReturnId=null;}
   const ds=$('ec-del-return');ds.innerHTML='<option value="">— Select return —</option>';
   clientReturns(activeClientKey).forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=T_LABEL[r.returnType]+' '+r.returnPeriod+' — '+(S_LABEL[r.status]||r.status);ds.appendChild(o);});
   toast(label+' deleted','success');
@@ -1636,7 +1636,7 @@ const _baseRenderReturnList=renderReturnList;
 window.selectReturn=function(retId){
   try{captureForm();}catch(e){}
   activeReturnId=retId;
-  $('btn-save-return').style.display='inline-flex';
+  
   const c=getClient();
   const ret=DB.returns.find(r=>r.id===retId);
   renderReturnList();
