@@ -630,7 +630,7 @@ async function loadAll(){
     // Step 1: Get column schemas to map internal names (field_0, field_1…) to display names
     const siteId=await getSiteId();
     async function getColMap(listName){
-      const url='https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+listName+'/columns';
+      const url='https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+listName+'/columns?$top=100';
       const d=await gGet(url);
       // Log RAW column objects so we can see every property
       if(listName===L_CLIENTS && d.value && d.value.length>0){
@@ -675,22 +675,6 @@ async function loadAll(){
 
     // fByDisplay is now defined inside getColMap block above
 
-    // Show debug panel - log both the column map AND first record raw values
-    // This tells us exactly which field_N maps to which column
-    const dbgContent=document.getElementById('sp-debug-content');
-    const dbgPanel=document.getElementById('sp-debug');
-    if(dbgContent&&dbgPanel){
-      // Also get raw fields from first item to cross-reference
-      const rawDebug={
-        clientColMap,
-        firstClientRawFields: cItems.length>0 ? cItems[0].fields : {},
-        dirColMap,
-        firstDirRawFields: dItems.length>0 ? dItems[0].fields : {}
-      };
-      dbgContent.textContent=JSON.stringify(rawDebug,null,2);
-      dbgPanel.style.display='block';
-    }
-
     sync('Loading clients…');
     const cItems=await getAll(L_CLIENTS,'$select=id&$expand=fields');
 
@@ -699,6 +683,23 @@ async function loadAll(){
 
     sync('Loading returns…');
     const rItems=await getAll(L_RETURNS,'$select=id&$expand=fields');
+
+    // Show debug panel now that we have all data
+    {
+      const dbgContent=document.getElementById('sp-debug-content');
+      const dbgPanel=document.getElementById('sp-debug');
+      if(dbgContent&&dbgPanel){
+        const rawDebug={
+          clientColMap,
+          firstClientRawFields: cItems.length>0 ? cItems[0].fields : {},
+          dirColMap,
+          retColMap,
+          firstReturnRawFields: rItems.length>0 ? rItems[0].fields : {}
+        };
+        dbgContent.textContent=JSON.stringify(rawDebug,null,2);
+        dbgPanel.style.display='block';
+      }
+    }
 
     // Map clients using display-name-based field lookup
     DB.clients=cItems.map(item=>{
