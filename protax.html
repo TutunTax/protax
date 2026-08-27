@@ -467,9 +467,13 @@ async function loadAll(){
     sync('Loading returns…');
     const rItems=await getAll(L_RETURNS,'$select=id&$expand=fields($select=Title,ClientKey,ReturnType,ReturnPeriod,Status,DueDate,AssignedTo,ReturnData)');
 
+    // Debug: log first client fields to understand SP column names
+    if(cItems.length>0) console.log('Sample client fields:',JSON.stringify(cItems[0].fields));
     DB.clients=cItems.map(item=>{
       const f=item.fields;
-      return{clientKey:f.ClientKey||'',companyName:f.Title||'',clientStatus:f.ClientStatus||'Active',
+      // ClientKey internal name might differ - try common variations
+      const clientKey=f.ClientKey||f.clientKey||f.ClientKey0||'';
+      return{clientKey,companyName:f.Title||'',clientStatus:f.ClientStatus||'Active',
         assignedTo:f.AssignedTo||'',registrationNumber:f.RegistrationNumber||'',
         cipcRenewalMonth:f.CIPCRenewalMonth||'',natureOfBusiness:f.NatureOfBusiness||'',
         businessAddress:f.BusinessAddress||'',taxNumber:f.TaxNumber||'',vatNumber:f.VATNumber||'',
@@ -510,9 +514,11 @@ async function loadAll(){
 
 async function spSaveReturn(ret){
   const siteId=await getSiteId();
+  const c=getClient(ret.clientKey);
   const{id,clientKey,returnType,returnPeriod,status,dueDate,assignedTo,...dataFields}=ret;
+  const effectiveAssignedTo=assignedTo||c?.assignedTo||'';
   const fields={Title:id,ClientKey:clientKey,ReturnType:returnType,ReturnPeriod:returnPeriod,
-    Status:status,DueDate:dueDate||'',AssignedTo:assignedTo||'',ReturnData:JSON.stringify(dataFields)};
+    Status:status,DueDate:dueDate||'',AssignedTo:effectiveAssignedTo,ReturnData:JSON.stringify(dataFields)};
   const spId=_spReturnMap[ret.id];
   if(spId){
     await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_RETURNS+'/items/'+spId+'/fields',fields);
@@ -614,7 +620,8 @@ function renderList(){
 }
 
 function selectClient(clientKey,returnId){
-  captureForm();activeClientKey=clientKey;activeReturnId=returnId||null;
+  try{captureForm();}catch(e){console.warn('captureForm error:',e);}
+  activeClientKey=clientKey;activeReturnId=returnId||null;
   renderList();renderForm();
 }
 
@@ -675,7 +682,7 @@ function renderIRP6(c,p){
     +'<option value="confirmed" '+(p.paymentStatus==='confirmed'?'selected':'')+'>✅ Confirmed</option>'
     +'</select></div>'
     +'<div class="status-group"><span class="status-label">Due Date</span>'
-    +'<input class="status-input" id="f-due" value="'+(p.dueDate||'')+'" placeholder="20270829 or Friday 29 Aug" style="width:220px;" onblur="parseDue(this);wizCalc()"></div>'
+    +'<input type="date" class="status-input" id="f-due" value="'+(p.dueDate||'')+'" style="width:180px;" oninput="wizCalc()"></div>'
     +'<div class="status-group"><span class="status-label">Contact</span>'
     +'<input class="status-input" id="f-contact" value="'+(p.contactName||c.contactName||'')+'" placeholder="Contact name" style="width:160px;"></div>'
     +'</div>'
@@ -805,7 +812,11 @@ function wizCalc(){
     const assDate=_d('f-assess-date');
     const dueTxt=($('f-due')||{}).value||'';
     let dueDate=null;
-    if(dueTxt){const d=new Date(dueTxt);if(!isNaN(d.getTime()))dueDate=d;}
+    if(dueTxt){
+      // date input returns ISO: 2026-08-31
+      const d=new Date(dueTxt+'T00:00:00');
+      if(!isNaN(d.getTime()))dueDate=d;
+    }
     if(assDate&&dueDate){
       const gap=Math.round((dueDate-assDate)/86400000);
       el1.innerHTML=gap>=14
@@ -888,7 +899,7 @@ function renderITR(c,ret){
     +'<option value="submitted" '+(ret.status==='submitted'?'selected':'')+'>✅ Submitted</option>'
     +'</select></div>'
     +'<div class="status-group"><span class="status-label">Due Date</span>'
-    +'<input class="status-input" id="f-due" value="'+(ret.dueDate||'')+'" placeholder="20271130" style="width:220px;" onblur="parseDue(this)"></div>'
+    +'<input type="date" class="status-input" id="f-due" value="'+(ret.dueDate||'')+'" style="width:180px;"></div>'
     +'</div>'
     +'<div class="card">'
     +'<div class="card-header"><span class="ttag '+T_CLASS[ret.returnType]+'" style="font-size:13px;padding:4px 12px;">'+T_LABEL[ret.returnType]+'</span>'
@@ -947,8 +958,7 @@ async function addReturn(){
   const type=activeType;
   const period=prompt('Return period? (e.g. '+(type==='irp6'?'2027-01':'2027')+')',activePeriod||'');
   if(!period)return;
-  let due=prompt('Due date? (type 20270829 or Friday 29 August 2027)','')||'';
-  if(/^\d{8}$/.test(due.replace(/\s/g,''))){const fakeEl={value:due.replace(/\s/g,'')};parseDue(fakeEl);due=fakeEl.value;}
+  const due='';  // User sets due date in the form
   const ret=blankReturn(type,period,due,c.clientKey,c.assignedTo);
   DB.returns.push(ret);activeReturnId=ret.id;
   if(activePeriod!==period){activePeriod=period;renderPeriodPills();}
