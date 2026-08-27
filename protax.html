@@ -631,11 +631,18 @@ async function loadAll(){
     DB.clients=cItems.map(item=>{
       const f=item.fields;
       // Try all possible internal names for ClientKey
-      const ck=f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||'';
-      if(!ck&&cItems.indexOf(item)===0)console.warn('ClientKey not found in fields:',JSON.stringify(f));
+      // Log first record's field keys so admin can identify the correct internal name
+      if(cItems.indexOf(item)===0){
+        console.log('SP CLIENT FIELD KEYS:',Object.keys(f));
+        console.log('SP CLIENT FIRST RECORD:',JSON.stringify(f));
+      }
+      const ck=f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||f.ClientKey1||
+               Object.entries(f).find(([k,v])=>k.toLowerCase().includes('clientkey')&&v)?.[1]||'';
+      // Fallback: use SP item ID as key so clients are always selectable
+      const effectiveKey=ck||('_sp_'+item.id);
       return{
         _spId:item.id,
-        clientKey:ck,
+        clientKey:effectiveKey,
         companyName:f.Title||'',
         clientStatus:f.ClientStatus||'Active',
         assignedTo:f.AssignedTo||'',
@@ -659,7 +666,8 @@ async function loadAll(){
     const dirsByKey={};
     dItems.forEach(item=>{
       const f=item.fields;
-      const key=f.ClientKey||f.clientKey||f.ClientKey0||'';
+      const key=f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||
+                Object.entries(f).find(([k,v])=>k.toLowerCase().includes('clientkey')&&v)?.[1]||'';
       if(!key)return;
       if(!dirsByKey[key])dirsByKey[key]=[];
       dirsByKey[key].push({name:f.Title||'',role:f.Role||'Director',interest:f.Interest||'0',
@@ -671,7 +679,8 @@ async function loadAll(){
     DB.returns=rItems.map(item=>{
       const f=item.fields;
       let extra={};try{extra=JSON.parse(f.ReturnData||'{}');}catch{}
-      const ck=f.ClientKey||f.clientKey||f.ClientKey0||'';
+      const ck=f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||
+                Object.entries(f).find(([k,v])=>k.toLowerCase().includes('clientkey')&&v)?.[1]||'';
       const ret={id:f.Title||item.id,clientKey:ck,returnType:f.ReturnType||'irp6',
         returnPeriod:f.ReturnPeriod||'',status:f.Status||'todo',dueDate:f.DueDate||'',
         assignedTo:f.AssignedTo||'',...extra};
@@ -728,21 +737,31 @@ function renderList(){
   if(!ordered.length){list.innerHTML='<div style="padding:20px;font-size:14px;color:var(--ink-light);text-align:center;">No clients match.</div>';return;}
   list.innerHTML=ordered.map(({c,inactive:inact,cRets})=>{
     const isActive=c.clientKey===activeClientKey;
-    // Show most recent return status badge
     const latestRet=cRets.length?cRets[cRets.length-1]:null;
     const statusBadge=latestRet?'<span class="badge '+(S_CLASS[latestRet.status]||'b-todo')+'">'+(S_LABEL[latestRet.status]||latestRet.status)+'</span>':'';
     const assignedSpan=c.assignedTo?'<span class="cl-assigned">'+c.assignedTo+'</span>':'';
-    return '<div class="cl-item'+(inact?' inactive':'')+(isActive?' active':'')+'" onclick="selectClient(\''+c.clientKey+'\')">'
+    return '<div class="cl-item'+(inact?' inactive':'')+(isActive?' active':'')+'" data-ck="'+encodeURIComponent(c.clientKey||'')+'">'
       +'<div class="cl-name">'+c.companyName+'</div>'
       +(c.registrationNumber?'<div class="cl-reg">'+c.registrationNumber+'</div>':'')
       +'<div class="cl-badges">'+statusBadge+assignedSpan+'</div>'
       +'</div>';
   }).join('');
+  list.onclick=null;
+  list.onclick=function(e){
+    const item=e.target.closest('[data-ck]');
+    if(!item)return;
+    selectClient(decodeURIComponent(item.dataset.ck||''));
+  };
 }
 
 // ── Client selection & display ────────────────────────────────────────────
 function selectClient(clientKey){
   try{captureForm();}catch(e){}
+  // If clientKey is blank (SP field name mismatch), find client by data-ck index
+  if(!clientKey){
+    console.warn('selectClient called with blank key — ClientKey SP field name mismatch');
+    return;
+  }
   activeClientKey=clientKey;
   activeReturnId=null;
   renderList();
@@ -861,12 +880,18 @@ function renderReturnList(){
   }
   listEl.innerHTML='<div class="return-list">'+rets.map(r=>{
     const isActive=r.id===activeReturnId;
-    return '<div class="return-card'+(isActive?' active':'')+'" onclick="selectReturn(\''+r.id+'\')">'
+    return '<div class="return-card'+(isActive?' active':'')+'" data-rid="'+encodeURIComponent(r.id)+'">'
       +'<div class="rc-left"><div class="rc-title"><span class="ttag '+T_CLASS[r.returnType]+'">'+T_LABEL[r.returnType]+'</span> '+escHtml(r.returnPeriod)+'</div>'
       +'<div class="rc-meta">Due: '+(r.dueDate||'—')+' · '+(S_LABEL[r.status]||r.status)+(r.amountPayable?(' · '+Rfmt(r.amountPayable)):'')+'</div></div>'
       +'<div class="rc-right"><span class="badge '+(S_CLASS[r.status]||'b-todo')+'">'+(S_LABEL[r.status]||r.status)+'</span></div>'
       +'</div>';
   }).join('')+'</div>';
+  listEl.onclick=null;
+  listEl.onclick=function(e){
+    const item=e.target.closest('[data-rid]');
+    if(!item)return;
+    window.selectReturn(decodeURIComponent(item.dataset.rid||''));
+  };
   if(activeReturnId){
     const ret=rets.find(r=>r.id===activeReturnId);
     if(ret)renderWizard(c,ret);
