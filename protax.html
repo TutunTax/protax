@@ -265,6 +265,13 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 
   <!-- Right: client content area -->
   <div id="main">
+    <div id="sp-debug" style="display:none;position:fixed;top:60px;right:10px;z-index:9000;background:#1e1e1e;color:#d4d4d4;font-size:11px;font-family:monospace;padding:12px 16px;border-radius:8px;max-width:500px;max-height:400px;overflow:auto;white-space:pre-wrap;border:2px solid #840811;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <strong style="color:#fca5a5;">SP Field Debug (close when done)</strong>
+        <button onclick="document.getElementById('sp-debug').style.display='none'" style="background:#840811;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;">✕</button>
+      </div>
+      <div id="sp-debug-content"></div>
+    </div>
     <div id="empty-state">
       <div class="es-icon">📋</div>
       <h3>Select a client</h3>
@@ -619,59 +626,126 @@ async function getAll(listName,sel){
 async function loadAll(){
   sync('Loading clients…');
   try{
-    const cItems=await getAll(L_CLIENTS,'$select=id&$expand=fields($select=Title,ClientKey,ClientStatus,AssignedTo,RegistrationNumber,CIPCRenewalMonth,NatureOfBusiness,BusinessAddress,TaxNumber,VATNumber,PAYENumber,UIFNumber,COIDANumber,COIDAClass,BusinessTel,Notes)');
+    // Request ALL fields so we can find the actual internal name of ClientKey
+    const cItems=await getAll(L_CLIENTS,'$select=id&$expand=fields');
     if(cItems.length>0)console.log('CLIENT FIELDS SAMPLE:',JSON.stringify(Object.keys(cItems[0].fields)));
 
     sync('Loading directors…');
-    const dItems=await getAll(L_DIRECTORS,'$select=id&$expand=fields($select=Title,ClientKey,ClientName,Role,Interest,Phone,Email,IDNumber,PersonalTaxNo)');
+    const dItems=await getAll(L_DIRECTORS,'$select=id&$expand=fields');
 
     sync('Loading returns…');
-    const rItems=await getAll(L_RETURNS,'$select=id&$expand=fields($select=Title,ClientKey,ReturnType,ReturnPeriod,Status,DueDate,AssignedTo,ReturnData)');
+    const rItems=await getAll(L_RETURNS,'$select=id&$expand=fields');
 
+    // Find the actual internal name of ClientKey from first record
+    let _clientKeyField='';
+    let _regNumField='',_statusField='',_assignedField='',_cipcField='',_natureField='',_addressField='';
+    let _taxField='',_vatField='',_payeField='',_uifField='',_coidaNumField='',_coidaClsField='';
+    let _telField='',_notesField='';
+    if(cItems.length>0){
+      const f0=cItems[0].fields;
+      const allKeys=Object.keys(f0);
+      console.log('=== SP CLIENT FIELD KEYS ===');
+      console.log(JSON.stringify(allKeys));
+      console.log('=== SP CLIENT FIRST RECORD ===');
+      console.log(JSON.stringify(f0));
+      // Show debug panel in the UI
+      const dbgContent=document.getElementById('sp-debug-content');
+      const dbgPanel=document.getElementById('sp-debug');
+      if(dbgContent&&dbgPanel){
+        dbgContent.textContent=JSON.stringify({keys:allKeys,firstRecord:f0},null,2);
+        dbgPanel.style.display='block';
+      }
+      // Find fields by approximate name matching
+      const find=(patterns)=>allKeys.find(k=>patterns.some(p=>k.toLowerCase()===p.toLowerCase()))||
+                             allKeys.find(k=>patterns.some(p=>k.toLowerCase().includes(p.toLowerCase())))||'';
+      _clientKeyField = find(['ClientKey','clientkey','client_key','ClientKey0']);
+      _regNumField    = find(['RegistrationNumber','registrationnumber','RegistrationNo','RegNo']);
+      _statusField    = find(['ClientStatus','clientstatus','Status']);
+      _assignedField  = find(['AssignedTo','assignedto','Assigned_To','Assigned']);
+      _cipcField      = find(['CIPCRenewalMonth','cipcrenewalmonth','CIPCRenewal']);
+      _natureField    = find(['NatureOfBusiness','natureofbusiness','Nature']);
+      _addressField   = find(['BusinessAddress','businessaddress','Address']);
+      _taxField       = find(['TaxNumber','taxnumber','TaxNo','TaxRef']);
+      _vatField       = find(['VATNumber','vatnumber','VAT']);
+      _payeField      = find(['PAYENumber','payenumber','PAYE']);
+      _uifField       = find(['UIFNumber','uifnumber','UIF']);
+      _coidaNumField  = find(['COIDANumber','coidanumber','COIDA']);
+      _coidaClsField  = find(['COIDAClass','coidaclass','COIDAcls']);
+      _telField       = find(['BusinessTel','businesstel','Tel','Phone']);
+      _notesField     = find(['Notes','notes']);
+      console.log('Resolved fields:',{_clientKeyField,_regNumField,_statusField,_assignedField});
+    }
     DB.clients=cItems.map(item=>{
       const f=item.fields;
-      // Try all possible internal names for ClientKey
-      // Log first record's field keys so admin can identify the correct internal name
-      if(cItems.indexOf(item)===0){
-        console.log('SP CLIENT FIELD KEYS:',Object.keys(f));
-        console.log('SP CLIENT FIRST RECORD:',JSON.stringify(f));
-      }
-      const ck=f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||f.ClientKey1||
-               Object.entries(f).find(([k,v])=>k.toLowerCase().includes('clientkey')&&v)?.[1]||'';
+      const ck=(_clientKeyField&&f[_clientKeyField])||f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||'';
       // Fallback: use SP item ID as key so clients are always selectable
       const effectiveKey=ck||('_sp_'+item.id);
+      // Use resolved field names, fall back to common variants
+      const fv=(resolved,fallbacks)=>{
+        if(resolved&&f[resolved]!=null)return f[resolved];
+        for(const k of fallbacks)if(f[k]!=null)return f[k];
+        return '';
+      };
       return{
         _spId:item.id,
         clientKey:effectiveKey,
         companyName:f.Title||'',
-        clientStatus:f.ClientStatus||'Active',
-        assignedTo:f.AssignedTo||'',
-        registrationNumber:f.RegistrationNumber||'',
-        cipcRenewalMonth:f.CIPCRenewalMonth||'',
-        natureOfBusiness:f.NatureOfBusiness||'',
-        businessAddress:f.BusinessAddress||'',
-        taxNumber:f.TaxNumber||'',
-        vatNumber:f.VATNumber||'',
-        payeNumber:f.PAYENumber||'',
-        uifNumber:f.UIFNumber||'',
-        coidaNumber:f.COIDANumber||'',
-        coidaClass:f.COIDAClass||'',
-        businessTel:f.BusinessTel||'',
-        notes:f.Notes||'',
+        clientStatus:fv(_statusField,['ClientStatus','clientstatus'])||'Active',
+        assignedTo:fv(_assignedField,['AssignedTo','assignedto'])||'',
+        registrationNumber:fv(_regNumField,['RegistrationNumber','RegistrationNo'])||'',
+        cipcRenewalMonth:fv(_cipcField,['CIPCRenewalMonth','CIPCRenewal'])||'',
+        natureOfBusiness:fv(_natureField,['NatureOfBusiness','Nature'])||'',
+        businessAddress:fv(_addressField,['BusinessAddress','Address'])||'',
+        taxNumber:fv(_taxField,['TaxNumber','TaxNo'])||'',
+        vatNumber:fv(_vatField,['VATNumber','VAT'])||'',
+        payeNumber:fv(_payeField,['PAYENumber','PAYE'])||'',
+        uifNumber:fv(_uifField,['UIFNumber','UIF'])||'',
+        coidaNumber:fv(_coidaNumField,['COIDANumber','COIDA'])||'',
+        coidaClass:fv(_coidaClsField,['COIDAClass'])||'',
+        businessTel:fv(_telField,['BusinessTel','Tel'])||'',
+        notes:fv(_notesField,['Notes'])||'',
         entityType:'',yearEnd:'',taxClearance:'',contactName:''
       };
     });
     DB.clients.sort((a,b)=>a.companyName.localeCompare(b.companyName));
 
+    // Find director field names from first record
+    let _dirCKField='',_dirRoleField='',_dirInterestField='',_dirPhoneField='',_dirEmailField='',_dirIDField='',_dirTaxField='';
+    if(dItems.length>0){
+      const df=dItems[0].fields;
+      const dk=Object.keys(df);
+      console.log('=== SP DIRECTOR FIELD KEYS ===',JSON.stringify(dk));
+      const dfind=(patterns)=>dk.find(k=>patterns.some(p=>k.toLowerCase()===p.toLowerCase()))||
+                              dk.find(k=>patterns.some(p=>k.toLowerCase().includes(p.toLowerCase())))||'';
+      _dirCKField      = dfind(['ClientKey','clientkey','client_key']);
+      _dirRoleField    = dfind(['Role','role']);
+      _dirInterestField= dfind(['Interest','interest','Shareholding','shareholding']);
+      _dirPhoneField   = dfind(['Phone','phone','Tel','Telephone','Mobile','Cell']);
+      _dirEmailField   = dfind(['Email','email','EmailAddress']);
+      _dirIDField      = dfind(['IDNumber','idnumber','ID','IdentityNumber']);
+      _dirTaxField     = dfind(['PersonalTaxNo','personaltaxno','PersonalTax','TaxNumber','TaxNo']);
+      console.log('Director fields resolved:',{_dirCKField,_dirRoleField,_dirPhoneField,_dirEmailField});
+    }
     const dirsByKey={};
     dItems.forEach(item=>{
       const f=item.fields;
-      const key=f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||
-                Object.entries(f).find(([k,v])=>k.toLowerCase().includes('clientkey')&&v)?.[1]||'';
+      const key=(_dirCKField&&f[_dirCKField])||f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||'';
       if(!key)return;
       if(!dirsByKey[key])dirsByKey[key]=[];
-      dirsByKey[key].push({name:f.Title||'',role:f.Role||'Director',interest:f.Interest||'0',
-        phone:f.Phone||'',email:f.Email||'',idNumber:f.IDNumber||'',personalTaxNo:f.PersonalTaxNo||''});
+      const fv2=(resolved,fallbacks)=>{
+        if(resolved&&f[resolved]!=null)return f[resolved];
+        for(const k of fallbacks)if(f[k]!=null)return f[k];
+        return '';
+      };
+      dirsByKey[key].push({
+        name:f.Title||'',
+        role:fv2(_dirRoleField,['Role'])||'Director',
+        interest:fv2(_dirInterestField,['Interest','Shareholding'])||'0',
+        phone:fv2(_dirPhoneField,['Phone','Tel','Mobile'])||'',
+        email:fv2(_dirEmailField,['Email'])||'',
+        idNumber:fv2(_dirIDField,['IDNumber','ID'])||'',
+        personalTaxNo:fv2(_dirTaxField,['PersonalTaxNo','PersonalTax'])||''
+      });
     });
     DB.directors=dirsByKey;
 
