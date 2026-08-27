@@ -493,6 +493,7 @@ const MSAL_CONFIG={auth:{clientId:'b650f7f7-44c6-403f-808f-fd459f12b36c',authori
 const SP_HOST='tutinsa.sharepoint.com',SITE_PATH='/sites/TutinBusinessAdminServices',SCOPES=['https://graph.microsoft.com/.default'];
 const L_CLIENTS='Tutin_Client_Register',L_DIRECTORS='Tutin_Directors_Register',L_RETURNS='Tutin_Client_ProTaxReturns';
 let msalApp=null,_account=null,_siteId=null,_spReturnMap={};
+let _retColMap={};  // display->internal for returns list, populated on load
 let DB={clients:[],directors:{},returns:[]};
 let activeClientKey=null,activeReturnId=null,activeType='irp6',activePeriod=null,activeAssignee='',activePane='details';
 let _wizStep=1,_saving=false;
@@ -624,11 +625,50 @@ async function getAll(listName,sel){
 
 // ── Data loading ──────────────────────────────────────────────────────────
 async function loadAll(){
-  sync('Loading clients…');
+  sync('Loading column schemas…');
   try{
-    // Request ALL fields so we can find the actual internal name of ClientKey
+    // Step 1: Get column schemas to map internal names (field_0, field_1…) to display names
+    const siteId=await getSiteId();
+    async function getColMap(listName){
+      const url='https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+listName+'/columns';
+      const d=await gGet(url);
+      const map={};
+      (d.value||[]).forEach(col=>{
+        // col.name = internal name (field_0), col.displayName = what you see in SharePoint
+        if(col.name&&col.displayName) map[col.name]=col.displayName;
+      });
+      console.log('Column map for '+listName+':', map);
+      return map;
+    }
+    const clientColMap = await getColMap(L_CLIENTS);
+    const dirColMap    = await getColMap(L_DIRECTORS);
+    const retColMap    = await getColMap(L_RETURNS);
+    // Store reverse map (display->internal) globally for use in save
+    _retColMap={};
+    Object.entries(retColMap).forEach(([internal,display])=>{_retColMap[display]=internal;});
+
+    // Helper: given a fields object and a display name, return the value
+    function fByDisplay(fields, colMap, displayName, fallbacks=[]){
+      // Find internal name matching this display name
+      const internalName=Object.entries(colMap).find(([k,v])=>v===displayName)?.[0];
+      if(internalName&&fields[internalName]!=null) return fields[internalName];
+      // Try direct key match (sometimes internal = display for older columns)
+      if(fields[displayName]!=null) return fields[displayName];
+      // Try fallbacks
+      for(const fb of fallbacks) if(fields[fb]!=null) return fields[fb];
+      return '';
+    }
+
+    // Show debug panel with resolved column map
+    const dbgContent=document.getElementById('sp-debug-content');
+    const dbgPanel=document.getElementById('sp-debug');
+    if(dbgContent&&dbgPanel){
+      dbgContent.textContent='CLIENT COLUMNS:\n'+JSON.stringify(clientColMap,null,2)+'\n\nDIRECTOR COLUMNS:\n'+JSON.stringify(dirColMap,null,2);
+      dbgPanel.style.display='block';
+    }
+
+    sync('Loading clients…');
     const cItems=await getAll(L_CLIENTS,'$select=id&$expand=fields');
-    if(cItems.length>0)console.log('CLIENT FIELDS SAMPLE:',JSON.stringify(Object.keys(cItems[0].fields)));
 
     sync('Loading directors…');
     const dItems=await getAll(L_DIRECTORS,'$select=id&$expand=fields');
@@ -636,115 +676,55 @@ async function loadAll(){
     sync('Loading returns…');
     const rItems=await getAll(L_RETURNS,'$select=id&$expand=fields');
 
-    // Find the actual internal name of ClientKey from first record
-    let _clientKeyField='';
-    let _regNumField='',_statusField='',_assignedField='',_cipcField='',_natureField='',_addressField='';
-    let _taxField='',_vatField='',_payeField='',_uifField='',_coidaNumField='',_coidaClsField='';
-    let _telField='',_notesField='';
-    if(cItems.length>0){
-      const f0=cItems[0].fields;
-      const allKeys=Object.keys(f0);
-      console.log('=== SP CLIENT FIELD KEYS ===');
-      console.log(JSON.stringify(allKeys));
-      console.log('=== SP CLIENT FIRST RECORD ===');
-      console.log(JSON.stringify(f0));
-      // Show debug panel in the UI
-      const dbgContent=document.getElementById('sp-debug-content');
-      const dbgPanel=document.getElementById('sp-debug');
-      if(dbgContent&&dbgPanel){
-        dbgContent.textContent=JSON.stringify({keys:allKeys,firstRecord:f0},null,2);
-        dbgPanel.style.display='block';
-      }
-      // Find fields by approximate name matching
-      const find=(patterns)=>allKeys.find(k=>patterns.some(p=>k.toLowerCase()===p.toLowerCase()))||
-                             allKeys.find(k=>patterns.some(p=>k.toLowerCase().includes(p.toLowerCase())))||'';
-      _clientKeyField = find(['ClientKey','clientkey','client_key','ClientKey0']);
-      _regNumField    = find(['RegistrationNumber','registrationnumber','RegistrationNo','RegNo']);
-      _statusField    = find(['ClientStatus','clientstatus','Status']);
-      _assignedField  = find(['AssignedTo','assignedto','Assigned_To','Assigned']);
-      _cipcField      = find(['CIPCRenewalMonth','cipcrenewalmonth','CIPCRenewal']);
-      _natureField    = find(['NatureOfBusiness','natureofbusiness','Nature']);
-      _addressField   = find(['BusinessAddress','businessaddress','Address']);
-      _taxField       = find(['TaxNumber','taxnumber','TaxNo','TaxRef']);
-      _vatField       = find(['VATNumber','vatnumber','VAT']);
-      _payeField      = find(['PAYENumber','payenumber','PAYE']);
-      _uifField       = find(['UIFNumber','uifnumber','UIF']);
-      _coidaNumField  = find(['COIDANumber','coidanumber','COIDA']);
-      _coidaClsField  = find(['COIDAClass','coidaclass','COIDAcls']);
-      _telField       = find(['BusinessTel','businesstel','Tel','Phone']);
-      _notesField     = find(['Notes','notes']);
-      console.log('Resolved fields:',{_clientKeyField,_regNumField,_statusField,_assignedField});
-    }
+    // Map clients using display-name-based field lookup
     DB.clients=cItems.map(item=>{
       const f=item.fields;
-      const ck=(_clientKeyField&&f[_clientKeyField])||f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||'';
-      // Fallback: use SP item ID as key so clients are always selectable
+      const fbd=(displayName,...fallbacks)=>fByDisplay(f,clientColMap,displayName,fallbacks);
+      const ck=fbd('ClientKey');
       const effectiveKey=ck||('_sp_'+item.id);
-      // Use resolved field names, fall back to common variants
-      const fv=(resolved,fallbacks)=>{
-        if(resolved&&f[resolved]!=null)return f[resolved];
-        for(const k of fallbacks)if(f[k]!=null)return f[k];
-        return '';
-      };
       return{
         _spId:item.id,
         clientKey:effectiveKey,
         companyName:f.Title||'',
-        clientStatus:fv(_statusField,['ClientStatus','clientstatus'])||'Active',
-        assignedTo:fv(_assignedField,['AssignedTo','assignedto'])||'',
-        registrationNumber:fv(_regNumField,['RegistrationNumber','RegistrationNo'])||'',
-        cipcRenewalMonth:fv(_cipcField,['CIPCRenewalMonth','CIPCRenewal'])||'',
-        natureOfBusiness:fv(_natureField,['NatureOfBusiness','Nature'])||'',
-        businessAddress:fv(_addressField,['BusinessAddress','Address'])||'',
-        taxNumber:fv(_taxField,['TaxNumber','TaxNo'])||'',
-        vatNumber:fv(_vatField,['VATNumber','VAT'])||'',
-        payeNumber:fv(_payeField,['PAYENumber','PAYE'])||'',
-        uifNumber:fv(_uifField,['UIFNumber','UIF'])||'',
-        coidaNumber:fv(_coidaNumField,['COIDANumber','COIDA'])||'',
-        coidaClass:fv(_coidaClsField,['COIDAClass'])||'',
-        businessTel:fv(_telField,['BusinessTel','Tel'])||'',
-        notes:fv(_notesField,['Notes'])||'',
+        clientStatus:fbd('ClientStatus')||'Active',
+        assignedTo:fbd('AssignedTo')||'',
+        registrationNumber:fbd('RegistrationNumber')||'',
+        cipcRenewalMonth:fbd('CIPCRenewalMonth')||'',
+        natureOfBusiness:fbd('NatureOfBusiness')||'',
+        businessAddress:fbd('BusinessAddress')||'',
+        taxNumber:fbd('TaxNumber')||'',
+        vatNumber:fbd('VATNumber')||'',
+        payeNumber:fbd('PAYENumber')||'',
+        customsCode:fbd('CustomsCode')||'',
+        sicCode:fbd('SICCode')||'',
+        profitCode:fbd('ProfitCode')||'',
+        uifNumber:fbd('UIFNumber')||'',
+        coidaNumber:fbd('COIDANumber')||'',
+        coidaClass:fbd('COIDAClass')||'',
+        businessTel:fbd('BusinessTel')||'',
+        bankDetails:fbd('BankDetails')||'',
+        notes:fbd('Notes')||'',
         entityType:'',yearEnd:'',taxClearance:'',contactName:''
       };
     });
     DB.clients.sort((a,b)=>a.companyName.localeCompare(b.companyName));
 
-    // Find director field names from first record
-    let _dirCKField='',_dirRoleField='',_dirInterestField='',_dirPhoneField='',_dirEmailField='',_dirIDField='',_dirTaxField='';
-    if(dItems.length>0){
-      const df=dItems[0].fields;
-      const dk=Object.keys(df);
-      console.log('=== SP DIRECTOR FIELD KEYS ===',JSON.stringify(dk));
-      const dfind=(patterns)=>dk.find(k=>patterns.some(p=>k.toLowerCase()===p.toLowerCase()))||
-                              dk.find(k=>patterns.some(p=>k.toLowerCase().includes(p.toLowerCase())))||'';
-      _dirCKField      = dfind(['ClientKey','clientkey','client_key']);
-      _dirRoleField    = dfind(['Role','role']);
-      _dirInterestField= dfind(['Interest','interest','Shareholding','shareholding']);
-      _dirPhoneField   = dfind(['Phone','phone','Tel','Telephone','Mobile','Cell']);
-      _dirEmailField   = dfind(['Email','email','EmailAddress']);
-      _dirIDField      = dfind(['IDNumber','idnumber','ID','IdentityNumber']);
-      _dirTaxField     = dfind(['PersonalTaxNo','personaltaxno','PersonalTax','TaxNumber','TaxNo']);
-      console.log('Director fields resolved:',{_dirCKField,_dirRoleField,_dirPhoneField,_dirEmailField});
-    }
+    // Map directors using display-name-based field lookup
     const dirsByKey={};
     dItems.forEach(item=>{
       const f=item.fields;
-      const key=(_dirCKField&&f[_dirCKField])||f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||'';
+      const fbd=(displayName,...fallbacks)=>fByDisplay(f,dirColMap,displayName,fallbacks);
+      const key=fbd('ClientKey');
       if(!key)return;
       if(!dirsByKey[key])dirsByKey[key]=[];
-      const fv2=(resolved,fallbacks)=>{
-        if(resolved&&f[resolved]!=null)return f[resolved];
-        for(const k of fallbacks)if(f[k]!=null)return f[k];
-        return '';
-      };
       dirsByKey[key].push({
         name:f.Title||'',
-        role:fv2(_dirRoleField,['Role'])||'Director',
-        interest:fv2(_dirInterestField,['Interest','Shareholding'])||'0',
-        phone:fv2(_dirPhoneField,['Phone','Tel','Mobile'])||'',
-        email:fv2(_dirEmailField,['Email'])||'',
-        idNumber:fv2(_dirIDField,['IDNumber','ID'])||'',
-        personalTaxNo:fv2(_dirTaxField,['PersonalTaxNo','PersonalTax'])||''
+        role:fbd('Role')||'Director',
+        interest:fbd('Interest','Shareholding')||'0',
+        phone:fbd('Phone','Tel','Mobile','Cell')||'',
+        email:fbd('Email')||'',
+        idNumber:fbd('IDNumber')||'',
+        personalTaxNo:fbd('PersonalTaxNo','TaxNumber')||''
       });
     });
     DB.directors=dirsByKey;
@@ -752,12 +732,19 @@ async function loadAll(){
     _spReturnMap={};
     DB.returns=rItems.map(item=>{
       const f=item.fields;
-      let extra={};try{extra=JSON.parse(f.ReturnData||'{}');}catch{}
-      const ck=f.ClientKey||f.clientKey||f.ClientKey0||f.client_key||
-                Object.entries(f).find(([k,v])=>k.toLowerCase().includes('clientkey')&&v)?.[1]||'';
-      const ret={id:f.Title||item.id,clientKey:ck,returnType:f.ReturnType||'irp6',
-        returnPeriod:f.ReturnPeriod||'',status:f.Status||'todo',dueDate:f.DueDate||'',
-        assignedTo:f.AssignedTo||'',...extra};
+      const fbd=(displayName,...fallbacks)=>fByDisplay(f,retColMap,displayName,fallbacks);
+      let extra={};try{extra=JSON.parse(fbd('ReturnData')||'{}');}catch{}
+      const ck=fbd('ClientKey');
+      const ret={
+        id:f.Title||item.id,
+        clientKey:ck,
+        returnType:fbd('ReturnType')||'irp6',
+        returnPeriod:fbd('ReturnPeriod')||'',
+        status:fbd('Status')||'todo',
+        dueDate:fbd('DueDate')||'',
+        assignedTo:fbd('AssignedTo')||'',
+        ...extra
+      };
       _spReturnMap[ret.id]=item.id;
       return ret;
     });
@@ -867,7 +854,7 @@ function showClientPane(pane){
 function renderDetailsPane(){
   const c=getClient();if(!c)return;
   const fields=[
-    ['ClientKey',c.clientKey],
+    ['ClientKey',c.clientKey.startsWith('_sp_')?'(pending — see debug panel)':c.clientKey],
     ['Title',c.companyName],
     ['ClientStatus',c.clientStatus||'Active'],
     ['AssignedTo',c.assignedTo],
@@ -878,10 +865,14 @@ function renderDetailsPane(){
     ['TaxNumber',c.taxNumber],
     ['VATNumber',c.vatNumber],
     ['PAYENumber',c.payeNumber],
+    ['CustomsCode',c.customsCode],
+    ['SICCode',c.sicCode],
+    ['ProfitCode',c.profitCode],
     ['UIFNumber',c.uifNumber],
     ['COIDANumber',c.coidaNumber],
     ['COIDAClass',c.coidaClass],
     ['BusinessTel',c.businessTel],
+    ['BankDetails',c.bankDetails],
     ['Notes',c.notes],
   ];
   $('detail-grid').innerHTML=fields.map(([label,value])=>
@@ -1263,8 +1254,20 @@ async function spSaveReturn(ret){
   const c=getClient(ret.clientKey);
   const{id,clientKey,returnType,returnPeriod,status,dueDate,assignedTo,...dataFields}=ret;
   const effectiveAssignedTo=assignedTo||c?.assignedTo||'';
-  const fields={Title:id,ClientKey:clientKey,ReturnType:returnType,ReturnPeriod:returnPeriod,
-    Status:status,DueDate:dueDate||'',AssignedTo:effectiveAssignedTo,ReturnData:JSON.stringify(dataFields)};
+  // Use internal field names for saving (reverse lookup from display names)
+  function retField(displayName){return _retColMap[displayName]||displayName;}
+  const fields={
+    Title:id,
+    [retField('ClientKey')]:clientKey,
+    [retField('ReturnType')]:returnType,
+    [retField('ReturnPeriod')]:returnPeriod,
+    [retField('Status')]:status,
+    [retField('DueDate')]:dueDate||'',
+    [retField('AssignedTo')]:effectiveAssignedTo,
+    [retField('ReturnData')]:JSON.stringify(dataFields)
+  };
+  // Remove undefined keys (if retField returned same name for Title, avoid duplicate)
+  delete fields['undefined'];
   const spId=_spReturnMap[ret.id];
   if(spId){
     await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_RETURNS+'/items/'+spId+'/fields',fields);
