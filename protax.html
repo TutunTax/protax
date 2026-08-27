@@ -389,12 +389,24 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 <div id="email-modal" class="modal-overlay">
   <div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:92vh;">
     <div class="modal-head"><h3>📧 Client Email</h3><button class="modal-close" onclick="closeModal('email-modal')">✕</button></div>
-    <div style="padding:10px 20px;border-bottom:1px solid var(--rule);display:flex;gap:8px;align-items:center;">
-      <button class="btn btn-primary btn-sm" onclick="copyHTML()">📋 Copy HTML (paste into Outlook)</button>
-      <button class="btn btn-ghost btn-sm" onclick="copyPlain()">📄 Copy Plain Text</button>
-      <span style="font-size:13px;color:var(--ink-light);">Attach workpaper PDF separately</span>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:13px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Subject:</span>
+        <input id="email-subject" style="flex:1;height:32px;padding:0 10px;border:1px solid var(--rule);border-radius:var(--radius);font-size:13px;font-family:inherit;" readonly onclick="this.select()">
+        <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText($('email-subject').value).then(()=>toast('Subject copied','success'))">📋</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:600;color:var(--ink-light);">Mode:</span>
+        <button id="mode-review" class="btn btn-primary btn-sm" onclick="setEmailMode('review')">Review &amp; Approve</button>
+        <button id="mode-nil-submitted" class="btn btn-ghost btn-sm" onclick="setEmailMode('nil-submitted')">Nil — Submitted</button>
+        <button id="mode-submitted" class="btn btn-ghost btn-sm" onclick="setEmailMode('submitted')">Payment — Submitted</button>
+        <span style="margin-left:auto;display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="copyHTML()">📋 Copy HTML</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyPlain()">📄 Plain Text</button>
+        </span>
+      </div>
     </div>
-    <div id="email-preview" class="email-preview" style="flex:1;overflow-y:auto;"></div>
+    <div id="email-preview" style="flex:1;overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -1462,56 +1474,78 @@ async function deleteReturn(){
 function openEmail(){
   captureForm();const c=getClient(),ret=getReturn();
   if(!ret||ret.returnType!=='irp6'){toast('Email is only available for IRP6 returns','info');return;}
+  renderEmailPreview('review');
+  openModal('email-modal');
+}
+
+function renderEmailPreview(mode){
+  const c=getClient(),ret=getReturn();
+  if(!c||!ret)return;
   const calc=window._calc||{};
   const isSecond=ret.returnPeriod?.endsWith('-02'),period=isSecond?'Second':'First';
   const payable=ret.amountPayable||calc.calcPay||0;
   const contact=ret.contactName||c.contactName||'';
-  const assignee=ret.assignedTo||c.assignedTo||'Tutin Tax Advisory';
+  const isNil=payable<=0;
 
-  // Table-based, fully inline-styled HTML — renders correctly in Outlook
-  const amountBlock = payable>0
-    ? '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">'
-      +'<tr><td style="background-color:#fdeced;border:1px solid #f5aaaa;padding:18px 22px;">'
-      +'<p style="margin:0 0 6px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#840811;text-transform:uppercase;letter-spacing:1px;">Amount Payable to SARS</p>'
-      +'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:bold;color:#840811;">'+Rfmt(payable)+'</p>'
-      +(ret.dueDate?'<p style="margin:6px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#555555;">Due: '+ret.dueDate+'</p>':'')
-      +'</td></tr></table>'
-    : '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">'
-      +'<tr><td style="background-color:#d1fae5;border:1px solid #6ee7b7;padding:18px 22px;">'
-      +'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#065f46;">No provisional tax payment is due for this period.</p>'
-      +'</td></tr></table>';
+  // Subject line
+  const subject='Provisional Tax '+ret.returnPeriod+' — '+c.companyName+' — '+(isNil?'Nil Return':'Payment R '+Rfmt(payable).replace('R\u00a0',''));
+  $('email-subject').value=subject;
+
+  // Amount box
+  const amountBox=isNil
+    ?'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 20px 0;"><tr><td style="background-color:#d1fae5;border:2px solid #6ee7b7;padding:18px 22px;"><p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#065f46;">No provisional tax payment is due for this period.</p></td></tr></table>'
+    :'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 20px 0;"><tr><td style="background-color:#fdeced;border:2px solid #f5aaaa;padding:18px 22px;"><p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#840811;text-transform:uppercase;letter-spacing:1px;">Amount Payable to SARS</p><p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:bold;color:#840811;">'+Rfmt(payable)+'</p>'+(ret.dueDate?'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#840811;">Due: '+ret.dueDate+'</p>':'')+'</td></tr></table>';
+
+  // Body paragraphs by mode
+  let body1='',body2='',body3='';
+  if(mode==='nil-submitted'){
+    body1='We are pleased to advise that we have submitted your provisional tax return for the <strong>'+period+' Provisional Tax period ('+ret.returnPeriod+')</strong>. No payment is due for this period.';
+    body2='A copy of the submitted return and the detailed calculation workpaper are attached to this email for your records.';
+    body3='Please do not hesitate to contact us should you have any queries.';
+  }else if(mode==='submitted'){
+    body1='Please be advised that we have submitted your provisional tax return for the <strong>'+period+' Provisional Tax period ('+ret.returnPeriod+')</strong>.';
+    body2='The amount of <strong>'+Rfmt(payable)+'</strong> is due to SARS by <strong>'+(ret.dueDate||'the due date')+'</strong>. Please ensure payment is made timeously to avoid interest and penalties. A copy of the submitted return and workpaper are attached.';
+    body3='Please do not hesitate to contact us should you have any queries.';
+  }else{
+    // review mode (default)
+    body1='Please find attached the provisional tax calculation for <strong>'+c.companyName+'</strong> for the <strong>'+period+' Provisional Tax period ('+ret.returnPeriod+')</strong>.';
+    body2=isNil
+      ?'Based on our calculations, no provisional tax payment is due for this period. Please review the attached workpaper and confirm that you are satisfied for us to proceed with filing the return.'
+      :'Please review the attached calculation workpaper. Once you are satisfied with the figures, kindly confirm your approval so that we can proceed with filing the return and scheduling the payment of <strong>'+Rfmt(payable)+'</strong> by <strong>'+(ret.dueDate||'the due date')+'</strong>.';
+    body3='The detailed calculation workpaper is attached to this email for your records. Please do not hesitate to contact us if you have any queries.';
+  }
 
   const emailHTML=
-    '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
-    +'<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-    +'<body style="margin:0;padding:0;background-color:#ffffff;">'
-    +'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-    +'<tr><td align="left">'
-    +'<table width="580" cellpadding="0" cellspacing="0" border="0" style="width:580px;">'
-    // Header
-    +'<tr><td style="background-color:#840811;padding:20px 28px;">'
-    +'<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-    +'<td style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:1px;">TUTIN</td>'
-    +'<td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#ddaaaa;text-align:right;vertical-align:middle;">Tax Advisory</td>'
-    +'</tr></table>'
-    +'</td></tr>'
-    // Body
-    +'<tr><td style="background-color:#ffffff;padding:28px 28px 24px 28px;border:1px solid #e5e7eb;border-top:none;">'
-    +(contact?'<p style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111111;">Dear '+contact+',</p>':'')
-    +'<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#222222;line-height:1.6;">'
-    +'Please find below the provisional tax calculation for <strong>'+c.companyName+'</strong> for the <strong>'+period+' Provisional Tax period ('+ret.returnPeriod+')</strong>.'
-    +'</p>'
-    +amountBlock
-    +'<p style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">The detailed calculation workpaper is attached to this email for your records.</p>'
-    +'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">Please do not hesitate to contact us if you have any queries.</p>'
-    +'</td></tr>'
-    +'</table>'
-    +'</td></tr></table>'
-    +'</body></html>';
+    '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'+
+    '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head>'+
+    '<body style="margin:0;padding:0;background-color:#ffffff;">'+
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="left">'+
+    '<table width="580" cellpadding="0" cellspacing="0" border="0" style="width:580px;">'+
+    '<tr><td style="background-color:#840811;padding:18px 24px;">'+
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'+
+    '<td style="font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">TUTIN</td>'+
+    '<td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#ddaaaa;text-align:right;vertical-align:middle;">Tax Advisory</td>'+
+    '</tr></table></td></tr>'+
+    '<tr><td style="background-color:#ffffff;padding:26px 24px 22px 24px;border:1px solid #e5e7eb;border-top:none;">'+
+    (contact?'<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111111;">Dear '+contact+',</p>':'')+
+    '<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#222222;line-height:1.6;">'+body1+'</p>'+
+    amountBox+
+    '<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">'+body2+'</p>'+
+    '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">'+body3+'</p>'+
+    '</td></tr>'+
+    '</table></td></tr></table>'+
+    '</body></html>';
 
-  $('email-preview').innerHTML='<div style="padding:24px;background:#f3f4f6;">'+emailHTML+'</div>';
-  openModal('email-modal');
+  $('email-preview').innerHTML='<div style="padding:16px;background:#f3f4f6;">'+emailHTML+'</div>';
   $('email-preview').dataset.html=emailHTML;
+}
+
+function setEmailMode(mode){
+  ['review','nil-submitted','submitted'].forEach(m=>{
+    const btn=$('mode-'+m);
+    if(btn)btn.className='btn btn-sm '+(m===mode?'btn-primary':'btn-ghost');
+  });
+  renderEmailPreview(mode);
 }
 
 function copyHTML(){
