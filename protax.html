@@ -1484,7 +1484,8 @@ function renderEmailPreview(mode){
   const calc=window._calc||{};
   const isSecond=ret.returnPeriod?.endsWith('-02'),period=isSecond?'Second':'First';
   const payable=ret.amountPayable||calc.calcPay||0;
-  const contact=ret.contactName||c.contactName||'';
+  // Use contact name, fall back to company name so Dear line always shows
+  const contact=ret.contactName||c.contactName||c.companyName||'';
   const isNil=payable<=0;
 
   // Subject line
@@ -1529,7 +1530,7 @@ function renderEmailPreview(mode){
     '<tr><td style="background-color:#ffffff;padding:26px 24px 22px 24px;border:1px solid #e5e7eb;border-top:none;">'+
     (contact?'<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111111;">Dear '+contact+',</p>':'')+
     '<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#222222;line-height:1.6;">'+body1+'</p>'+
-    amountBox+
+    (mode==='nil-submitted'?'':amountBox)+
     '<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">'+body2+'</p>'+
     '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">'+body3+'</p>'+
     '</td></tr>'+
