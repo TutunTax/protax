@@ -1178,7 +1178,7 @@ function renderWizard(c,p){
           '<input type="number" id="f-tax-rate" value="'+(p.taxRate||27)+'" step="0.01" oninput="wizCalc()">',
         '</div>',
         '<div class="fg"><label>Tax Liability Override (SBC / sliding scale)</label><div class="rw"><span class="pre">R</span>',
-          '<input type="number" id="f-tax-override" value="'+(p.taxOverride!=null?p.taxOverride:'')+'" placeholder="Leave blank to use rate%" oninput="wizCalc()">',
+          '<input type="number" id="f-tax-override" value="'+(p.taxOverride!=null&&p.taxOverride!==0?p.taxOverride:'')+'" placeholder="Leave blank to use rate%" oninput="wizCalc()">',
         '</div></div>',
         '<div class="fg"><label>PAYE / Tax Credits</label><div class="rw"><span class="pre">R</span>',
           '<input type="number" id="f-credits" value="'+(p.credits||0)+'" placeholder="0.00" oninput="wizCalc()">',
@@ -1315,7 +1315,7 @@ function captureForm(){
     ret.deductions=_n('f-deductions');ret.currentTCG=_n('f-curr-tcg');ret.assessedLoss=_n('f-loss');
     // Step 5 — payments
     ret.taxRate=_n('f-tax-rate')||27;
-    const ov=gv('f-tax-override');ret.taxOverride=ov?parseFloat(ov)||0:null;
+    const ov=($('f-tax-override')||{}).value;ret.taxOverride=(ov!=null&&ov.trim()!=='')?parseFloat(ov)||0:null;
     ret.prevPayment=_n('f-prev-pay');ret.credits=_n('f-credits');ret.s89quat=_n('f-89quat');
     // Step 6 — recommendation
     ret.recommendation=gv('f-rec');ret.amountPayable=_n('f-payable');
@@ -1733,8 +1733,9 @@ function wizCalc(){
 
   // ── Step 5: Payments & Tax ────────────────────────────────────────────
   const rate=_n('f-tax-rate')||27;
-  const overrideRaw=($('f-tax-override')||{}).value;
-  const taxOverride=overrideRaw&&parseFloat(overrideRaw)>0?parseFloat(overrideRaw):null;
+  const overrideEl=$('f-tax-override');
+  const overrideRaw=overrideEl?overrideEl.value.trim():'';
+  const taxOverride=overrideRaw!==''?parseFloat(overrideRaw)||0:null;
   const tax=taxOverride!==null?taxOverride:ti*(rate/100);
   const prevPay=_n('f-prev-pay'),credits=_n('f-credits'),calcPay=Math.max(0,tax-prevPay-credits);
   const el5=$('w5-msg');
