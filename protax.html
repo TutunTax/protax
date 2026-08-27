@@ -1024,50 +1024,97 @@ function renderWizard(c,p){
     +'</div>'
     +'<div class="wiz-bar">'
     +'<div class="wiz-tab active" id="wt1" onclick="wizGo(1)">1. Basic Amount</div>'
-    +'<div class="wiz-tab" id="wt2" onclick="wizGo(2)">2. Current Position</div>'
-    +'<div class="wiz-tab" id="wt3" onclick="wizGo(3)">3. Tax Adjustments</div>'
-    +'<div class="wiz-tab" id="wt4" onclick="wizGo(4)">4. Payments</div>'
-    +'<div class="wiz-tab" id="wt5" onclick="wizGo(5)">5. Recommendation</div>'
+    +'<div class="wiz-tab" id="wt2" onclick="wizGo(2)">2. Prior Year</div>'
+    +'<div class="wiz-tab" id="wt3" onclick="wizGo(3)">3. Current Position</div>'
+    +'<div class="wiz-tab" id="wt4" onclick="wizGo(4)">4. Tax Adjustments</div>'
+    +'<div class="wiz-tab" id="wt5" onclick="wizGo(5)">5. Payments</div>'
+    +'<div class="wiz-tab" id="wt6" onclick="wizGo(6)">6. Recommendation</div>'
     +'</div>'
     +'<div class="card">'
-    // STEP 1
+
+    // ── STEP 1: Basic Amount ─────────────────────────────────────────────
     +'<div class="wiz-screen active" id="ws1">'
     +'<div class="card-header"><div class="step-circle">1</div><div class="card-title">SARS Basic Amount</div></div>'
-    +'<div class="form-row"><div class="fg"><label>SARS Basic Amount</label><div class="rw"><span class="pre">R</span><input type="number" id="f-basic" value="'+(p.basicAmount||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Basic Amount Year</label><input id="f-basic-yr" value="'+(p.basicAmountYear||'')+'" placeholder="e.g. 2025"></div></div>'
-    +'<div class="form-row"><div class="fg"><label>Date of Assessment (YYYYMMDD)</label><input id="f-assess-date" value="'+(p.assessmentDate||'')+'" maxlength="20" placeholder="20251130" onblur="formatDateInput(this);wizCalc()"></div>'
+    +'<div class="form-row">'
+    +'<div class="fg"><label>SARS Basic Amount</label><div class="rw"><span class="pre">R</span><input type="number" id="f-basic" value="'+(p.basicAmount||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
+    +'<div class="fg"><label>Basic Amount Tax Year</label><input id="f-basic-yr" value="'+(p.basicAmountYear||'')+'" placeholder="e.g. 2025" oninput="wizCalc()"></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="fg"><label>Date of Assessment (YYYYMMDD)</label><input id="f-assess-date" value="'+(p.assessmentDate||'')+'" maxlength="20" placeholder="20260228" onblur="formatDateInput(this);wizCalc()"></div>'
+    +'<div class="fg"><label>Taxable Income on Assessment</label><div class="rw"><span class="pre">R</span><input type="number" id="f-assess-ti" value="'+(p.assessedTI||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="fg"><label>Prior Taxable Capital Gain (exclude from basic)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-prior-tcg" value="'+(p.priorTCG||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'<div class="fg"><label>SARS Basic Amount Result</label><select id="f-basic-result">'
     +'<option value="no-payment" '+((p.basicAmountResult||'no-payment')==='no-payment'?'selected':'')+'>No provisional tax payment is due</option>'
     +'<option value="payment-due" '+(p.basicAmountResult==='payment-due'?'selected':'')+'>A payment is due based on basic amount</option>'
-    +'</select></div></div>'
-    +'<div class="form-row"><div class="fg"><label>Taxable Income on Assessment</label><div class="rw"><span class="pre">R</span><input type="number" id="f-assess-ti" value="'+(p.assessedTI||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
-    +'<div class="fg"><label>Prior Taxable Capital Gain (exclude)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-prior-tcg" value="'+(p.priorTCG||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div></div>'
+    +'</select></div>'
+    +'</div>'
     +'<div id="w1-msg"></div>'
     +'<div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizGo(2)">Next →</button></div>'
     +'</div>'
-    // STEP 2
+
+    // ── STEP 2: Prior Year (unfiled financial year) ──────────────────────
     +'<div class="wiz-screen" id="ws2">'
-    +'<div class="card-header"><div class="step-circle">2</div><div class="card-title">Current Financial Position</div></div>'
-    +'<div class="form-row triple">'
-    +'<div class="fg"><label>Mgmt Accounts From (YYYYMMDD)</label><input id="f-ma-from" value="'+(p.maFrom||'')+'" maxlength="20" placeholder="20260101" onblur="formatDateInput(this);wizCalc()"></div>'
-    +'<div class="fg"><label>Mgmt Accounts To (YYYYMMDD)</label><input id="f-ma-to" value="'+(p.maTo||'')+'" maxlength="20" placeholder="20260630" onblur="formatDateInput(this);wizCalc()"></div>'
-    +'<div class="fg"><label>Forecast Method</label><select id="f-forecast" onchange="toggleForecast();wizCalc()">'
-    +'<option value="annualise" '+((p.forecastMethod||'annualise')==='annualise'?'selected':'')+'>Annualise current result</option>'
-    +'<option value="remaining" '+(p.forecastMethod==='remaining'?'selected':'')+'>Add expected remaining profit</option>'
-    +'<option value="fullyear" '+(p.forecastMethod==='fullyear'?'selected':'')+'>Enter full-year profit directly</option>'
-    +'</select></div></div>'
+    +'<div class="card-header"><div class="step-circle">2</div><div class="card-title">Prior Financial Year — Unfiled Return</div></div>'
+    +'<div class="info-note">ℹ️ If a financial year ended between the basic amount date and today but has not yet been assessed by SARS, capture those figures here. They are critical context for estimating the current year and comparing trend.</div>'
     +'<div class="form-row">'
+    +'<div class="fg"><label>Prior Year Available?</label>'
+    +'<select id="f-py-avail" onchange="togglePriorYear();wizCalc()">'
+    +'<option value="no" '+((p.priorYearAvail||\'no\')===\'no\'?\'selected\':\'\')+\'>No — basic amount is current</option>\'
+    +'<option value="yes" '+(p.priorYearAvail===\'yes\'?\'selected\':\'\')+\'>Yes — there is a more recent unfiled year</option>\'
+    +'</select></div>'
+    +'<div class="fg"><label>Prior Year Financial Year End</label>'
+    +'<input id="f-py-yend" value="'+(p.priorYearEnd||'')+'" maxlength="20" placeholder="20260228" onblur="formatDateInput(this);wizCalc()"></div>'
+    +'</div>'
+    +'<div id="py-fields">'
+    +'<div class="form-row triple">'
+    +'<div class="fg"><label>Prior Year Turnover / Gross Income</label><div class="rw"><span class="pre">R</span><input type="number" id="f-py-turnover" value="'+(p.priorYearTurnover||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
+    +'<div class="fg"><label>Prior Year Taxable Income / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-py-ti" value="'+(p.priorYearTI||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
+    +'<div class="fg"><label>Prior Year Normal Tax</label><div class="rw"><span class="pre">R</span><input type="number" id="f-py-tax" value="'+(p.priorYearTax||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="fg"><label>Source of Prior Year Figures</label>'
+    +'<select id="f-py-source">'
+    +'<option value="afs" '+((p.priorYearSource||\'afs\')===\'afs\'?\'selected\':\'\')+\'>Annual Financial Statements</option>\'
+    +'<option value="mgmt" '+(p.priorYearSource===\'mgmt\'?\'selected\':\'\')+\'>Management Accounts</option>\'
+    +'<option value="draft" '+(p.priorYearSource===\'draft\'?\'selected\':\'\')+\'>Draft / Unaudited</option>\'
+    +'</select></div>'
+    +'<div class="fg"><label>Notes on Prior Year</label><input id="f-py-note" value="'+(p.priorYearNote||'')+'" placeholder="e.g. Return being prepared — AFS signed"></div>'
+    +'</div>'
+    +'<div id="w2-trend"></div>'
+    +'</div>'
+    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(1)">← Back</button><button class="btn btn-primary" onclick="wizGo(3)">Next →</button></div>'
+    +'</div>'
+
+    // ── STEP 3: Current Position ─────────────────────────────────────────
+    +'<div class="wiz-screen" id="ws3">'
+    +'<div class="card-header"><div class="step-circle">3</div><div class="card-title">Current Financial Position</div></div>'
+    +'<div class="form-row triple">'
+    +'<div class="fg"><label>Mgmt Accounts From (YYYYMMDD)</label><input id="f-ma-from" value="'+(p.maFrom||'')+'" maxlength="20" placeholder="20260301" onblur="formatDateInput(this);wizCalc()"></div>'
+    +'<div class="fg"><label>Mgmt Accounts To (YYYYMMDD)</label><input id="f-ma-to" value="'+(p.maTo||'')+'" maxlength="20" placeholder="20260731" onblur="formatDateInput(this);wizCalc()"></div>'
+    +'<div class="fg"><label>Forecast Method</label><select id="f-forecast" onchange="toggleForecast();wizCalc()">'
+    +'<option value="annualise" '+((p.forecastMethod||\'annualise\')===\'annualise\'?\'selected\':\'\')+\'>Annualise current result</option>\'
+    +'<option value="remaining" '+(p.forecastMethod===\'remaining\'?\'selected\':\'\')+\'>Add expected remaining profit</option>\'
+    +'<option value="fullyear" '+(p.forecastMethod===\'fullyear\'?\'selected\':\'\')+\'>Enter full-year profit directly</option>\'
+    +'</select></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="fg"><label>YTD Turnover / Gross Income</label><div class="rw"><span class="pre">R</span><input type="number" id="f-ytd-turn" value="'+(p.ytdTurnover||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'<div class="fg"><label>YTD Accounting Profit / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-ytd-p" value="'+(p.ytdProfit||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
+    +'</div>'
+    +'<div class="form-row">'
     +'<div class="fg" id="f-remaining-wrap" style="display:none"><label>Expected Remaining Profit / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-remaining" value="'+(p.remainingProfit||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'<div class="fg" id="f-fullyear-wrap" style="display:none"><label>Expected Full-Year Profit / (Loss)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-fullyear" value="'+(p.fullYearProfit||'')+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'</div>'
-    +'<div class="form-row single"><div class="fg"><label>Forecast Basis Note</label><input id="f-forecast-note" value="'+(p.forecastNote||'')+'" placeholder="e.g. 10 months known, December typically strong"></div></div>'
-    +'<div id="w2-msg"></div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(1)">← Back</button><button class="btn btn-primary" onclick="wizGo(3)">Next →</button></div>'
+    +'<div class="form-row single"><div class="fg"><label>Forecast Basis Note</label><input id="f-forecast-note" value="'+(p.forecastNote||'')+'" placeholder="e.g. 5 months known, strong Q4 expected"></div></div>'
+    +'<div id="w3-msg"></div>'
+    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(2)">← Back</button><button class="btn btn-primary" onclick="wizGo(4)">Next →</button></div>'
     +'</div>'
-    // STEP 3
-    +'<div class="wiz-screen" id="ws3">'
-    +'<div class="card-header"><div class="step-circle">3</div><div class="card-title">Tax Adjustments</div></div>'
+
+    // ── STEP 4: Tax Adjustments ──────────────────────────────────────────
+    +'<div class="wiz-screen" id="ws4">'
+    +'<div class="card-header"><div class="step-circle">4</div><div class="card-title">Tax Adjustments</div></div>'
     +'<div class="info-note">Only enter adjustments that apply. Leave at zero if not applicable.</div>'
     +'<div class="form-row triple">'
     +'<div class="fg"><label>Accounting Depreciation (add back)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-acct-dep" value="'+(p.acctDep||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
@@ -1079,48 +1126,58 @@ function renderWizard(c,p){
     +'<div class="fg"><label>Taxable Capital Gain (current year)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-curr-tcg" value="'+(p.currentTCG||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'<div class="fg"><label>Assessed Loss Available</label><div class="rw"><span class="pre">R</span><input type="number" id="f-loss" value="'+(p.assessedLoss||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'</div>'
-    +'<div id="w3-msg"></div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(2)">← Back</button><button class="btn btn-primary" onclick="wizGo(4)">Next →</button></div>'
+    +'<div id="w4-msg"></div>'
+    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(3)">← Back</button><button class="btn btn-primary" onclick="wizGo(5)">Next →</button></div>'
     +'</div>'
-    // STEP 4
-    +'<div class="wiz-screen" id="ws4">'
-    +'<div class="card-header"><div class="step-circle">4</div><div class="card-title">Tax Rate & Payments Made</div></div>'
+
+    // ── STEP 5: Payments ─────────────────────────────────────────────────
+    +'<div class="wiz-screen" id="ws5">'
+    +'<div class="card-header"><div class="step-circle">5</div><div class="card-title">Tax Rate & Payments Made</div></div>'
+    +'<div class="info-note">Standard rate is 27%. For SBCs or trusts where a sliding scale or different rate applies, calculate the tax liability manually and enter it directly in the <strong>Tax Liability Override</strong> field — the override takes precedence over the rate calculation.</div>'
     +'<div class="form-row triple">'
-    +'<div class="fg"><label>Tax Rate (%)</label><input type="number" id="f-tax-rate" value="'+(p.taxRate||27)+'" step="0.01" oninput="wizCalc()"></div>'
-    +'<div class="fg"><label>'+(isSecond?'1st Provisional Payment Made':'Prior Provisional Payment')+'</label><div class="rw"><span class="pre">R</span><input type="number" id="f-prev-pay" value="'+(p.prevPayment||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
+    +'<div class="fg"><label>Tax Rate % (standard 27%)</label><input type="number" id="f-tax-rate" value="'+(p.taxRate||27)+'" step="0.01" oninput="wizCalc()"></div>'
+    +'<div class="fg"><label>Tax Liability Override <span style="font-weight:400;font-size:12px;">(SBC / sliding scale)</span></label><div class="rw"><span class="pre">R</span><input type="number" id="f-tax-override" value="'+(p.taxOverride||'')+'" placeholder="Leave blank to use rate%" oninput="wizCalc()"></div></div>'
     +'<div class="fg"><label>PAYE / Tax Credits</label><div class="rw"><span class="pre">R</span><input type="number" id="f-credits" value="'+(p.credits||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'</div>'
     +'<div class="form-row">'
+    +'<div class="fg"><label>'+(isSecond?'1st Provisional Payment Made':'Prior Provisional Payment')+'</label><div class="rw"><span class="pre">R</span><input type="number" id="f-prev-pay" value="'+(p.prevPayment||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'<div class="fg"><label>S89Quat(2) Interest (if applicable)</label><div class="rw"><span class="pre">R</span><input type="number" id="f-89quat" value="'+(p.s89quat||0)+'" placeholder="0.00"></div></div>'
-    +'<div class="fg"><label>Internal Notes</label><input id="f-notes" value="'+(p.notes||'')+'" placeholder="Internal notes…"></div>'
     +'</div>'
-    +'<div id="w4-msg"></div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(3)">← Back</button><button class="btn btn-primary" onclick="wizGo(5)">Calculate Recommendation →</button></div>'
+    +'<div class="form-row single"><div class="fg"><label>Internal Notes</label><input id="f-notes" value="'+(p.notes||'')+'" placeholder="Internal notes…"></div></div>'
+    +'<div id="w5-msg"></div>'
+    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(4)">← Back</button><button class="btn btn-primary" onclick="wizGo(6)">Calculate Recommendation →</button></div>'
     +'</div>'
-    // STEP 5
-    +'<div class="wiz-screen" id="ws5">'
-    +'<div class="card-header"><div class="step-circle">5</div><div class="card-title">Recommendation</div></div>'
-    +'<div id="w5-result"></div>'
+
+    // ── STEP 6: Recommendation ───────────────────────────────────────────
+    +'<div class="wiz-screen" id="ws6">'
+    +'<div class="card-header"><div class="step-circle">6</div><div class="card-title">Recommendation</div></div>'
+    +'<div id="w6-result"></div>'
     +'<div class="form-row" style="margin-top:16px;">'
     +'<div class="fg"><label>Recommendation</label><select id="f-rec" onchange="wizCalc()">'
-    +'<option value="payment" '+(p.recommendation==='payment'?'selected':'')+'>Proceed with calculated estimate — payment due</option>'
-    +'<option value="nil" '+((p.recommendation||'nil')==='nil'?'selected':'')+'>Calculated estimate confirms nil payment</option>'
-    +'<option value="basic" '+(p.recommendation==='basic'?'selected':'')+'>Stick to the basic amount</option>'
+    +'<option value="payment" '+(p.recommendation===\'payment\'?\'selected\':\'\')+\'>Proceed with calculated estimate — payment due</option>\'
+    +'<option value="nil" '+((p.recommendation||\'nil\')===\'nil\'?\'selected\':\'\')+\'>Calculated estimate confirms nil payment</option>\'
+    +'<option value="basic" '+(p.recommendation===\'basic\'?\'selected\':\'\')+\'>Stick to the basic amount</option>\'
     +'</select></div>'
     +'<div class="fg"><label>Final Amount Payable</label><div class="rw"><span class="pre">R</span><input type="number" id="f-payable" value="'+(p.amountPayable||0)+'" placeholder="0.00" oninput="wizCalc()"></div></div>'
     +'</div>'
-    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(4)">← Back</button>'
+    +'<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(5)">← Back</button>'
     +'<div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="openWorkpaper()">📄 Workpaper</button>'
     +'<button class="btn btn-secondary" onclick="openEmail()">📧 Email</button>'
     +'<button class="btn btn-primary" onclick="saveReturn()">💾 Save</button></div></div>'
     +'</div>'
     +'</div>';
-  _wizStep=p.wizStep||1;wizGo(_wizStep,true);toggleForecast();wizCalc();
+
+  _wizStep=p.wizStep||1;wizGo(_wizStep,true);toggleForecast();togglePriorYear();wizCalc();
 }
 
+function togglePriorYear(){
+  const v=gv('f-py-avail');
+  const el=document.getElementById('py-fields');
+  if(el)el.style.display=v==='yes'?'block':'none';
+}
 function wizGo(step,silent){
   _wizStep=step;
-  for(let i=1;i<=5;i++){
+  for(let i=1;i<=6;i++){
     const sc=$('ws'+i);if(sc)sc.className='wiz-screen'+(i===step?' active':'');
     const tab=$('wt'+i);if(tab){tab.className='wiz-tab';if(i<step)tab.classList.add('done');if(i===step)tab.classList.add('active');}
   }
@@ -1134,85 +1191,6 @@ function toggleForecast(){
   const fw=$('f-fullyear-wrap');if(fw)fw.style.display=v==='fullyear'?'':'none';
 }
 
-function _n(id){return parseFloat(($(''+id)||{}).value)||0;}
-
-function wizCalc(){
-  const sarsBasic=_n('f-basic'),assessedTI=_n('f-assess-ti'),priorTCG=_n('f-prior-tcg');
-  const calcBasic=Math.max(0,assessedTI-priorTCG)||sarsBasic;
-  // 14-day test
-  const el1=$('w1-msg');
-  if(el1){
-    const assDate=getDateFromField('f-assess-date');
-    const dueDate=getDateFromField('f-due');
-    if(assDate&&dueDate){
-      const gap=Math.round((dueDate-assDate)/86400000);
-      el1.innerHTML=gap>=14
-        ?'<div class="alert ok">✓ 14-day test PASS — assessment is '+gap+' days before the due date.</div>'
-        :'<div class="alert bad">⚠ 14-day test: assessment is '+gap+' day'+(gap===1?'':'s')+' before due date (minimum 14 required).</div>';
-    }else if(assDate){el1.innerHTML='<div class="alert info">Enter the due date above to run the 14-day test.</div>';}
-    else el1.innerHTML='';
-  }
-  // Forecast
-  const ytd=_n('f-ytd-p'),fMethod=gv('f-forecast');
-  const from=getDateFromField('f-ma-from'),to=getDateFromField('f-ma-to');
-  let months=0,forecast=0;
-  if(from&&to&&to>from){months=((to-from)/86400000)/30.4375;months=Math.max(months,0.1);}
-  if(fMethod==='annualise')forecast=months?ytd*(12/months):ytd;
-  else if(fMethod==='remaining')forecast=ytd+_n('f-remaining');
-  else if(fMethod==='fullyear')forecast=_n('f-fullyear');
-  const el2=$('w2-msg');
-  if(el2)el2.innerHTML=(from||to||ytd)?'<div class="alert info">Projected full-year accounting profit / (loss): <strong>'+Rfmt(forecast)+'</strong></div>':'';
-  // Taxable income
-  const rawTI=forecast+_n('f-acct-dep')+_n('f-addbacks')+_n('f-curr-tcg')-_n('f-tax-dep')-_n('f-deductions')-_n('f-loss');
-  const ti=Math.max(0,rawTI);
-  const el3=$('w3-msg');
-  if(el3)el3.innerHTML='<div class="alert '+(rawTI<=0?'ok':'info')+'">Projected taxable income: <strong>'+(rawTI<=0?'Nil — no provisional tax liability':Rfmt(ti))+'</strong></div>';
-  // Tax & payment
-  const rate=_n('f-tax-rate')||27,tax=ti*(rate/100);
-  const prevPay=_n('f-prev-pay'),credits=_n('f-credits'),calcPay=Math.max(0,tax-prevPay-credits);
-  const el4=$('w4-msg');
-  if(el4)el4.innerHTML='<div class="alert info">Normal tax: <strong>'+Rfmt(tax)+'</strong> &nbsp;|&nbsp; Recommended payment: <strong>'+Rfmt(calcPay)+'</strong></div>';
-  // Step 5
-  const el5=$('w5-result');
-  if(el5){
-    const payable=_n('f-payable')||calcPay;
-    let verdict='FILE CALCULATED ESTIMATE',vcls='green';
-    const assDate=getDateFromField('f-assess-date'),dueDate=getDateFromField('f-due');
-    const fourteenFail=assDate&&dueDate&&Math.round((dueDate-assDate)/86400000)<14;
-    if(fourteenFail){verdict='PRACTITIONER REVIEW — 14-day test fails';vcls='red';}
-    else if(rawTI<=0||gv('f-rec')==='nil'){verdict='NIL PAYMENT — No provisional tax is due';vcls='green';}
-    else if(ti<calcBasic){verdict='PRACTITIONER REVIEW — Estimate is below SARS basic amount';vcls='amber';}
-    el5.innerHTML='<div class="verdict '+vcls+'">'+verdict+'</div>'
-      +'<table class="sum-table">'
-      +'<tr><td>SARS Basic Amount</td><td>'+Rfmt(sarsBasic)+'</td></tr>'
-      +'<tr><td>Projected Accounting Profit / (Loss)</td><td>'+Rfmt(forecast)+'</td></tr>'
-      +'<tr><td>Projected Taxable Income</td><td>'+Rfmt(ti)+'</td></tr>'
-      +'<tr><td>Normal Tax @ '+rate+'%</td><td>'+Rfmt(tax)+'</td></tr>'
-      +'<tr><td>Less: Payments & Credits</td><td>('+Rfmt(prevPay+credits)+')</td></tr>'
-      +'<tr class="total"><td>Recommended Payment</td><td>'+Rfmt(calcPay)+'</td></tr>'
-      +'</table>'
-      +(payable>0&&Math.abs(payable-calcPay)>1?'<div class="alert warn">⚠ Final amount ('+Rfmt(payable)+') differs from calculated ('+Rfmt(calcPay)+'). Retain client approval on file.</div>':'');
-  }
-  window._calc={forecast,ti,rawTI,tax,calcPay,rate,sarsBasic,calcBasic};
-}
-
-// ── ITR rendering ─────────────────────────────────────────────────────────
-const ITR14_CL=[
-  {id:'c1',label:'AFS / Management Accounts received',sub:'Annual financial statements or management accounts received and reviewed'},
-  {id:'c2',label:'Income Tax Reconciliation completed',sub:'Accounting profit reconciled to taxable income'},
-  {id:'c3',label:'Capital Allowances checked',sub:'Section 11(e), 12C, 12E confirmed and applied'},
-  {id:'c4',label:'Return captured on eFiling',sub:'All fields completed and verified on SARS eFiling'},
-  {id:'c5',label:'Return submitted',sub:'Filed on eFiling and submission acknowledgement saved'},
-  {id:'c6',label:'IT34 / Assessment received',sub:'Assessment received, checked and filed'},
-  {id:'c7',label:'Amount payable settled',sub:'Payment made or formal arrangement in place'},
-];
-const ITR12_CL=[
-  {id:'d1',label:'Source documents received',sub:'IRP5, IT3(b), medical, retirement annuity, etc.'},
-  {id:'d2',label:'Return captured on eFiling',sub:'All income, deductions and credits captured and verified'},
-  {id:'d3',label:'Return submitted',sub:'Filed on eFiling and submission acknowledgement saved'},
-  {id:'d4',label:'IT34 / Assessment received',sub:'Assessment received, checked and filed'},
-  {id:'d5',label:'Amount payable settled',sub:'Payment made or formal arrangement in place'},
-];
 
 function renderITRWizard(c,ret){
   const cl=ret.returnType==='itr14'?ITR14_CL:ITR12_CL;const checks=ret.checks||{};
@@ -1258,17 +1236,30 @@ function captureForm(){
   ret.notes=gv('f-notes');
   if(ret.returnType==='irp6'){
     ret.wizStep=_wizStep;ret.paymentStatus=gv('f-pay');ret.contactName=gv('f-contact');
+    // Step 1
     ret.basicAmount=_n('f-basic');ret.basicAmountYear=gv('f-basic-yr');
     ret.basicAmountResult=gv('f-basic-result');ret.assessmentDate=gv('f-assess-date');
     ret.assessedTI=_n('f-assess-ti');ret.priorTCG=_n('f-prior-tcg');
-    ret.maFrom=gv('f-ma-from');ret.maTo=gv('f-ma-to');ret.ytdProfit=_n('f-ytd-p');
+    // Step 2 — prior year
+    ret.priorYearAvail=gv('f-py-avail');ret.priorYearEnd=gv('f-py-yend');
+    ret.priorYearTurnover=_n('f-py-turnover');ret.priorYearTI=_n('f-py-ti');
+    ret.priorYearTax=_n('f-py-tax');ret.priorYearSource=gv('f-py-source');
+    ret.priorYearNote=gv('f-py-note');
+    // Step 3 — current position
+    ret.maFrom=gv('f-ma-from');ret.maTo=gv('f-ma-to');
+    ret.ytdTurnover=_n('f-ytd-turn');ret.ytdProfit=_n('f-ytd-p');
     ret.forecastMethod=gv('f-forecast');ret.remainingProfit=_n('f-remaining');
     ret.fullYearProfit=_n('f-fullyear');ret.forecastNote=gv('f-forecast-note');
+    // Step 4 — adjustments
     ret.acctDep=_n('f-acct-dep');ret.taxDep=_n('f-tax-dep');ret.addbacks=_n('f-addbacks');
     ret.deductions=_n('f-deductions');ret.currentTCG=_n('f-curr-tcg');ret.assessedLoss=_n('f-loss');
-    ret.taxRate=_n('f-tax-rate')||27;ret.prevPayment=_n('f-prev-pay');ret.credits=_n('f-credits');
-    ret.s89quat=_n('f-89quat');ret.recommendation=gv('f-rec');ret.amountPayable=_n('f-payable');
-    if(window._calc){ret._forecast=_calc.forecast;ret._ti=_calc.ti;ret._tax=_calc.tax;ret._calcPay=_calc.calcPay;}
+    // Step 5 — payments
+    ret.taxRate=_n('f-tax-rate')||27;
+    const ov=gv('f-tax-override');ret.taxOverride=ov?parseFloat(ov)||0:null;
+    ret.prevPayment=_n('f-prev-pay');ret.credits=_n('f-credits');ret.s89quat=_n('f-89quat');
+    // Step 6 — recommendation
+    ret.recommendation=gv('f-rec');ret.amountPayable=_n('f-payable');
+    if(window._calc){ret._forecast=_calc.forecast;ret._ti=_calc.ti;ret._tax=_calc.tax;ret._calcPay=_calc.calcPay;ret._annualisedTurnover=_calc.annualisedTurnover;}
   }else{
     const cl=ret.returnType==='itr14'?ITR14_CL:ITR12_CL;ret.checks={};
     cl.forEach(item=>{const el=$(item.id);if(el)ret.checks[item.id]=el.checked;});
@@ -1485,14 +1476,18 @@ function copyPlain(){
 function openWorkpaper(){
   captureForm();const c=getClient(),ret=getReturn();
   if(!ret||ret.returnType!=='irp6'){toast('Workpaper is only available for IRP6 returns','info');return;}
-  const calc=window._calc||{},isSecond=ret.returnPeriod?.endsWith('-02'),period=isSecond?'Second':'First';
+  const calc=window._calc||{};
+  const isSecond=ret.returnPeriod?.endsWith('-02'),period=isSecond?'Second':'First';
   const payable=ret.amountPayable||calc.calcPay||0,sarsBasic=ret.basicAmount||0,rate=ret.taxRate||27;
   let verdict='FILE CALCULATED ESTIMATE',vcls='green';
   if((calc.rawTI??1)<=0||ret.recommendation==='nil'){verdict='NIL PAYMENT — No provisional tax is due for this period';vcls='green';}
   else if(calc.ti<calc.calcBasic){verdict='PRACTITIONER REVIEW — Estimate is below SARS basic amount';vcls='amber';}
   const vStyle=vcls==='green'?'background:#dcfce7;color:#166534;border:1px solid #86efac;':vcls==='amber'?'background:#fef3c7;color:#92400e;border:1px solid #fcd34d;':'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;';
-  const td='padding:6px 8px;border-bottom:1px solid #e5e7eb;',tdR='padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:\'Courier New\',monospace;font-weight:600;';
+  const td='padding:6px 8px;border-bottom:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:12px;',tdR='padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:\'Courier New\',monospace;font-weight:600;font-size:12px;';
   const h3='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#840811;border-bottom:2px solid #840811;padding-bottom:5px;margin-bottom:10px;font-family:Arial,sans-serif;';
+  const pyAvail=ret.priorYearAvail==='yes';
+  const annTurn=calc.annualisedTurnover||0;
+  const taxOverride=calc.taxOverride;
   const wpHTML=
     '<div style="display:flex;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #840811;">'
     +'<div><div style="font-size:24px;font-weight:800;color:#840811;font-family:Arial,sans-serif;">TUTIN</div>'
@@ -1507,19 +1502,38 @@ function openWorkpaper(){
     +'<div>Prepared by: '+(ret.assignedTo||c.assignedTo||'—')+'</div>'
     +'</div></div>'
     +'<div style="text-align:center;padding:14px;border-radius:6px;font-weight:700;font-size:14px;margin-bottom:20px;font-family:Arial,sans-serif;'+vStyle+'">'+verdict+'</div>'
+
+    // Step 1
     +'<div style="margin-bottom:20px;"><h3 style="'+h3+'">Step 1 — SARS Basic Amount</h3>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:Arial,sans-serif;">'
-    +'<tr><td style="'+td+'">SARS Basic Amount (Year '+(ret.basicAmountYear||'—')+')</td><td style="'+tdR+'">'+Rfmt(sarsBasic)+'</td></tr>'
+    +'<table style="width:100%;border-collapse:collapse;">'
+    +'<tr><td style="'+td+'">SARS Basic Amount (Tax Year '+(ret.basicAmountYear||'—')+')</td><td style="'+tdR+'">'+Rfmt(sarsBasic)+'</td></tr>'
     +(ret.assessmentDate?'<tr><td style="'+td+'">Date of Assessment</td><td style="'+tdR+'">'+ret.assessmentDate+'</td></tr>':'')
     +(ret.assessedTI?'<tr><td style="'+td+'">Taxable Income on Assessment</td><td style="'+tdR+'">'+Rfmt(ret.assessedTI)+'</td></tr>':'')
     +(ret.priorTCG?'<tr><td style="'+td+'">Less: Prior Taxable Capital Gain (excluded)</td><td style="'+tdR+'">('+Rfmt(ret.priorTCG)+')</td></tr>':'')
     +'</table></div>'
-    +'<div style="margin-bottom:20px;"><h3 style="'+h3+'">Step 2 — Current Year Estimate</h3>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:Arial,sans-serif;">'
+
+    // Step 2 — Prior Year (only if available)
+    +(pyAvail
+      ?'<div style="margin-bottom:20px;"><h3 style="'+h3+'">Step 2 — Prior Financial Year (Unfiled Return)</h3>'
+       +'<table style="width:100%;border-collapse:collapse;">'
+       +(ret.priorYearEnd?'<tr><td style="'+td+'">Financial Year End</td><td style="'+tdR+'">'+ret.priorYearEnd+'</td></tr>':'')
+       +(ret.priorYearTurnover?'<tr><td style="'+td+'">Turnover / Gross Income</td><td style="'+tdR+'">'+Rfmt(ret.priorYearTurnover)+'</td></tr>':'')
+       +(ret.priorYearTI?'<tr><td style="'+td+'">Taxable Income / (Loss)</td><td style="'+tdR+'">'+Rfmt(ret.priorYearTI)+'</td></tr>':'')
+       +(ret.priorYearTax?'<tr><td style="'+td+'">Normal Tax</td><td style="'+tdR+'">'+Rfmt(ret.priorYearTax)+'</td></tr>':'')
+       +(ret.priorYearSource?'<tr><td style="'+td+'">Source of Figures</td><td style="'+tdR+'">'+(ret.priorYearSource==='afs'?'Annual Financial Statements':ret.priorYearSource==='mgmt'?'Management Accounts':'Draft / Unaudited')+'</td></tr>':'')
+       +(ret.priorYearNote?'<tr><td colspan="2" style="'+td+'font-style:italic;color:#6b7280;">Note: '+ret.priorYearNote+'</td></tr>':'')
+       +'</table></div>'
+      :'')
+
+    // Step 3 — Current position
+    +'<div style="margin-bottom:20px;"><h3 style="'+h3+'">Step '+(pyAvail?'3':'2')+' — Current Year Estimate</h3>'
+    +'<table style="width:100%;border-collapse:collapse;">'
     +(ret.maFrom?'<tr><td style="'+td+'">Management Accounts Period</td><td style="'+tdR+'">'+ret.maFrom+' to '+(ret.maTo||'—')+'</td></tr>':'')
+    +(ret.ytdTurnover?'<tr><td style="'+td+'">YTD Turnover / Gross Income</td><td style="'+tdR+'">'+Rfmt(ret.ytdTurnover)+'</td></tr>':'')
     +'<tr><td style="'+td+'">YTD Accounting Profit / (Loss)</td><td style="'+tdR+'">'+Rfmt(ret.ytdProfit||0)+'</td></tr>'
     +'<tr><td style="'+td+'">Forecast Method</td><td style="'+tdR+'">'+(ret.forecastMethod==='annualise'?'Annualised to 12 months':ret.forecastMethod==='remaining'?'YTD + Expected Remaining':'Full Year (Directly Entered)')+'</td></tr>'
     +(ret.forecastNote?'<tr><td colspan="2" style="'+td+'font-style:italic;color:#6b7280;">Basis: '+ret.forecastNote+'</td></tr>':'')
+    +(annTurn>0?'<tr style="background:#f9fafb;"><td style="'+td+'font-weight:600;">Annualised Turnover / Gross Income</td><td style="'+tdR+'">'+Rfmt(annTurn)+'</td></tr>':'')
     +'<tr style="background:#f9fafb;"><td style="'+td+'font-weight:600;">Projected Full-Year Accounting Profit / (Loss)</td><td style="'+tdR+'">'+Rfmt(calc.forecast||0)+'</td></tr>'
     +(ret.acctDep?'<tr><td style="'+td+'">Add: Accounting Depreciation</td><td style="'+tdR+'">'+Rfmt(ret.acctDep)+'</td></tr>':'')
     +(ret.addbacks?'<tr><td style="'+td+'">Add: Other Tax Add-Backs</td><td style="'+tdR+'">'+Rfmt(ret.addbacks)+'</td></tr>':'')
@@ -1528,19 +1542,24 @@ function openWorkpaper(){
     +(ret.deductions?'<tr><td style="'+td+'">Less: Other Tax Deductions</td><td style="'+tdR+'">('+Rfmt(ret.deductions)+')</td></tr>':'')
     +(ret.assessedLoss?'<tr><td style="'+td+'">Less: Assessed Loss Utilised</td><td style="'+tdR+'">('+Rfmt(ret.assessedLoss)+')</td></tr>':'')
     +'<tr style="background:#f9fafb;"><td style="'+td+'font-weight:600;">Projected Taxable Income</td><td style="'+tdR+'">'+Rfmt(calc.ti||0)+'</td></tr>'
-    +'<tr><td style="'+td+'">Normal Tax at '+rate+'%</td><td style="'+tdR+'">'+Rfmt(calc.tax||0)+'</td></tr>'
+    +(taxOverride!==null
+      ?'<tr><td style="'+td+'">Normal Tax (manual — SBC / sliding scale)</td><td style="'+tdR+'">'+Rfmt(calc.tax||0)+'</td></tr>'
+      :'<tr><td style="'+td+'">Normal Tax at '+rate+'%</td><td style="'+tdR+'">'+Rfmt(calc.tax||0)+'</td></tr>')
     +(ret.prevPayment?'<tr><td style="'+td+'">Less: '+(isSecond?'First':'Prior')+' Provisional Payment</td><td style="'+tdR+'">('+Rfmt(ret.prevPayment)+')</td></tr>':'')
     +(ret.credits?'<tr><td style="'+td+'">Less: PAYE / Tax Credits</td><td style="'+tdR+'">('+Rfmt(ret.credits)+')</td></tr>':'')
-    +'<tr style="border-top:2px solid #111;"><td style="padding:8px 8px;font-weight:700;font-size:13px;">Minimum '+period+' Provisional Payment</td><td style="padding:8px 8px;text-align:right;font-family:\'Courier New\',monospace;font-weight:700;font-size:13px;">'+Rfmt(calc.calcPay||0)+'</td></tr>'
+    +'<tr style="border-top:2px solid #111;"><td style="padding:8px 8px;font-weight:700;font-size:13px;font-family:Arial,sans-serif;">Minimum '+period+' Provisional Payment</td><td style="padding:8px 8px;text-align:right;font-family:\'Courier New\',monospace;font-weight:700;font-size:13px;">'+Rfmt(calc.calcPay||0)+'</td></tr>'
     +'</table></div>'
-    +'<div style="margin-bottom:20px;"><h3 style="'+h3+'">Step 3 — Decision</h3>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:Arial,sans-serif;">'
+
+    // Decision
+    +'<div style="margin-bottom:20px;"><h3 style="'+h3+'">Decision</h3>'
+    +'<table style="width:100%;border-collapse:collapse;">'
     +'<tr><td style="'+td+'">SARS Basic Amount</td><td style="'+tdR+'">'+Rfmt(sarsBasic)+'</td></tr>'
-    +'<tr><td style="'+td+'">Calculated Minimum Payment (Step 2)</td><td style="'+tdR+'">'+Rfmt(calc.calcPay||0)+'</td></tr>'
+    +'<tr><td style="'+td+'">Calculated Minimum Payment</td><td style="'+tdR+'">'+Rfmt(calc.calcPay||0)+'</td></tr>'
     +'<tr><td style="'+td+'">Recommendation</td><td style="'+tdR+'">'+(ret.recommendation==='payment'?'Use Calculated Estimate':ret.recommendation==='nil'?'Nil Payment':'Use Basic Amount')+'</td></tr>'
-    +'<tr style="border-top:2px solid #111;"><td style="padding:8px 8px;font-weight:700;font-size:13px;">Amount Payable to SARS</td><td style="padding:8px 8px;text-align:right;font-family:\'Courier New\',monospace;font-weight:700;font-size:13px;">'+Rfmt(payable)+'</td></tr>'
+    +'<tr style="border-top:2px solid #111;"><td style="padding:8px 8px;font-weight:700;font-size:13px;font-family:Arial,sans-serif;">Amount Payable to SARS</td><td style="padding:8px 8px;text-align:right;font-family:\'Courier New\',monospace;font-weight:700;font-size:13px;">'+Rfmt(payable)+'</td></tr>'
     +'</table></div>'
-    +(ret.s89quat?'<div style="margin-bottom:20px;"><h3 style="'+h3+'">S89Quat(2) Interest</h3><table style="width:100%;border-collapse:collapse;font-size:12px;"><tr><td style="'+td+'">Interest on Underpayment</td><td style="'+tdR+'">'+Rfmt(ret.s89quat)+'</td></tr></table></div>':'')
+
+    +(ret.s89quat?'<div style="margin-bottom:20px;"><h3 style="'+h3+'">S89Quat(2) Interest</h3><table style="width:100%;border-collapse:collapse;"><tr><td style="'+td+'">Interest on Underpayment</td><td style="'+tdR+'">'+Rfmt(ret.s89quat)+'</td></tr></table></div>':'')
     +(ret.notes?'<div style="margin-bottom:20px;"><h3 style="'+h3+'">Notes</h3><p style="font-size:13px;line-height:1.6;font-family:Arial,sans-serif;">'+ret.notes+'</p></div>':'')
     +'<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;font-size:12px;color:#6b7280;font-family:Arial,sans-serif;">'
     +'<div><div style="font-weight:600;color:#111;margin-bottom:24px;">Prepared by</div><div style="border-top:1px solid #374151;padding-top:4px;">'+(ret.assignedTo||c.assignedTo||'')+'</div></div>'
@@ -1581,4 +1600,115 @@ initAuth();
 
 </script>
 </body>
-</html>
+</html
+function wizCalc(){
+  // ── Step 1: Basic Amount ──────────────────────────────────────────────
+  const sarsBasic=_n('f-basic'),assessedTI=_n('f-assess-ti'),priorTCG=_n('f-prior-tcg');
+  const calcBasic=Math.max(0,assessedTI-priorTCG)||sarsBasic;
+  const el1=$('w1-msg');
+  if(el1){
+    const assDate=getDateFromField('f-assess-date'),dueDate=getDateFromField('f-due');
+    if(assDate&&dueDate){
+      const gap=Math.round((dueDate-assDate)/86400000);
+      el1.innerHTML=gap>=14
+        ?'<div class="alert ok">✓ 14-day test PASS — assessment is '+gap+' days before the due date.</div>'
+        :'<div class="alert bad">⚠ 14-day test FAIL — only '+gap+' day'+(gap===1?'':'s')+' before due date. Minimum 14 required.</div>';
+    }else el1.innerHTML='';
+  }
+
+  // ── Step 2: Prior Year trend analysis ────────────────────────────────
+  const pyAvail=gv('f-py-avail')==='yes';
+  const pyTI=_n('f-py-ti'),pyTurn=_n('f-py-turnover'),pyTax=_n('f-py-tax');
+  const el2t=$('w2-trend');
+  if(el2t&&pyAvail&&pyTI){
+    const trendVsBasic=assessedTI>0?((pyTI-assessedTI)/Math.abs(assessedTI)*100):0;
+    const dir=trendVsBasic>0?'↑ up':'↓ down';
+    const cls=Math.abs(trendVsBasic)>20?'warn':'info';
+    el2t.innerHTML='<div class="alert '+cls+'">'
+      +'Prior year taxable income ('+Rfmt(pyTI)+') is <strong>'+Math.abs(trendVsBasic).toFixed(1)+'% '+dir+'</strong> vs basic amount year ('+Rfmt(assessedTI)+').'
+      +(Math.abs(trendVsBasic)>20?' ⚠ Material shift — review estimate carefully.':'')
+      +'</div>';
+  }else if(el2t)el2t.innerHTML='';
+
+  // ── Step 3: Current Position ──────────────────────────────────────────
+  const ytd=_n('f-ytd-p'),ytdTurn=_n('f-ytd-turn'),fMethod=gv('f-forecast');
+  const from=getDateFromField('f-ma-from'),to=getDateFromField('f-ma-to');
+  let months=0,forecast=0,annualisedTurnover=0;
+  if(from&&to&&to>from){months=((to-from)/86400000)/30.4375;months=Math.max(months,0.1);}
+  if(fMethod==='annualise'){
+    forecast=months?ytd*(12/months):ytd;
+    annualisedTurnover=months&&ytdTurn?ytdTurn*(12/months):ytdTurn;
+  }else if(fMethod==='remaining'){
+    forecast=ytd+_n('f-remaining');
+    annualisedTurnover=ytdTurn; // full year turnover not automatically calculated
+  }else if(fMethod==='fullyear'){
+    forecast=_n('f-fullyear');
+    annualisedTurnover=ytdTurn;
+  }
+  const el3=$('w3-msg');
+  if(el3){
+    let msg='';
+    if(from||to||ytd){
+      msg+='<div class="alert info">'
+        +'Projected full-year accounting profit / (loss): <strong>'+Rfmt(forecast)+'</strong>';
+      if(annualisedTurnover>0)msg+=' &nbsp;|&nbsp; Annualised turnover: <strong>'+Rfmt(annualisedTurnover)+'</strong>';
+      msg+='</div>';
+    }
+    // Trend: compare current YTD vs prior year if available
+    if(pyAvail&&pyTurn>0&&ytdTurn>0&&months>0){
+      const pyMonthlyTurn=pyTurn/12;
+      const currMonthlyTurn=ytdTurn/months;
+      const turnShift=((currMonthlyTurn-pyMonthlyTurn)/Math.abs(pyMonthlyTurn)*100);
+      const tdir=turnShift>0?'ahead of':'behind';
+      const tcls=Math.abs(turnShift)>15?'warn':'ok';
+      msg+='<div class="alert '+tcls+'">Turnover trend: monthly average is <strong>'+Math.abs(turnShift).toFixed(1)+'% '+tdir+'</strong> prior year pace'+(Math.abs(turnShift)>15?' — review forecast basis.':'.')+'</div>';
+    }
+    el3.innerHTML=msg;
+  }
+
+  // ── Step 4: Tax Adjustments ───────────────────────────────────────────
+  const rawTI=forecast+_n('f-acct-dep')+_n('f-addbacks')+_n('f-curr-tcg')-_n('f-tax-dep')-_n('f-deductions')-_n('f-loss');
+  const ti=Math.max(0,rawTI);
+  const el4=$('w4-msg');
+  if(el4)el4.innerHTML='<div class="alert '+(rawTI<=0?'ok':'info')+'">'
+    +'Projected taxable income: <strong>'+(rawTI<=0?'Nil — no provisional tax liability':Rfmt(ti))+'</strong></div>';
+
+  // ── Step 5: Payments & Tax ────────────────────────────────────────────
+  const rate=_n('f-tax-rate')||27;
+  const overrideRaw=($('f-tax-override')||{}).value;
+  const taxOverride=overrideRaw&&parseFloat(overrideRaw)>0?parseFloat(overrideRaw):null;
+  const tax=taxOverride!==null?taxOverride:ti*(rate/100);
+  const prevPay=_n('f-prev-pay'),credits=_n('f-credits'),calcPay=Math.max(0,tax-prevPay-credits);
+  const el5=$('w5-msg');
+  if(el5)el5.innerHTML='<div class="alert info">'
+    +(taxOverride!==null?'Tax liability (manual override): ':'Normal tax @ '+rate+'%: ')
+    +'<strong>'+Rfmt(tax)+'</strong> &nbsp;|&nbsp; Recommended payment: <strong>'+Rfmt(calcPay)+'</strong></div>';
+
+  // ── Step 6: Recommendation ────────────────────────────────────────────
+  const el6=$('w6-result');
+  if(el6){
+    const payable=_n('f-payable')||calcPay;
+    let verdict='FILE CALCULATED ESTIMATE',vcls='green';
+    const assDate=getDateFromField('f-assess-date'),dueDate=getDateFromField('f-due');
+    const fourteenFail=assDate&&dueDate&&Math.round((dueDate-assDate)/86400000)<14;
+    if(fourteenFail){verdict='PRACTITIONER REVIEW — 14-day test fails';vcls='red';}
+    else if(rawTI<=0||gv('f-rec')==='nil'){verdict='NIL PAYMENT — No provisional tax is due';vcls='green';}
+    else if(ti<calcBasic){verdict='PRACTITIONER REVIEW — Estimate is below SARS basic amount';vcls='amber';}
+    el6.innerHTML='<div class="verdict '+vcls+'">'+verdict+'</div>'
+      +'<table class="sum-table">'
+      +'<tr><td>SARS Basic Amount ('+gv('f-basic-yr')+')</td><td>'+Rfmt(sarsBasic)+'</td></tr>'
+      +(pyAvail&&pyTI?'<tr><td>Prior Year Taxable Income (unfiled)</td><td>'+Rfmt(pyTI)+'</td></tr>':'')
+      +'<tr><td>Projected Full-Year Accounting Profit / (Loss)</td><td>'+Rfmt(forecast)+'</td></tr>'
+      +(annualisedTurnover>0?'<tr><td>Annualised Turnover / Gross Income</td><td>'+Rfmt(annualisedTurnover)+'</td></tr>':'')
+      +'<tr><td>Projected Taxable Income</td><td>'+Rfmt(ti)+'</td></tr>'
+      +(taxOverride!==null
+        ?'<tr><td>Normal Tax (manual — SBC/sliding scale)</td><td>'+Rfmt(tax)+'</td></tr>'
+        :'<tr><td>Normal Tax @ '+rate+'%</td><td>'+Rfmt(tax)+'</td></tr>')
+      +'<tr><td>Less: Payments & Credits</td><td>('+Rfmt(prevPay+credits)+')</td></tr>'
+      +'<tr class="total"><td>Recommended Payment</td><td>'+Rfmt(calcPay)+'</td></tr>'
+      +'</table>'
+      +(payable>0&&Math.abs(payable-calcPay)>1?'<div class="alert warn">⚠ Final amount ('+Rfmt(payable)+') differs from calculated ('+Rfmt(calcPay)+'). Retain client approval on file.</div>':'');
+  }
+  window._calc={forecast,ti,rawTI,tax,calcPay,rate,sarsBasic,calcBasic,annualisedTurnover,taxOverride,pyTI,pyTurn};
+}
+>
