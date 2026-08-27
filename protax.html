@@ -1060,7 +1060,7 @@ function renderWizard(c,p){
         '</div>',
       '</div>',
       '<div id="w1-msg"></div>',
-      '<div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizGo(2)">Next →</button></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="saveReturn()">💾 Save</button><button class="btn btn-primary" onclick="wizGo(2)">Next →</button></div>',
     '</div>',
 
     // STEP 2 - Prior Year
@@ -1097,7 +1097,7 @@ function renderWizard(c,p){
         '</div>',
         '<div id="w2-trend"></div>',
       '</div>',
-      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(1)">← Back</button><button class="btn btn-primary" onclick="wizGo(3)">Next →</button></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(1)">← Back</button><div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="saveReturn()">💾 Save</button><button class="btn btn-primary" onclick="wizGo(3)">Next →</button></div></div>',
     '</div>',
 
     // STEP 3 - Current Position
@@ -1134,7 +1134,7 @@ function renderWizard(c,p){
         '<input id="f-forecast-note" value="'+(p.forecastNote||'')+'" placeholder="e.g. 5 months known, strong Q4 expected">',
       '</div></div>',
       '<div id="w3-msg"></div>',
-      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(2)">← Back</button><button class="btn btn-primary" onclick="wizGo(4)">Next →</button></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(2)">← Back</button><div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="saveReturn()">💾 Save</button><button class="btn btn-primary" onclick="wizGo(4)">Next →</button></div></div>',
     '</div>',
 
     // STEP 4 - Tax Adjustments
@@ -1164,7 +1164,7 @@ function renderWizard(c,p){
         '</div></div>',
       '</div>',
       '<div id="w4-msg"></div>',
-      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(3)">← Back</button><button class="btn btn-primary" onclick="wizGo(5)">Next →</button></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(3)">← Back</button><div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="saveReturn()">💾 Save</button><button class="btn btn-primary" onclick="wizGo(5)">Next →</button></div></div>',
     '</div>',
 
     // STEP 5 - Payments
@@ -1194,7 +1194,7 @@ function renderWizard(c,p){
         '<input id="f-notes" value="'+(p.notes||'')+'" placeholder="Internal notes…">',
       '</div></div>',
       '<div id="w5-msg"></div>',
-      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(4)">← Back</button><button class="btn btn-primary" onclick="wizGo(6)">Calculate Recommendation →</button></div>',
+      '<div class="wiz-nav"><button class="btn btn-ghost" onclick="wizGo(4)">← Back</button><div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="saveReturn()">💾 Save</button><button class="btn btn-primary" onclick="wizGo(6)">Calculate Recommendation →</button></div></div>',
     '</div>',
 
     // STEP 6 - Recommendation
