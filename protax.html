@@ -647,6 +647,19 @@ const $=id=>document.getElementById(id);
 const openModal=id=>$(id).classList.add('open');
 const closeModal=id=>$(id).classList.remove('open');
 const ENTITY_LABEL={company:'Company (Pty) Ltd',cc:'CC',soleprop:'Sole Proprietor',individual:'Individual',trust:'Trust'};
+function fByDisplay(fields,colMap,displayName,fallbacks){
+  fallbacks=fallbacks||[];
+  const internalName=Object.entries(colMap).find(function(e){return e[1]===displayName;});
+  const iName=internalName?internalName[0]:null;
+  if(iName&&fields[iName]!=null)return fields[iName];
+  if(fields[displayName]!=null)return fields[displayName];
+  const lc=displayName.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const match=Object.keys(fields).find(function(k){return k.toLowerCase().replace(/[^a-z0-9]/g,'')=== lc;});
+  if(match&&fields[match]!=null)return fields[match];
+  for(var i=0;i<fallbacks.length;i++)if(fields[fallbacks[i]]!=null)return fields[fallbacks[i]];
+  return'';
+}
+
 const ITR14_CL=[
   {id:'c1',label:'AFS / Management Accounts received',sub:'Annual financial statements or management accounts received and reviewed'},
   {id:'c2',label:'Income Tax Reconciliation completed',sub:'Accounting profit reconciled to taxable income'},
