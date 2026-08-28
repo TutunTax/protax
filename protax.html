@@ -236,7 +236,6 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   </div>
   <div id="topbar-right">
     <span id="sync-bar">Connecting…</span>
-    <span id="auth-pill" class="auth-pill offline" onclick="signIn()">⚪ Sign in</span>
   </div>
 </div>
 
@@ -1204,6 +1203,7 @@ function renderReturnList(){
       +'<div class="rc-left"><div class="rc-title"><span class="ttag '+T_CLASS[r.returnType]+'">'+T_LABEL[r.returnType]+'</span> '+escHtml(r.returnPeriod)+'</div>'
       +'<div class="rc-meta">Due: '+(r.dueDate||'—')+' · '+(S_LABEL[r.status]||r.status)+(r.amountPayable?(' · '+Rfmt(r.amountPayable)):'')+'</div></div>'
       +'<div class="rc-right" style="display:flex;align-items:center;gap:6px;">'
+      +(isActive?'<button class="btn btn-primary btn-sm" data-action="save" data-eid="'+eid+'" title="Save to SharePoint">💾 Save</button>':'')
       +'<span class="badge '+(S_CLASS[r.status]||'b-todo')+'">'+(S_LABEL[r.status]||r.status)+'</span>'
       +'<button class="btn-icon" data-action="rename" data-eid="'+eid+'" title="Rename">✏️</button>'
       +'<button class="btn-icon" data-action="delete" data-eid="'+eid+'" title="Delete" style="color:#991b1b;">🗑</button>'
@@ -1218,6 +1218,10 @@ function renderReturnList(){
       const eid=btn.dataset.eid||'';
       if(btn.dataset.action==='rename')renameReturn(eid);
       else if(btn.dataset.action==='delete')deleteReturnById(eid);
+      else if(btn.dataset.action==='save'){
+        try{captureForm();}catch(ex){}
+        saveReturn();
+      }
       return;
     }
     const item=e.target.closest('[data-rid]');
