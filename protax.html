@@ -62,7 +62,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
 .b-todo{background:#e0e7ff;color:#3730a3;}.b-inprogress{background:#fef3c7;color:#92400e;}
 .b-awaiting{background:#fee2e2;color:#991b1b;}.b-emailsent{background:#d1fae5;color:#065f46;}
-.b-submitted{background:#e0f2fe;color:#0c4a6e;}
+.b-submitted{background:#dcfce7;color:#166534;}
 .cl-assigned{font-size:11px;color:var(--ink-light);}
 #sb-footer{padding:8px 12px;border-top:1px solid var(--rule);font-size:12px;color:var(--ink-light);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 
@@ -1095,16 +1095,29 @@ function renderReturnList(){
     listEl.innerHTML='<div class="no-returns">No '+T_LABEL[activeType]+' returns'+(activePeriod?' for period '+activePeriod:'')+'.<br><button class="add-return-btn" style="margin-top:12px;" onclick="addReturn()">＋ Add Return</button></div>';
     wizEl.innerHTML='';return;
   }
-  listEl.innerHTML='<div class="return-list">'+rets.map(r=>{
+    listEl.innerHTML='<div class="return-list">'+rets.map(r=>{
     const isActive=r.id===activeReturnId;
-    return '<div class="return-card'+(isActive?' active':'')+'" data-rid="'+encodeURIComponent(r.id)+'">'
+    const eid=encodeURIComponent(r.id);
+    return '<div class="return-card'+(isActive?' active':'')+'" data-rid="'+eid+'">'
       +'<div class="rc-left"><div class="rc-title"><span class="ttag '+T_CLASS[r.returnType]+'">'+T_LABEL[r.returnType]+'</span> '+escHtml(r.returnPeriod)+'</div>'
       +'<div class="rc-meta">Due: '+(r.dueDate||'—')+' · '+(S_LABEL[r.status]||r.status)+(r.amountPayable?(' · '+Rfmt(r.amountPayable)):'')+'</div></div>'
-      +'<div class="rc-right"><span class="badge '+(S_CLASS[r.status]||'b-todo')+'">'+(S_LABEL[r.status]||r.status)+'</span></div>'
+      +'<div class="rc-right" style="display:flex;align-items:center;gap:6px;">'
+      +'<span class="badge '+(S_CLASS[r.status]||'b-todo')+'">'+(S_LABEL[r.status]||r.status)+'</span>'
+      +'<button class="btn-icon" data-action="rename" data-eid="'+eid+'" title="Rename">✏️</button>'
+      +'<button class="btn-icon" data-action="delete" data-eid="'+eid+'" title="Delete" style="color:#991b1b;">🗑</button>'
+      +'</div>'
       +'</div>';
   }).join('')+'</div>';
   listEl.onclick=null;
   listEl.onclick=function(e){
+    const btn=e.target.closest('[data-action]');
+    if(btn){
+      e.stopPropagation();
+      const eid=btn.dataset.eid||'';
+      if(btn.dataset.action==='rename')renameReturn(eid);
+      else if(btn.dataset.action==='delete')deleteReturnById(eid);
+      return;
+    }
     const item=e.target.closest('[data-rid]');
     if(!item)return;
     window.selectReturn(decodeURIComponent(item.dataset.rid||''));
@@ -1506,14 +1519,24 @@ function addReturn(){
   const type=activeType;
   const period=prompt('Return period? (e.g. '+(type==='irp6'?'2027-01':'2027')+')',activePeriod||'');
   if(!period)return;
-  const ret=blankReturn(type,period,'',c.clientKey,c.assignedTo);
+  const dueRaw=prompt('Due date? (YYYYMMDD e.g. 20270829 — or leave blank)','');
+  const dueFmt=dueRaw?formatDueInput(dueRaw):'';
+  const ret=blankReturn(type,period,dueFmt,c.clientKey,c.assignedTo);
   DB.returns.push(ret);activeReturnId=ret.id;
   if(activePeriod!==period){activePeriod=period;renderPeriodPills();}
   renderReturnList();
-  
-  toast(T_LABEL[type]+' '+period+' created — fill in details and click Save','info',5000);
+  toast(T_LABEL[type]+' '+period+' created — fill in details and Save','info',5000);
 }
 
+function formatDueInput(raw){
+  if(!raw)return'';
+  raw=raw.trim().replace(/-/g,'');
+  if(raw.length===8&&!isNaN(raw)){
+    const dt=new Date(parseInt(raw.slice(0,4)),parseInt(raw.slice(4,6))-1,parseInt(raw.slice(6,8)));
+    if(!isNaN(dt.getTime()))return dt.getDate()+' '+MONTHS[dt.getMonth()]+' '+dt.getFullYear();
+  }
+  return raw;
+}
 function blankReturn(type,period,due,clientKey,assignedTo){
   const base={id:uid(),clientKey,returnType:type,returnPeriod:period,status:'todo',dueDate:due||'',assignedTo:assignedTo||''};
   if(type==='irp6')return{...base,contactName:'',paymentStatus:'na',wizStep:1,
@@ -1649,6 +1672,39 @@ async function saveClientEdit(){
   renderClientView();
   renderList();
   DB.clients.sort((a,b)=>a.companyName.localeCompare(b.companyName));
+}
+
+function renameReturn(encodedId){
+  const retId=decodeURIComponent(encodedId);
+  const ret=DB.returns.find(r=>r.id===retId);
+  if(!ret)return;
+  const newPeriod=prompt('Return period / name:',ret.returnPeriod);
+  if(!newPeriod||newPeriod===ret.returnPeriod)return;
+  ret.returnPeriod=newPeriod;
+  if(activeReturnId===retId)renderReturnList();
+  else renderReturnList();
+  toast('Return renamed — click Save to persist','info',4000);
+}
+
+async function deleteReturnById(encodedId){
+  const retId=decodeURIComponent(encodedId);
+  const ret=DB.returns.find(r=>r.id===retId);
+  if(!ret)return;
+  const label=T_LABEL[ret.returnType]+' '+ret.returnPeriod;
+  if(!confirm('Delete '+label+'? This cannot be undone.'))return;
+  const spId=_spReturnMap[retId];
+  if(spId){
+    try{
+      const siteId=await getSiteId();
+      await gDelete('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_RETURNS+'/items/'+spId);
+      delete _spReturnMap[retId];
+    }catch(e){toast('⚠ Could not delete from SharePoint: '+e.message,'error');return;}
+  }
+  DB.returns=DB.returns.filter(r=>r.id!==retId);
+  if(activeReturnId===retId){activeReturnId=null;}
+  renderReturnList();
+  renderList();
+  toast(label+' deleted','success');
 }
 
 async function deleteReturn(){
