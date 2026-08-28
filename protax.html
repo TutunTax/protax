@@ -1219,10 +1219,16 @@ function renderReturnList(){
       if(btn.dataset.action==='rename')renameReturn(eid);
       else if(btn.dataset.action==='delete')deleteReturnById(eid);
       else if(btn.dataset.action==='save'){
-        // Set activeReturnId first, then save
+        // Save return directly from memory - no wizard open so skip captureForm
         const retId=decodeURIComponent(eid);
-        activeReturnId=retId;
-        saveReturn();
+        const retToSave=DB.returns.find(r=>r.id===retId);
+        if(!retToSave){toast('Return not found','error');return;}
+        if(_saving)return;
+        _saving=true;setSave('saving');
+        spSaveReturn(retToSave)
+          .then(()=>{setSave('saved');toast('✅ Saved to SharePoint','success');renderReturnList();})
+          .catch(e=>{setSave('failed',e.message);toast('⚠ Save failed: '+e.message,'error',8000);})
+          .finally(()=>{_saving=false;});
       }
       return;
     }
