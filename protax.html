@@ -243,20 +243,54 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   <!-- Left: client list -->
   <div id="sidebar">
     <div id="sb-search-wrap">
-      <input class="sb-search" id="filter-search" placeholder="🔍  Search clients…" oninput="renderList()">
-      <select class="sb-select" id="filter-status" onchange="renderList()">
-        <option value="">All return statuses</option>
-        <option value="todo">To Do</option>
-        <option value="inprogress">In Progress</option>
-        <option value="awaiting">Awaiting Info</option>
-        <option value="emailsent">Email Sent</option>
-        <option value="submitted">Submitted</option>
-      </select>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="sb-search" id="filter-search" placeholder="🔍  Search clients…" oninput="renderList()" style="flex:1;">
+        <button class="btn-icon" onclick="toggleFilterPanel()" title="Filters" id="filter-btn">⚙️</button>
+      </div>
     </div>
-    <label id="sb-inactive-wrap">
-      <input type="checkbox" id="sb-inactive-toggle" onchange="renderList()">
-      Show inactive clients
-    </label>
+    <div id="filter-panel" style="display:none;padding:10px 12px;border-bottom:1px solid var(--rule);background:var(--surface);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-light);">Filters</span>
+        <button style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;" onclick="clearFilters()">Clear all</button>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><label style="font-size:12px;">Return Type</label>
+        <select class="sb-select" id="filter-type" onchange="renderList()">
+          <option value="">All types</option>
+          <option value="irp6">IRP6</option>
+          <option value="itr14">ITR14</option>
+          <option value="itr12">ITR12</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><label style="font-size:12px;">Period</label>
+        <select class="sb-select" id="filter-period" onchange="renderList()">
+          <option value="">All periods</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><label style="font-size:12px;">Status</label>
+        <select class="sb-select" id="filter-status" onchange="renderList()">
+          <option value="">All statuses</option>
+          <option value="todo">To Do</option>
+          <option value="inprogress">In Progress</option>
+          <option value="awaiting">Awaiting Info</option>
+          <option value="emailsent">Email Sent</option>
+          <option value="submitted">Submitted</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:8px;"><label style="font-size:12px;">Entity Type</label>
+        <select class="sb-select" id="filter-entity" onchange="renderList()">
+          <option value="">All entity types</option>
+          <option value="company">Company (Pty) Ltd</option>
+          <option value="cc">CC</option>
+          <option value="soleprop">Sole Proprietor</option>
+          <option value="individual">Individual</option>
+          <option value="trust">Trust</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-light);cursor:pointer;">
+        <input type="checkbox" id="sb-inactive-toggle" onchange="renderList()" style="accent-color:var(--accent);">
+        Show inactive clients
+      </label>
+    </div>
     <div id="client-list"></div>
     <div id="sb-footer">
       <span id="sb-count"></span>
@@ -350,24 +384,64 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 
 <!-- Edit Client Modal -->
 <div id="edit-modal" class="modal-overlay">
-  <div class="modal modal-lg">
-    <div class="modal-head"><h3>Client — ProTax Settings</h3><button class="modal-close" onclick="closeModal('edit-modal')">✕</button></div>
-    <div class="modal-body">
-      <div class="info-note">ℹ️ Company data is managed in the Tutin Client Register. Only ProTax-specific settings are editable here.</div>
-      <div class="form-grid" style="margin-top:14px;">
-        <div class="fg full"><label>Company Name (read-only)</label><input id="ec-name" readonly style="background:var(--surface);"></div>
-        <div class="fg"><label>Contact Person</label><input id="ec-contact"></div>
-        <div class="fg"><label>Entity Type</label>
-          <select id="ec-entity"><option value="company">Company (Pty) Ltd</option><option value="cc">CC</option><option value="soleprop">Sole Proprietor</option><option value="individual">Individual</option><option value="trust">Trust</option></select>
-        </div>
-        <div class="fg"><label>Financial Year End</label>
-          <select id="ec-yearend"><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select>
+  <div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:92vh;">
+    <div class="modal-head"><h3>✏️ Edit Client</h3><button class="modal-close" onclick="closeModal('edit-modal')">✕</button></div>
+    <div class="modal-body" style="overflow-y:auto;flex:1;">
+      <div class="form-grid">
+        <div class="fg full"><label>Company Name (Title)</label><input id="ec-name"></div>
+        <div class="fg"><label>ClientStatus</label>
+          <select id="ec-status">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
         </div>
         <div class="fg"><label>Assigned To</label>
-          <select id="ec-assigned"><option value="">— Unassigned —</option><option>Johan Muller</option><option>Jermaine Jansen</option><option>Keanu van Wyk</option><option>Vonique Bezuidenhoud</option><option>Maryna Muller</option><option>Damien</option></select>
+          <select id="ec-assigned">
+            <option value="">— Unassigned —</option>
+            <option>Johan Muller</option><option>Jermaine Jansen</option>
+            <option>Keanu van Wyk</option><option>Vonique Bezuidenhoud</option>
+            <option>Maryna Muller</option><option>Damien</option>
+          </select>
         </div>
-        <div class="fg"><label>Tax Clearance</label>
-          <select id="ec-taxclear"><option value="">— Unknown —</option><option value="Yes">✅ Yes</option><option value="No">❌ No</option></select>
+        <div class="fg"><label>Registration Number</label><input id="ec-regno"></div>
+        <div class="fg"><label>CIPC Renewal Month</label><input id="ec-cipc" placeholder="e.g. March"></div>
+        <div class="fg full"><label>Nature of Business</label><input id="ec-nature"></div>
+        <div class="fg full"><label>Business Address</label><input id="ec-address"></div>
+        <div class="fg"><label>Tax Number</label><input id="ec-taxno"></div>
+        <div class="fg"><label>VAT Number</label><input id="ec-vatno"></div>
+        <div class="fg"><label>PAYE Number</label><input id="ec-paye"></div>
+        <div class="fg"><label>UIF Number</label><input id="ec-uif"></div>
+        <div class="fg"><label>COIDA Number</label><input id="ec-coida"></div>
+        <div class="fg"><label>COIDA Class</label><input id="ec-coidaclass"></div>
+        <div class="fg"><label>Business Tel</label><input id="ec-tel"></div>
+        <div class="fg"><label>Customs Code</label><input id="ec-customs"></div>
+        <div class="fg"><label>SIC Code</label><input id="ec-sic"></div>
+        <div class="fg"><label>Profit Code</label><input id="ec-profit"></div>
+        <div class="fg full"><label>Notes</label><textarea id="ec-notes" style="height:70px;"></textarea></div>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:var(--surface);border-radius:var(--radius);">
+        <div style="font-size:12px;font-weight:700;color:var(--ink-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">ProTax Settings</div>
+        <div class="form-grid">
+          <div class="fg"><label>Contact Person (for emails)</label><input id="ec-contact"></div>
+          <div class="fg"><label>Entity Type</label>
+            <select id="ec-entity">
+              <option value="company">Company (Pty) Ltd</option><option value="cc">CC</option>
+              <option value="soleprop">Sole Proprietor</option><option value="individual">Individual</option>
+              <option value="trust">Trust</option>
+            </select>
+          </div>
+          <div class="fg"><label>Financial Year End</label>
+            <select id="ec-yearend">
+              <option>January</option><option>February</option><option>March</option><option>April</option>
+              <option>May</option><option>June</option><option>July</option><option>August</option>
+              <option>September</option><option>October</option><option>November</option><option>December</option>
+            </select>
+          </div>
+          <div class="fg"><label>Tax Clearance</label>
+            <select id="ec-taxclear">
+              <option value="">— Unknown —</option><option value="Yes">✅ Yes</option><option value="No">❌ No</option>
+            </select>
+          </div>
         </div>
       </div>
       <div style="margin-top:14px;padding:14px;background:var(--surface);border-radius:var(--radius);">
@@ -380,7 +454,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveClientOverride()">Save</button>
+      <button class="btn btn-primary" onclick="saveClientEdit()">💾 Save to SharePoint</button>
     </div>
   </div>
 </div>
@@ -390,23 +464,19 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   <div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:92vh;">
     <div class="modal-head"><h3>📧 Client Email</h3><button class="modal-close" onclick="closeModal('email-modal')">✕</button></div>
     <div style="padding:10px 16px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:13px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Subject:</span>
-        <input id="email-subject" style="flex:1;height:32px;padding:0 10px;border:1px solid var(--rule);border-radius:var(--radius);font-size:13px;font-family:inherit;" readonly onclick="this.select()">
-        <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText($('email-subject').value).then(()=>toast('Subject copied','success'))">📋</button>
-      </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:600;color:var(--ink-light);">Mode:</span>
-        <button id="mode-review" class="btn btn-primary btn-sm" onclick="setEmailMode('review')">Review &amp; Approve</button>
-        <button id="mode-nil-submitted" class="btn btn-ghost btn-sm" onclick="setEmailMode('nil-submitted')">Nil — Submitted</button>
-        <button id="mode-submitted" class="btn btn-ghost btn-sm" onclick="setEmailMode('submitted')">Payment — Submitted</button>
-        <span style="margin-left:auto;display:flex;gap:6px;">
-          <button class="btn btn-primary btn-sm" onclick="copyHTML()">📋 Copy HTML</button>
-          <button class="btn btn-ghost btn-sm" onclick="copyPlain()">📄 Plain Text</button>
-        </span>
+        <span style="font-size:12px;font-weight:700;color:var(--ink-light);">Mode:</span>
+        <button id="emode-approve" class="btn btn-primary btn-sm" onclick="setEmailMode('approve')">Please Approve</button>
+        <button id="emode-nil-filed" class="btn btn-ghost btn-sm" onclick="setEmailMode('nil-filed')">Nil — Filed</button>
+        <button id="emode-payment-filed" class="btn btn-ghost btn-sm" onclick="setEmailMode('payment-filed')">Payment — Filed</button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-weight:600;color:var(--ink);" id="email-subject"></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary btn-sm" onclick="copyEmailBody()">📋 Copy email body</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyEmailSubject()">📋 Copy subject</button>
       </div>
     </div>
-    <div id="email-preview" style="flex:1;overflow-y:auto;"></div>
+    <div id="email-preview" style="flex:1;overflow-y:auto;padding:16px 20px;"></div>
   </div>
 </div>
 
@@ -506,7 +576,8 @@ const L_CLIENTS='Tutin_Client_Register',L_DIRECTORS='Tutin_Directors_Register',L
 let msalApp=null,_account=null,_siteId=null;
 let _spReturnMap={};
 let _retColMap={};
-let _retFieldsByDisplay={};  // display->internal for returns list, populated on load
+let _retFieldsByDisplay={};
+let clientColMap={};  // display->internal for returns list, populated on load
 let DB={clients:[],directors:{},returns:[]};
 let activeClientKey=null,activeReturnId=null,activeType='irp6',activePeriod=null,activeAssignee='',activePane='details';
 let _wizStep=1,_saving=false;
@@ -677,7 +748,7 @@ async function loadAll(){
       for(const fb of fallbacks) if(fields[fb] != null) return fields[fb];
       return '';
     }
-    const clientColMap = await getColMap(L_CLIENTS);
+    clientColMap = await getColMap(L_CLIENTS);
     const dirColMap    = await getColMap(L_DIRECTORS);
     const retColMap    = await getColMap(L_RETURNS);
     // Build clean display->internal map for saves (exclude __rev__ entries)
@@ -808,6 +879,35 @@ function clientReturns(clientKey,type){
 }
 
 // ── List rendering ────────────────────────────────────────────────────────
+function toggleFilterPanel(){
+  const p=$('filter-panel');
+  if(!p)return;
+  const open=p.style.display==='block';
+  p.style.display=open?'none':'block';
+  const btn=$('filter-btn');
+  if(btn)btn.style.background=open?'':'var(--accent-dim)';
+}
+
+function clearFilters(){
+  sv('filter-type','');sv('filter-period','');sv('filter-status','');
+  sv('filter-entity','');
+  const tog=$('sb-inactive-toggle');if(tog)tog.checked=false;
+  renderList();
+}
+
+function populatePeriodFilter(){
+  const periods=new Set();
+  DB.returns.forEach(r=>{if(r.returnPeriod)periods.add(r.returnPeriod);});
+  const sel=$('filter-period');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All periods</option>';
+  [...periods].sort().reverse().forEach(p=>{
+    const o=document.createElement('option');o.value=p;o.textContent=p;
+    if(p===cur)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
 function setAssignee(btn){
   activeAssignee=btn.dataset.assignee||'';
   document.querySelectorAll('.staff-tab').forEach(b=>b.classList.toggle('active',b===btn));
@@ -815,20 +915,27 @@ function setAssignee(btn){
 }
 
 function renderList(){
+  populatePeriodFilter();
   const sf=gv('filter-status');
+  const ft=gv('filter-type');
+  const fp=gv('filter-period');
+  const fe=gv('filter-entity');
   const search=($('filter-search').value||'').toLowerCase();
-  const showInactive=$('sb-inactive-toggle').checked;
+  const showInactive=$('sb-inactive-toggle')?$('sb-inactive-toggle').checked:false;
   const items=[];
   DB.clients.forEach(c=>{
     const inactive=c.clientStatus&&c.clientStatus.toLowerCase()==='inactive';
     if(inactive&&!showInactive)return;
     if(activeAssignee&&(c.assignedTo||'')!==activeAssignee)return;
     if(search&&!c.companyName.toLowerCase().includes(search))return;
-    // Status filter: only filter if a status is selected and client has a return to check
+    if(fe&&(c.entityType||'')!==fe)return;
     const cRets=DB.returns.filter(r=>r.clientKey===c.clientKey);
-    if(sf){
-      if(!cRets.some(r=>r.status===sf))return;
-    }
+    // Status filter
+    if(sf&&!cRets.some(r=>r.status===sf))return;
+    // Return type filter
+    if(ft&&!cRets.some(r=>r.returnType===ft))return;
+    // Period filter
+    if(fp&&!cRets.some(r=>r.returnPeriod===fp))return;
     items.push({c,inactive,cRets});
   });
   const active=items.filter(i=>!i.inactive);
@@ -840,7 +947,12 @@ function renderList(){
   list.innerHTML=ordered.map(({c,inactive:inact,cRets})=>{
     const isActive=c.clientKey===activeClientKey;
     const latestRet=cRets.length?cRets[cRets.length-1]:null;
-    const statusBadge=latestRet?'<span class="badge '+(S_CLASS[latestRet.status]||'b-todo')+'">'+(S_LABEL[latestRet.status]||latestRet.status)+'</span>':'';
+    const statusBadge=latestRet
+      ?'<span class="badge '+(S_CLASS[latestRet.status]||'b-todo')+'">'
+        +(T_LABEL[latestRet.returnType]||latestRet.returnType)+' '+latestRet.returnPeriod+' &middot; '
+        +(S_LABEL[latestRet.status]||latestRet.status)
+        +'</span>'
+      :'';
     const assignedSpan=c.assignedTo?'<span class="cl-assigned">'+c.assignedTo+'</span>':'';
     return '<div class="cl-item'+(inact?' inactive':'')+(isActive?' active':'')+'" data-ck="'+encodeURIComponent(c.clientKey||'')+'">'
       +'<div class="cl-name">'+c.companyName+'</div>'
@@ -1436,20 +1548,107 @@ function createPeriod(){
 // ── Edit modal ────────────────────────────────────────────────────────────
 function openEditModal(){
   const c=getClient();if(!c)return;
-  sv('ec-name',c.companyName);sv('ec-contact',c.contactName||'');
-  sv('ec-entity',c.entityType||'company');sv('ec-yearend',c.yearEnd||'February');
-  sv('ec-assigned',c.assignedTo||'');sv('ec-taxclear',c.taxClearance||'');
+  // Company fields
+  sv('ec-name',c.companyName);
+  sv('ec-status',c.clientStatus||'Active');
+  sv('ec-assigned',c.assignedTo||'');
+  sv('ec-regno',c.registrationNumber||'');
+  sv('ec-cipc',c.cipcRenewalMonth||'');
+  sv('ec-nature',c.natureOfBusiness||'');
+  sv('ec-address',c.businessAddress||'');
+  sv('ec-taxno',c.taxNumber||'');
+  sv('ec-vatno',c.vatNumber||'');
+  sv('ec-paye',c.payeNumber||'');
+  sv('ec-uif',c.uifNumber||'');
+  sv('ec-coida',c.coidaNumber||'');
+  sv('ec-coidaclass',c.coidaClass||'');
+  sv('ec-tel',c.businessTel||'');
+  sv('ec-customs',c.customsCode||'');
+  sv('ec-sic',c.sicCode||'');
+  sv('ec-profit',c.profitCode||'');
+  sv('ec-notes',c.notes||'');
+  // ProTax fields
+  sv('ec-contact',c.contactName||'');
+  sv('ec-entity',c.entityType||'company');
+  sv('ec-yearend',c.yearEnd||'February');
+  sv('ec-taxclear',c.taxClearance||'');
+  // Returns list
   const ds=$('ec-del-return');ds.innerHTML='<option value="">— Select return —</option>';
   clientReturns(activeClientKey).forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=T_LABEL[r.returnType]+' '+r.returnPeriod+' — '+(S_LABEL[r.status]||r.status);ds.appendChild(o);});
   openModal('edit-modal');
 }
 
-function saveClientOverride(){
+async function saveClientEdit(){
   const c=getClient();if(!c)return;
-  c.contactName=gv('ec-contact');c.entityType=gv('ec-entity');
-  c.yearEnd=gv('ec-yearend');c.assignedTo=gv('ec-assigned');c.taxClearance=gv('ec-taxclear');
-  closeModal('edit-modal');renderClientView();renderList();
-  toast('Client ProTax settings updated','info');
+  // Update local object
+  c.companyName=gv('ec-name')||c.companyName;
+  c.clientStatus=gv('ec-status')||'Active';
+  c.assignedTo=gv('ec-assigned');
+  c.registrationNumber=gv('ec-regno');
+  c.cipcRenewalMonth=gv('ec-cipc');
+  c.natureOfBusiness=gv('ec-nature');
+  c.businessAddress=gv('ec-address');
+  c.taxNumber=gv('ec-taxno');
+  c.vatNumber=gv('ec-vatno');
+  c.payeNumber=gv('ec-paye');
+  c.uifNumber=gv('ec-uif');
+  c.coidaNumber=gv('ec-coida');
+  c.coidaClass=gv('ec-coidaclass');
+  c.businessTel=gv('ec-tel');
+  c.customsCode=gv('ec-customs');
+  c.sicCode=gv('ec-sic');
+  c.profitCode=gv('ec-profit');
+  c.notes=gv('ec-notes');
+  c.contactName=gv('ec-contact');
+  c.entityType=gv('ec-entity');
+  c.yearEnd=gv('ec-yearend');
+  c.taxClearance=gv('ec-taxclear');
+  // Save to SharePoint Tutin_Client_Register
+  if(c._spId){
+    try{
+      setSave('saving');
+      const siteId=await getSiteId();
+      // Build fields using the clientColMap reverse lookup
+      const fi=(displayName)=>{
+        const entry=Object.entries(clientColMap||{}).find(([k,v])=>v===displayName);
+        return entry?entry[0]:displayName;
+      };
+      const fields={};
+      fields['Title']=c.companyName;
+      fields[fi('ClientStatus')]=c.clientStatus;
+      fields[fi('AssignedTo')]=c.assignedTo;
+      fields[fi('RegistrationNumber')]=c.registrationNumber;
+      fields[fi('CIPCRenewalMonth')]=c.cipcRenewalMonth;
+      fields[fi('NatureOfBusiness')]=c.natureOfBusiness;
+      fields[fi('BusinessAddress')]=c.businessAddress;
+      fields[fi('TaxNumber')]=c.taxNumber;
+      fields[fi('VATNumber')]=c.vatNumber;
+      fields[fi('PAYENumber')]=c.payeNumber;
+      fields[fi('UIFNumber')]=c.uifNumber;
+      fields[fi('COIDANumber')]=c.coidaNumber;
+      fields[fi('COIDAClass')]=c.coidaClass;
+      fields[fi('BusinessTel')]=c.businessTel;
+      fields[fi('CustomsCode')]=c.customsCode;
+      fields[fi('SICCode')]=c.sicCode;
+      fields[fi('ProfitCode')]=c.profitCode;
+      fields[fi('Notes')]=c.notes;
+      // Remove undefined keys
+      Object.keys(fields).forEach(k=>{if(!k||k==='undefined')delete fields[k];});
+      await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_CLIENTS+'/items/'+c._spId+'/fields',fields);
+      setSave('saved');
+      toast('✅ Client saved to SharePoint','success');
+    }catch(e){
+      setSave('failed',e.message);
+      toast('⚠ Save failed: '+e.message,'error',8000);
+      console.error('saveClientEdit:',e);
+    }
+  }else{
+    toast('Client has no SharePoint ID — cannot save','error');
+  }
+  closeModal('edit-modal');
+  renderClientView();
+  renderList();
+  DB.clients.sort((a,b)=>a.companyName.localeCompare(b.companyName));
 }
 
 async function deleteReturn(){
@@ -1472,9 +1671,10 @@ async function deleteReturn(){
 
 // ── Email & Workpaper (preserved logic) ───────────────────────────────────
 function openEmail(){
-  captureForm();const c=getClient(),ret=getReturn();
+  captureForm();
+  const c=getClient(),ret=getReturn();
   if(!ret||ret.returnType!=='irp6'){toast('Email is only available for IRP6 returns','info');return;}
-  renderEmailPreview('review');
+  renderEmailPreview('approve');
   openModal('email-modal');
 }
 
@@ -1482,93 +1682,110 @@ function renderEmailPreview(mode){
   const c=getClient(),ret=getReturn();
   if(!c||!ret)return;
   const calc=window._calc||{};
-  const isSecond=ret.returnPeriod?.endsWith('-02'),period=isSecond?'Second':'First';
+  const isSecond=ret.returnPeriod?.endsWith('-02');
+  const periodLabel=(isSecond?'Second':'First')+' Provisional Tax Period ('+ret.returnPeriod+')';
   const payable=ret.amountPayable||calc.calcPay||0;
-  // Use contact name, fall back to company name so Dear line always shows
   const contact=ret.contactName||c.contactName||c.companyName||'';
+  const due=ret.dueDate||'';
   const isNil=payable<=0;
+  const subject=
+    mode==='approve'
+      ?'Provisional Tax \u2013 '+c.companyName+' \u2013 '+ret.returnPeriod
+      :'Provisional Tax Filed \u2013 '+c.companyName+' \u2013 '+ret.returnPeriod;
 
-  // Subject line
-  const subject='Provisional Tax '+ret.returnPeriod+' — '+c.companyName+' — '+(isNil?'Nil Return':'Payment R '+Rfmt(payable).replace('R\u00a0',''));
-  $('email-subject').value=subject;
+  // Status line
+  const statusLine=isNil
+    ?'<span style="font-size:17px;line-height:2;">&#128994;</span>&nbsp;<strong>NO PAYMENT DUE</strong>'
+    :'<span style="font-size:17px;line-height:2;">&#128308;</span>&nbsp;<strong>PAYMENT DUE: '+Rfmt(payable)+'</strong>';
+  const dueLine=isNil?null:'<strong>Due by: '+due+'</strong>';
 
-  // Amount box
-  const amountBox=isNil
-    ?'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 20px 0;"><tr><td style="background-color:#d1fae5;border:2px solid #6ee7b7;padding:18px 22px;"><p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#065f46;">No provisional tax payment is due for this period.</p></td></tr></table>'
-    :'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 20px 0;"><tr><td style="background-color:#fdeced;border:2px solid #f5aaaa;padding:18px 22px;"><p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#840811;text-transform:uppercase;letter-spacing:1px;">Amount Payable to SARS</p><p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:bold;color:#840811;">'+Rfmt(payable)+'</p>'+(ret.dueDate?'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#840811;">Due: '+ret.dueDate+'</p>':'')+'</td></tr></table>';
-
-  // Body paragraphs by mode
-  let body1='',body2='',body3='';
-  if(mode==='nil-submitted'){
-    body1='We are pleased to advise that we have submitted your provisional tax return for the <strong>'+period+' Provisional Tax period ('+ret.returnPeriod+')</strong>. No payment is due for this period.';
-    body2='A copy of the submitted return and the detailed calculation workpaper are attached to this email for your records.';
-    body3='Please do not hesitate to contact us should you have any queries.';
-  }else if(mode==='submitted'){
-    body1='Please be advised that we have submitted your provisional tax return for the <strong>'+period+' Provisional Tax period ('+ret.returnPeriod+')</strong>.';
-    body2='The amount of <strong>'+Rfmt(payable)+'</strong> is due to SARS by <strong>'+(ret.dueDate||'the due date')+'</strong>. Please ensure payment is made timeously to avoid interest and penalties. A copy of the submitted return and workpaper are attached.';
-    body3='Please do not hesitate to contact us should you have any queries.';
+  // Body lines per mode
+  let lines=[];
+  if(mode==='approve'){
+    lines=[
+      'Dear '+contact+',',
+      'We have completed your provisional tax calculation for the <strong>'+periodLabel+'</strong>.',
+      statusLine,
+      ...(dueLine?[dueLine]:[]),
+      'Please reply to confirm that we may proceed with filing the provisional tax return.',
+      'The calculation workpaper is attached for your reference.'
+    ];
+  }else if(mode==='nil-filed'){
+    lines=[
+      'Dear '+contact+',',
+      'We have filed your provisional tax return for the <strong>'+periodLabel+'</strong>.',
+      statusLine,
+      'The supporting calculation and workpapers are attached.',
+      'Please contact us if you have any queries.'
+    ];
   }else{
-    // review mode (default)
-    body1='Please find attached the provisional tax calculation for <strong>'+c.companyName+'</strong> for the <strong>'+period+' Provisional Tax period ('+ret.returnPeriod+')</strong>.';
-    body2=isNil
-      ?'Based on our calculations, no provisional tax payment is due for this period. Please review the attached workpaper and confirm that you are satisfied for us to proceed with filing the return.'
-      :'Please review the attached calculation workpaper. Once you are satisfied with the figures, kindly confirm your approval so that we can proceed with filing the return and scheduling the payment of <strong>'+Rfmt(payable)+'</strong> by <strong>'+(ret.dueDate||'the due date')+'</strong>.';
-    body3='The detailed calculation workpaper is attached to this email for your records. Please do not hesitate to contact us if you have any queries.';
+    // payment-filed
+    lines=[
+      'Dear '+contact+',',
+      'We have filed your provisional tax return for the <strong>'+periodLabel+'</strong>.',
+      statusLine,
+      ...(dueLine?[dueLine]:[]),
+      'Please ensure that the payment reaches SARS by <strong>'+due+'</strong>.',
+      'The supporting calculation and workpapers are attached.',
+      'Please contact us if you have any queries.'
+    ];
   }
 
-  const emailHTML=
-    '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'+
-    '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head>'+
-    '<body style="margin:0;padding:0;background-color:#ffffff;">'+
-    '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="left">'+
-    '<table width="580" cellpadding="0" cellspacing="0" border="0" style="width:580px;">'+
-    '<tr><td style="background-color:#840811;padding:18px 24px;">'+
-    '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'+
-    '<td style="font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;color:#ffffff;letter-spacing:1px;">TUTIN</td>'+
-    '<td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#ddaaaa;text-align:right;vertical-align:middle;">Tax Advisory</td>'+
-    '</tr></table></td></tr>'+
-    '<tr><td style="background-color:#ffffff;padding:26px 24px 22px 24px;border:1px solid #e5e7eb;border-top:none;">'+
-    (contact?'<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111111;">Dear '+contact+',</p>':'')+
-    '<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#222222;line-height:1.6;">'+body1+'</p>'+
-    (mode==='nil-submitted'?'':amountBox)+
-    '<p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">'+body2+'</p>'+
-    '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;line-height:1.6;">'+body3+'</p>'+
-    '</td></tr>'+
-    '</table></td></tr></table>'+
-    '</body></html>';
+  // Build Outlook-safe HTML using table rows for spacing
+  const rows=lines.map(l=>
+    '<tr><td style="font-size:15px;font-family:Arial,Helvetica,sans-serif;color:#222222;line-height:1.7;padding:0 0 12px 0;">'+l+'</td></tr>'
+  ).join('');
+  const bodyHTML='<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;">'
+    +'<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;max-width:600px;width:100%;">'
+    +rows+'</table></body></html>';
 
-  $('email-preview').innerHTML='<div style="padding:16px;background:#f3f4f6;">'+emailHTML+'</div>';
-  $('email-preview').dataset.html=emailHTML;
-}
+  // Preview
+  const previewHTML=lines.map(l=>'<p style="margin:0 0 12px 0;font-size:15px;line-height:1.7;font-family:Arial,sans-serif;">'+l+'</p>').join('');
 
-function setEmailMode(mode){
-  ['review','nil-submitted','submitted'].forEach(m=>{
-    const btn=$('mode-'+m);
+  // Update modal
+  const subEl=$('email-subject');if(subEl)subEl.textContent=subject;
+  const prevEl=$('email-preview');if(prevEl){prevEl.innerHTML=previewHTML;prevEl.dataset.html=bodyHTML;prevEl.dataset.subject=subject;}
+
+  // Update mode button states
+  ['approve','nil-filed','payment-filed'].forEach(m=>{
+    const btn=$('emode-'+m);
     if(btn)btn.className='btn btn-sm '+(m===mode?'btn-primary':'btn-ghost');
   });
-  renderEmailPreview(mode);
 }
 
-function copyHTML(){
-  const html=$('email-preview').dataset.html||'';
-  if(!html){toast('No email generated yet','error');return;}
-  if(navigator.clipboard&&window.ClipboardItem){
-    try{
-      const htmlBlob=new Blob([html],{type:'text/html'});
-      const txtBlob=new Blob([html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()],{type:'text/plain'});
-      navigator.clipboard.write([new ClipboardItem({'text/html':htmlBlob,'text/plain':txtBlob})]);
-      toast('✅ Copied — paste into Outlook message body','success',4000);
-      return;
-    }catch(e){console.warn('ClipboardItem failed:',e);}
+function setEmailMode(mode){renderEmailPreview(mode);}
+
+async function copyEmailBody(){
+  const prevEl=$('email-preview');
+  if(!prevEl||!prevEl.dataset.html){toast('Generate the email first','error');return;}
+  const html=prevEl.dataset.html;
+  try{
+    await navigator.clipboard.write([new ClipboardItem({
+      'text/html':new Blob([html],{type:'text/html'}),
+      'text/plain':new Blob([html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()],{type:'text/plain'})
+    })]);
+    toast('✅ Email body copied — paste into Outlook','success',3000);
+  }catch(e){
+    navigator.clipboard.writeText(html).then(()=>toast('Copied as text','info'));
   }
-  // Fallback for browsers that don't support ClipboardItem
-  navigator.clipboard.writeText(html).then(()=>toast('Copied as text — for best results use Chrome','info',5000));
 }
+
+async function copyEmailSubject(){
+  const subEl=$('email-subject');
+  if(!subEl){toast('No subject found','error');return;}
+  await navigator.clipboard.writeText(subEl.textContent);
+  toast('✅ Subject copied','success',2000);
+}
+
+function copyHTML(){copyEmailBody();}
+
 function copyPlain(){
-  const html=$('email-preview').dataset.html||'';
-  const txt=html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  const prevEl=$('email-preview');
+  if(!prevEl)return;
+  const txt=prevEl.innerHTML.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
   navigator.clipboard.writeText(txt).then(()=>toast('Plain text copied','success'));
 }
+
 
 function openWorkpaper(){
   captureForm();const c=getClient(),ret=getReturn();
