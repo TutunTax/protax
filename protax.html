@@ -632,6 +632,7 @@ let _retColMap={};
 let _retFieldsByDisplay={};
 let clientColMap={};
 let DB_returnTypes=[];  // loaded from Tutin_ProTax_ReturnTypes
+let _rtColMap={};  // column map for Tutin_ProTax_ReturnTypes
 const L_RETURN_TYPES='Tutin_ProTax_ReturnTypes';  // display->internal for returns list, populated on load
 let DB={clients:[],directors:{},returns:[]};
 let activeClientKey=null,activeReturnId=null,activeType='irp6',activePeriod=null,activeAssignee='',activePane='details';
@@ -821,6 +822,7 @@ async function loadAll(){
     try{
       const rtItems=await getAll(L_RETURN_TYPES,'$select=id&$expand=fields');
       const rtColMap=await getColMap(L_RETURN_TYPES);
+      _rtColMap=rtColMap;  // store globally for saveReturnType
       DB_returnTypes=rtItems.map(item=>{
         const f=item.fields;
         const fbd2=(dn)=>fByDisplay(f,rtColMap,dn,[]);
@@ -2477,8 +2479,8 @@ async function saveReturnType(){
   if(!name){toast('Name is required','error');return;}
   try{
     const siteId=await getSiteId();
-    const rtColMap=await getColMap(L_RETURN_TYPES);
-    const fi=(dn)=>{const e=Object.entries(rtColMap).find(([k,v])=>v===dn);return e?e[0]:dn;};
+    // Use globally stored column map (populated on load)
+    const fi=(dn)=>{const e=Object.entries(_rtColMap).find(([k,v])=>v===dn);return e?e[0]:dn;};
     const fields={Title:name,[fi('ReturnType')]:type,[fi('DefaultDueDate')]:due};
     Object.keys(fields).forEach(k=>{if(!k||k==='undefined')delete fields[k];});
     if(spId){
