@@ -1681,6 +1681,16 @@ async function saveReturn(){
 function addReturn(){
   const c=getClient();if(!c)return;
   const type=activeType;
+  // Block IRP6 for non-provisional tax payers
+  if(type==='irp6'){
+    const isCompany=['Company','CC','Trust'].includes(c.entityType||'');
+    const isPT=c.provisionalTaxPayer==='Yes';
+    const isIndiv=['SoleProp','Individual'].includes(c.entityType||'');
+    if(!isCompany&&!(isIndiv&&isPT)){
+      toast('This client is not a provisional tax payer — IRP6 returns cannot be added','error',5000);
+      return;
+    }
+  }
   // Filter return types for current tab
   const options=DB_returnTypes.filter(rt=>rt.returnType===type);
   if(!options.length){
