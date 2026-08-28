@@ -647,6 +647,22 @@ const $=id=>document.getElementById(id);
 const openModal=id=>$(id).classList.add('open');
 const closeModal=id=>$(id).classList.remove('open');
 const ENTITY_LABEL={company:'Company (Pty) Ltd',cc:'CC',soleprop:'Sole Proprietor',individual:'Individual',trust:'Trust'};
+const ITR14_CL=[
+  {id:'c1',label:'AFS / Management Accounts received',sub:'Annual financial statements or management accounts received and reviewed'},
+  {id:'c2',label:'Income Tax Reconciliation completed',sub:'Accounting profit reconciled to taxable income'},
+  {id:'c3',label:'Capital Allowances checked',sub:'Section 11(e), 12C, 12E confirmed and applied'},
+  {id:'c4',label:'Return captured on eFiling',sub:'All fields completed and verified on SARS eFiling'},
+  {id:'c5',label:'Return submitted',sub:'Filed on eFiling and submission acknowledgement saved'},
+  {id:'c6',label:'IT34 / Assessment received',sub:'Assessment received, checked and filed'},
+  {id:'c7',label:'Amount payable settled',sub:'Payment made or formal arrangement in place'}
+];
+const ITR12_CL=[
+  {id:'d1',label:'Source documents received',sub:'IRP5, IT3(b), medical, retirement annuity, etc.'},
+  {id:'d2',label:'Return captured on eFiling',sub:'All income, deductions and credits captured and verified'},
+  {id:'d3',label:'Return submitted',sub:'Filed on eFiling and submission acknowledgement saved'},
+  {id:'d4',label:'IT34 / Assessment received',sub:'Assessment received, checked and filed'},
+  {id:'d5',label:'Amount payable settled',sub:'Payment made or formal arrangement in place'}
+];
 const eLabel=t=>ENTITY_LABEL[t]||t||'—';
 const escHtml=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const S_LABEL={todo:'To Do',inprogress:'In Progress',awaiting:'Awaiting Approval',submitted:'Submitted'};
