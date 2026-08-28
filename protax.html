@@ -1683,10 +1683,14 @@ function addReturn(){
   const type=activeType;
   // Block IRP6 for non-provisional tax payers
   if(type==='irp6'){
-    const isCompany=['Company','CC','Trust'].includes(c.entityType||'');
-    const isPT=c.provisionalTaxPayer==='Yes';
-    const isIndiv=['SoleProp','Individual'].includes(c.entityType||'');
-    if(!isCompany&&!(isIndiv&&isPT)){
+    const et=(c.entityType||'').trim();
+    const pt=(c.provisionalTaxPayer||'').trim();
+    console.log('IRP6 check - entityType:',JSON.stringify(et),'provisionalTaxPayer:',JSON.stringify(pt));
+    const isCompany=['Company','CC','Trust'].includes(et)||et==='';
+    const isPT=pt==='Yes';
+    const isIndiv=['SoleProp','Individual'].includes(et);
+    // Only block if we KNOW they're not a PT payer (Individual/SoleProp with No)
+    if(isIndiv&&!isPT){
       toast('This client is not a provisional tax payer — IRP6 returns cannot be added','error',5000);
       return;
     }
