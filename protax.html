@@ -1709,7 +1709,7 @@ function openAddReturnModal(type,options,c){
   sel.appendChild(defOpt);
   options.forEach(o=>{
     const opt=document.createElement('option');
-    opt.value=encodeURIComponent(JSON.stringify({title:o.title,due:o.defaultDueDate}));
+    opt.value=encodeURIComponent(JSON.stringify({title:o.title,due:o.defaultDueDate,returnType:o.returnType}));
     opt.textContent=o.title+(o.defaultDueDate?' — Due: '+o.defaultDueDate:'');
     sel.appendChild(opt);
   });
@@ -1767,7 +1767,8 @@ function confirmAddReturn(){
   let data;
   try{data=JSON.parse(decodeURIComponent(sel.value));}
   catch(e){toast('Invalid selection','error');return;}
-  const type=modal.dataset.type||activeType;
+  // Use returnType from the selected return type definition (most accurate)
+  const type=(data.returnType)||modal.dataset.type||activeType;
   const clientKey=modal.dataset.clientKey||activeClientKey;
   const due=($('ar-due')||{}).value||data.due||'';
   // Extract period from title e.g. "IRP6 2027-01" -> "2027-01"
@@ -2573,14 +2574,19 @@ async function addNewClient(){
   if(!confirm('Create a new blank client in Tutin_Client_Register?'))return;
   try{
     const siteId=await getSiteId();
+    // Create the record
     const result=await gPost('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_CLIENTS+'/items',{
       fields:{Title:'New Client'}
     });
     if(!result?.id){toast('Could not create client','error');return;}
-    // Add to local DB
+    // Read back the full record to get the real ClientKey assigned by SharePoint
+    const fullItem=await gGet('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_CLIENTS+'/items/'+result.id+'?$expand=fields');
+    const f=fullItem.fields||{};
+    const realCK=fByDisplay(f,clientColMap,'ClientKey',[])||'';
+    const effectiveKey=realCK||('_sp_'+result.id);
     const newClient={
       _spId:result.id,
-      clientKey:'_sp_'+result.id,
+      clientKey:effectiveKey,
       companyName:'New Client',
       clientStatus:'Active',
       assignedTo:'',registrationNumber:'',cipcRenewalMonth:'',
