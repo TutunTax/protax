@@ -428,7 +428,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
       <div class="form-grid" style="margin-top:4px;">
         <div class="fg"><label>Contact Person</label><input id="ec-contact"></div>
         <div class="fg"><label>Entity Type</label>
-          <select id="ec-entity">
+          <select id="ec-entity" onchange="onEntityTypeChange(this.value)">
             <option value="">— Select —</option>
             <option value="Company">Company (Pty) Ltd</option>
             <option value="CC">CC</option>
@@ -1022,9 +1022,9 @@ function renderList(){
         +'</span>'
       :'';
     const tcDot=c.taxClearance==='Yes'
-      ?'<span class="badge" style="background:#dcfce7;color:#166534;">Tax Clearance ✓</span>'
+      ?'<span title="Tax Clearance: Yes" style="font-size:14px;color:#166534;">🛡️</span>'
       :c.taxClearance==='No'
-      ?'<span class="badge" style="background:#fee2e2;color:#991b1b;">No Tax Clearance</span>'
+      ?'<span title="Tax Clearance: No" style="font-size:14px;color:#dc2626;">🛡️</span>'
       :'';
     const assignedSpan=c.assignedTo?'<span class="cl-assigned">'+c.assignedTo+'</span>':'';
     const todoTags=cRets.filter(r=>r.status==='todo').map(r=>
@@ -1058,12 +1058,38 @@ function selectClient(clientKey){
   renderClientView();
 }
 
+function updateReturnTypeTabs(c){
+  // Show/hide tabs based on entity type
+  const isCompany=['Company','CC','Trust',''].includes(c.entityType||'');
+  const isIndiv=['SoleProp','Individual'].includes(c.entityType||'');
+  // IRP6: always visible (companies always, individuals if provisional taxpayer)
+  // ITR14: companies only
+  // ITR12: individuals/sole props only
+  document.querySelectorAll('.rt-tab').forEach(tab=>{
+    const type=tab.dataset.type;
+    if(!type)return; // placeholder tabs
+    if(type==='itr14'){
+      tab.style.opacity=isIndiv?'0.35':'1';
+      tab.style.pointerEvents=isIndiv?'none':'';
+    }else if(type==='itr12'){
+      tab.style.opacity=isCompany&&c.entityType?'0.35':'1';
+      tab.style.pointerEvents=isCompany&&c.entityType?'none':'';
+    }
+  });
+  // Switch to appropriate default tab if current is disabled
+  if(isIndiv&&activeType==='itr14'){activeType='itr12';
+    document.querySelectorAll('.rt-tab').forEach(t=>t.classList.toggle('active',t.dataset.type==='itr12'));}
+  if(isCompany&&c.entityType&&activeType==='itr12'){activeType='itr14';
+    document.querySelectorAll('.rt-tab').forEach(t=>t.classList.toggle('active',t.dataset.type==='itr14'));}
+}
+
 function renderClientView(){
   const c=getClient();
   if(!c){$('empty-state').style.display='flex';$('client-view').style.display='none';return;}
   $('empty-state').style.display='none';
   $('client-view').style.display='flex';
   $('client-header-title').textContent=c.companyName+(c.entityType?' — '+eLabel(c.entityType):'');
+  updateReturnTypeTabs(c);
   showClientPane(activePane);
 }
 
@@ -1199,8 +1225,10 @@ function renderReturnList(){
   };
   if(activeReturnId){
     const ret=rets.find(r=>r.id===activeReturnId);
-    if(ret)renderWizard(c,ret);
-    else wizEl.innerHTML='';
+    if(ret){
+      if(ret.returnType==='irp6')renderWizard(c,ret);
+      else renderITRWizard(c,ret);
+    }else wizEl.innerHTML='';
   }else wizEl.innerHTML='';
 }
 
@@ -1867,6 +1895,15 @@ function openEditModal(){
   const ds=$('ec-del-return');ds.innerHTML='<option value="">— Select return —</option>';
   clientReturns(activeClientKey).forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=T_LABEL[r.returnType]+' '+r.returnPeriod+' — '+(S_LABEL[r.status]||r.status);ds.appendChild(o);});
   openModal('edit-modal');
+}
+
+function onEntityTypeChange(entityType){
+  const provEl=$('ec-provtax');
+  if(!provEl)return;
+  if(['Company','CC','Trust'].includes(entityType)){
+    provEl.value='Yes';
+  }
+  // For Individual/SoleProp - leave as-is, user decides
 }
 
 async function saveClientEdit(){
