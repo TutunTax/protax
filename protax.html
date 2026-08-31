@@ -879,7 +879,7 @@ async function initAuth(){
     const r=await msalApp.handleRedirectPromise();
     if(r)_account=r.account;
     if(!_account){const all=msalApp.getAllAccounts();if(all.length)_account=all[0];}
-    if(_account){setAuthPill('connected');await loadAll();}
+    if(_account){setAuthPill('connected');await loadAll();try{await ttBootstrap();}catch(e){console.warn('TT bootstrap:',e);}}
     else{setAuthPill('offline');sync('Not signed in — click to connect',false);}
   }catch(e){setAuthPill('offline');sync('Auth error: '+e.message,false);}
 }
@@ -3863,14 +3863,7 @@ async function ttToggleUser(id, currentlyActive) {
   }
 }
 
-// ── Hook into ProTax sign-in ─────────────────────────────────────────────
-// Patch loadAll to call ttBootstrap after completion
-const _origLoadAll = loadAll;
-async function loadAll() {
-  await _origLoadAll();
-  // After ProTax loads data, bootstrap TutinTime
-  try { await ttBootstrap(); } catch(e) { console.warn('TT bootstrap failed:', e); }
-}
+// ttBootstrap is called directly from initAuth() after loadAll() completes.
 
 initAuth();
 
