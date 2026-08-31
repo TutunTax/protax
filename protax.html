@@ -214,6 +214,58 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 #empty-state .es-icon{font-size:56px;opacity:.2;margin-bottom:16px;}
 #empty-state h3{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:8px;}
 
+/* ── Time Tracking ── */
+.tt-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.4);cursor:pointer;background:rgba(255,255,255,.1);color:white;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.tt-btn:hover{background:rgba(255,255,255,.2);}
+.tt-btn.running{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.7);}
+#tt-panel{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;display:none;flex-direction:column;}
+#tt-panel.open{display:flex;}
+#tt-inner{background:var(--white);width:100%;max-width:920px;margin:0 auto;height:100%;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.25);}
+#tt-head{background:var(--accent);color:white;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#tt-head h2{font-size:17px;font-weight:700;}
+.tt-close{width:34px;height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);color:white;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.tt-close:hover{background:rgba(255,255,255,.2);}
+#tt-body{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;}
+/* Timer card */
+.tt-timer-card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 20px;}
+.tt-timer-card.active{border-color:var(--accent);background:var(--accent-dim);}
+.tt-timer-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+.tt-timer-display{font-size:32px;font-weight:700;font-family:var(--mono);color:var(--accent);min-width:110px;flex-shrink:0;line-height:1;}
+.tt-timer-info{flex:1;min-width:160px;}
+.tt-timer-info .tt-client{font-size:15px;font-weight:700;color:var(--ink);}
+.tt-timer-info .tt-desc{font-size:13px;color:var(--ink-light);margin-top:2px;}
+/* Manual entry area */
+.tt-entry-card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 20px;}
+.tt-entry-card h3{font-size:14px;font-weight:700;color:var(--ink-mid);text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px;}
+.tt-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.tt-form-row.tri{grid-template-columns:1fr 1fr 1fr;}
+.tt-form-row.single{grid-template-columns:1fr;}
+/* Entries table */
+.tt-entries-card{background:var(--white);border:1px solid var(--rule);border-radius:var(--radius);}
+.tt-entries-head{padding:12px 18px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
+.tt-entries-head h3{font-size:14px;font-weight:700;color:var(--ink-mid);text-transform:uppercase;letter-spacing:.04em;}
+.tt-entries-head .tt-total{font-size:13px;font-weight:600;color:var(--ink-light);}
+.tt-table{width:100%;border-collapse:collapse;font-size:14px;}
+.tt-table th{padding:10px 14px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-light);border-bottom:2px solid var(--rule);background:var(--surface);}
+.tt-table td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:middle;}
+.tt-table tr:last-child td{border-bottom:none;}
+.tt-table tr:hover td{background:var(--surface);}
+.tt-table .tt-dur{font-family:var(--mono);font-weight:600;}
+.tt-table .tt-bill-yes{color:var(--green);font-weight:700;}
+.tt-table .tt-bill-no{color:var(--ink-light);}
+.tt-entry-actions{display:flex;gap:4px;}
+/* Filter bar */
+.tt-filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--rule);background:var(--surface);}
+.tt-filter-bar .sb-select{height:32px;padding:0 8px;font-size:13px;}
+.tt-filter-bar input{height:32px;padding:0 10px;border:1px solid var(--rule);border-radius:var(--radius);font-size:13px;font-family:inherit;width:140px;}
+.tt-filter-bar input:focus{outline:none;border-color:var(--accent);}
+.tt-no-entries{padding:28px;text-align:center;color:var(--ink-light);font-size:14px;}
+/* Summary strip */
+.tt-summary-strip{display:flex;gap:24px;flex-wrap:wrap;padding:12px 18px;background:var(--accent-dim);border-top:1px solid var(--rule);font-size:13px;}
+.tt-summary-strip .ss-item{display:flex;flex-direction:column;gap:2px;}
+.tt-summary-strip .ss-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-light);}
+.tt-summary-strip .ss-val{font-weight:700;color:var(--ink);font-family:var(--mono);}
+
 </style>
 </head>
 
@@ -225,6 +277,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
     <span>ProTax</span>
   </div>
   <span id="auth-pill" class="auth-pill offline" onclick="signIn()" style="flex-shrink:0;">⚪ Sign in</span>
+  <button class="tt-btn" id="tt-open-btn" onclick="openTimeTracking()" title="Time Tracking">⏱ Time</button>
   <div id="topbar-staff">
     <button class="staff-tab active" data-assignee="" onclick="setAssignee(this)">All</button>
     <button class="staff-tab" data-assignee="Johan Muller" onclick="setAssignee(this)">Johan</button>
@@ -546,6 +599,134 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 </div>
 
 <div id="toast"></div>
+
+<!-- ── Time Tracking Panel ─────────────────────────────────────────── -->
+<div id="tt-panel">
+  <div id="tt-inner">
+    <div id="tt-head">
+      <h2>⏱ Time Tracking</h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="tt-role-badge" style="font-size:12px;font-weight:600;opacity:.75;"></span>
+        <button class="tt-close" onclick="closeTimeTracking()">✕</button>
+      </div>
+    </div>
+    <div id="tt-body">
+
+      <!-- Running timer card -->
+      <div class="tt-timer-card" id="tt-timer-card">
+        <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-mid);margin-bottom:12px;">Running Timer</div>
+        <div class="tt-timer-row" id="tt-timer-idle">
+          <!-- Start new timer form -->
+          <div class="fg" style="flex:2;min-width:160px;">
+            <label style="font-size:12px;font-weight:700;color:var(--ink-light);">Client</label>
+            <select class="sb-select" id="tt-new-client" style="height:40px;" onchange="tt_onClientChange()">
+              <option value="">— Select client —</option>
+            </select>
+          </div>
+          <div class="fg" style="flex:3;min-width:200px;">
+            <label style="font-size:12px;font-weight:700;color:var(--ink-light);">Description</label>
+            <input class="status-input" id="tt-new-desc" placeholder="What are you working on?" style="width:100%;height:40px;">
+          </div>
+          <div class="fg" style="flex:0 0 auto;">
+            <label style="font-size:12px;font-weight:700;color:var(--ink-light);">Billable</label>
+            <select class="sb-select" id="tt-new-billable" style="height:40px;width:100px;">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="tt-start-btn" onclick="ttStartTimer()" style="height:40px;flex-shrink:0;">▶ Start</button>
+        </div>
+        <div id="tt-timer-running" style="display:none;">
+          <div class="tt-timer-row">
+            <div id="tt-display" class="tt-timer-display">00:00:00</div>
+            <div class="tt-timer-info">
+              <div class="tt-client" id="tt-running-client">—</div>
+              <div class="tt-desc" id="tt-running-desc">—</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+              <button class="btn btn-primary" onclick="ttStopTimer()">■ Stop &amp; Save</button>
+              <button class="btn btn-ghost btn-sm" onclick="ttDiscardTimer()" style="color:#991b1b;">Discard</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual time entry card -->
+      <div class="tt-entry-card" id="tt-manual-card">
+        <h3>Log Manual Entry</h3>
+        <div class="tt-form-row">
+          <div class="fg">
+            <label style="font-size:13px;font-weight:600;color:var(--ink-mid);">Client</label>
+            <select class="sb-select" id="tt-man-client" style="height:40px;" onchange="tt_manClientChange()">
+              <option value="">— Select client —</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label style="font-size:13px;font-weight:600;color:var(--ink-mid);">Date</label>
+            <input id="tt-man-date" type="date" style="height:40px;width:100%;padding:0 10px;border:1px solid var(--rule);border-radius:var(--radius);font-size:14px;font-family:inherit;">
+          </div>
+        </div>
+        <div class="tt-form-row tri">
+          <div class="fg">
+            <label style="font-size:13px;font-weight:600;color:var(--ink-mid);">Start Time</label>
+            <input id="tt-man-start" type="time" step="60" style="height:40px;width:100%;padding:0 10px;border:1px solid var(--rule);border-radius:var(--radius);font-size:14px;font-family:inherit;">
+          </div>
+          <div class="fg">
+            <label style="font-size:13px;font-weight:600;color:var(--ink-mid);">End Time</label>
+            <input id="tt-man-end" type="time" step="60" style="height:40px;width:100%;padding:0 10px;border:1px solid var(--rule);border-radius:var(--radius);font-size:14px;font-family:inherit;" oninput="ttCalcManDuration()">
+          </div>
+          <div class="fg">
+            <label style="font-size:13px;font-weight:600;color:var(--ink-mid);">Billable</label>
+            <select class="sb-select" id="tt-man-billable" style="height:40px;">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="tt-form-row single">
+          <div class="fg">
+            <label style="font-size:13px;font-weight:600;color:var(--ink-mid);">Description</label>
+            <input id="tt-man-desc" placeholder="Description of work done…" style="height:40px;width:100%;padding:0 12px;border:1px solid var(--rule);border-radius:var(--radius);font-size:14px;font-family:inherit;">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-primary" onclick="ttSaveManual()">💾 Log Entry</button>
+          <span id="tt-man-dur-display" style="font-size:13px;color:var(--ink-light);font-family:var(--mono);"></span>
+        </div>
+      </div>
+
+      <!-- Entries list card -->
+      <div class="tt-entries-card">
+        <div class="tt-entries-head">
+          <h3>Time Entries</h3>
+          <span class="tt-total" id="tt-total-display"></span>
+        </div>
+        <div class="tt-filter-bar">
+          <select class="sb-select" id="tt-filt-user" onchange="ttRenderEntries()" style="height:32px;font-size:13px;padding:0 8px;">
+            <option value="">All staff</option>
+          </select>
+          <select class="sb-select" id="tt-filt-client" onchange="ttRenderEntries()" style="height:32px;font-size:13px;padding:0 8px;">
+            <option value="">All clients</option>
+          </select>
+          <input type="date" id="tt-filt-from" onchange="ttRenderEntries()" style="height:32px;padding:0 8px;border:1px solid var(--rule);border-radius:var(--radius);font-size:13px;font-family:inherit;">
+          <input type="date" id="tt-filt-to" onchange="ttRenderEntries()" style="height:32px;padding:0 8px;border:1px solid var(--rule);border-radius:var(--radius);font-size:13px;font-family:inherit;">
+          <select class="sb-select" id="tt-filt-billable" onchange="ttRenderEntries()" style="height:32px;font-size:13px;padding:0 8px;">
+            <option value="">All</option>
+            <option value="Yes">Billable only</option>
+            <option value="No">Non-billable</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="ttClearFilters()">Clear</button>
+          <button class="btn btn-ghost btn-sm" onclick="ttLoadEntries()">↺ Refresh</button>
+        </div>
+        <div id="tt-entries-body">
+          <div class="tt-no-entries">Sign in and open Time Tracking to see entries.</div>
+        </div>
+        <div id="tt-summary-strip" class="tt-summary-strip" style="display:none;"></div>
+      </div>
+
+    </div><!-- /tt-body -->
+  </div><!-- /tt-inner -->
+</div><!-- /tt-panel -->
 
 <script src="msal.js"></script>
 <script>
@@ -2576,6 +2757,650 @@ async function addNewClient(){
     toast('New client created — fill in the details and save','info',6000);
   }catch(e){toast('Could not create client: '+e.message,'error',8000);}
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIME TRACKING MODULE
+// Lists: Tutin_Users, Tutin_Running_Timers, Tutin_Time_Entries, Tutin_Audit_Log
+// ─────────────────────────────────────────────────────────────────────────────
+
+const L_USERS         = 'Tutin_Users';
+const L_TIMERS        = 'Tutin_Running_Timers';
+const L_TIME_ENTRIES  = 'Tutin_Time_Entries';
+
+// State
+let _ttUserRole      = null;   // 'Admin' | 'Staff'
+let _ttUserEmail     = null;
+let _ttUserName      = null;
+let _ttTimerInterval = null;
+let _ttTimerRow      = null;   // active timer SP row {id, startTime, clientKey, description, billable}
+let _ttEntries       = [];
+let _ttColMap        = {};     // Tutin_Time_Entries column map
+let _ttTimerColMap   = {};     // Tutin_Running_Timers column map
+let _ttUsersColMap   = {};     // Tutin_Users column map
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function ttFbd(fields, colMap, displayName) {
+  const entry = Object.entries(colMap).find(([k,v]) => v === displayName);
+  const iName = entry ? entry[0] : null;
+  if (iName && fields[iName] != null) return fields[iName];
+  if (fields[displayName] != null) return fields[displayName];
+  const lc = displayName.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const match = Object.keys(fields).find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'') === lc);
+  if (match && fields[match] != null) return fields[match];
+  return '';
+}
+
+function ttFi(colMap, displayName) {
+  const entry = Object.entries(colMap).find(([k,v]) => v === displayName);
+  return entry ? entry[0] : displayName;
+}
+
+function ttNowDateStr() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function ttNowTimeStr() {
+  const d = new Date();
+  return d.toTimeString().slice(0, 8); // HH:mm:ss
+}
+
+function ttSecsToHMS(s) {
+  s = Math.max(0, Math.floor(s));
+  const h = Math.floor(s / 3600).toString().padStart(2,'0');
+  const m = Math.floor((s % 3600) / 60).toString().padStart(2,'0');
+  const ss = (s % 60).toString().padStart(2,'0');
+  return h + ':' + m + ':' + ss;
+}
+
+function ttHMSToSecs(hms) {
+  if (!hms) return 0;
+  const parts = hms.split(':').map(Number);
+  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+  if (parts.length === 2) return parts[0]*60 + parts[1];
+  return 0;
+}
+
+function ttSecsToHours(s) {
+  return (s / 3600).toFixed(2);
+}
+
+function ttTimeDiff(startHMS, endHMS) {
+  // handles midnight crossover
+  let s = ttHMSToSecs(endHMS) - ttHMSToSecs(startHMS);
+  if (s < 0) s += 86400;
+  return s;
+}
+
+function ttIsToday(dateStr) {
+  return dateStr === ttNowDateStr();
+}
+
+// ── Panel open/close ──────────────────────────────────────────────────────────
+async function openTimeTracking() {
+  $('tt-panel').classList.add('open');
+  ttPopulateClientSelects();
+  if (_ttUserRole) {
+    await ttLoadTimerState();
+    await ttLoadEntries();
+  }
+}
+
+function closeTimeTracking() {
+  $('tt-panel').classList.remove('open');
+}
+
+// ── Load column maps for time tracking lists ──────────────────────────────────
+async function ttLoadColMaps() {
+  try {
+    const siteId = await getSiteId();
+    async function getMap(listName) {
+      const url = 'https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + listName + '/columns?$top=100';
+      const d = await gGet(url);
+      const map = {};
+      (d.value||[]).forEach(col => {
+        const iName = col.name || '';
+        const dName = col.displayName || col.title || col.name || '';
+        if (iName && dName && !iName.startsWith('_')) map[iName] = dName;
+      });
+      return map;
+    }
+    _ttColMap = await getMap(L_TIME_ENTRIES);
+    _ttTimerColMap = await getMap(L_TIMERS);
+    _ttUsersColMap = await getMap(L_USERS);
+    console.log('TT col maps loaded');
+  } catch(e) {
+    console.warn('TT col maps error:', e.message);
+  }
+}
+
+// ── Load user role after sign-in ──────────────────────────────────────────────
+async function ttLoadUserRole() {
+  if (!_account) return;
+  _ttUserEmail = _account.username || _account.mail || '';
+  _ttUserName  = _account.name || _ttUserEmail;
+  try {
+    const siteId = await getSiteId();
+    if (!Object.keys(_ttUsersColMap).length) await ttLoadColMaps();
+    const encoded = encodeURIComponent(_ttUserEmail);
+    const url = 'https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_USERS
+      + '/items?$top=10&$expand=fields&$filter=fields/' + ttFi(_ttUsersColMap,'Email') + ' eq \'' + encoded + '\'';
+    const d = await gGet(url);
+    const items = d.value || [];
+    if (items.length > 0) {
+      const f = items[0].fields;
+      _ttUserRole = ttFbd(f, _ttUsersColMap, 'Role') || 'Staff';
+    } else {
+      _ttUserRole = 'Staff'; // default if not found
+    }
+    console.log('TT user role:', _ttUserRole);
+    const badge = $('tt-role-badge');
+    if (badge) badge.textContent = _ttUserRole;
+    // update topbar timer button if running timer exists
+    await ttLoadTimerState();
+  } catch(e) {
+    console.warn('TT role load error:', e.message);
+    _ttUserRole = 'Staff';
+  }
+}
+
+// ── Load running timer state ───────────────────────────────────────────────────
+async function ttLoadTimerState() {
+  if (!_account || !_ttUserEmail) return;
+  try {
+    const siteId = await getSiteId();
+    const emailField = ttFi(_ttTimerColMap, 'UserEmail');
+    const encoded = encodeURIComponent(_ttUserEmail);
+    const url = 'https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIMERS
+      + '/items?$top=5&$expand=fields&$filter=fields/' + emailField + ' eq \'' + encoded + '\'';
+    const d = await gGet(url);
+    const items = d.value || [];
+    if (items.length > 0) {
+      const item = items[0];
+      const f = item.fields;
+      _ttTimerRow = {
+        _spId: item.id,
+        startTime: ttFbd(f, _ttTimerColMap, 'StartTime'),
+        clientKey: ttFbd(f, _ttTimerColMap, 'ClientKey'),
+        description: ttFbd(f, _ttTimerColMap, 'Description') || f.Title || '',
+        billable: ttFbd(f, _ttTimerColMap, 'Billable') || 'Yes',
+        entryDate: ttFbd(f, _ttTimerColMap, 'EntryDate') || ttNowDateStr()
+      };
+      ttShowRunning();
+      ttUpdateTopbarBtn(true);
+    } else {
+      _ttTimerRow = null;
+      ttShowIdle();
+      ttUpdateTopbarBtn(false);
+    }
+  } catch(e) {
+    console.warn('TT timer load error:', e.message);
+    _ttTimerRow = null;
+    ttShowIdle();
+  }
+}
+
+// ── Timer tick ────────────────────────────────────────────────────────────────
+function ttStartTick() {
+  if (_ttTimerInterval) clearInterval(_ttTimerInterval);
+  _ttTimerInterval = setInterval(() => {
+    if (!_ttTimerRow) { clearInterval(_ttTimerInterval); return; }
+    const now = new Date();
+    const startToday = new Date();
+    const [h,m,s] = _ttTimerRow.startTime.split(':').map(Number);
+    startToday.setHours(h, m, s, 0);
+    // If start was before midnight but we've crossed midnight
+    let secs = Math.floor((now - startToday) / 1000);
+    if (secs < 0) secs += 86400; // midnight crossing
+    const display = $('tt-display');
+    if (display) display.textContent = ttSecsToHMS(secs);
+  }, 1000);
+}
+
+function ttStopTick() {
+  if (_ttTimerInterval) { clearInterval(_ttTimerInterval); _ttTimerInterval = null; }
+}
+
+// ── Show/hide running vs idle UI ──────────────────────────────────────────────
+function ttShowRunning() {
+  const idle = $('tt-timer-idle');
+  const running = $('tt-timer-running');
+  if (idle) idle.style.display = 'none';
+  if (running) running.style.display = '';
+  const card = $('tt-timer-card');
+  if (card) card.classList.add('active');
+  const cl = $('tt-running-client');
+  const desc = $('tt-running-desc');
+  const bill = _ttTimerRow ? _ttTimerRow.billable : '';
+  if (cl) {
+    const c = DB.clients.find(x => x.clientKey === (_ttTimerRow && _ttTimerRow.clientKey));
+    cl.textContent = c ? c.companyName : (_ttTimerRow && _ttTimerRow.clientKey) || '—';
+  }
+  if (desc) desc.textContent = (_ttTimerRow && _ttTimerRow.description) || '—' + (bill ? ' · ' + bill : '');
+  ttStartTick();
+}
+
+function ttShowIdle() {
+  const idle = $('tt-timer-idle');
+  const running = $('tt-timer-running');
+  if (idle) idle.style.display = '';
+  if (running) running.style.display = 'none';
+  const card = $('tt-timer-card');
+  if (card) card.classList.remove('active');
+  const display = $('tt-display');
+  if (display) display.textContent = '00:00:00';
+  ttStopTick();
+}
+
+function ttUpdateTopbarBtn(running) {
+  const btn = $('tt-open-btn');
+  if (!btn) return;
+  if (running) {
+    btn.classList.add('running');
+    btn.textContent = '⏱ Running';
+  } else {
+    btn.classList.remove('running');
+    btn.textContent = '⏱ Time';
+  }
+}
+
+// ── Populate client selects ────────────────────────────────────────────────────
+function ttPopulateClientSelects() {
+  const selIds = ['tt-new-client', 'tt-man-client', 'tt-filt-client'];
+  const activeClients = DB.clients.filter(c => (c.clientStatus || '').toLowerCase() !== 'inactive');
+  selIds.forEach(id => {
+    const sel = $(id);
+    if (!sel) return;
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    activeClients.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.clientKey;
+      o.textContent = c.companyName;
+      sel.appendChild(o);
+    });
+  });
+  // user filter — populate from entries after load
+  ttPopulateUserFilter();
+
+  // Set today's date in manual entry
+  const dateEl = $('tt-man-date');
+  if (dateEl && !dateEl.value) dateEl.value = ttNowDateStr();
+}
+
+function ttPopulateUserFilter() {
+  const sel = $('tt-filt-user');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All staff</option>';
+  // build unique user list from entries
+  const users = [...new Set(_ttEntries.map(e => e.userName).filter(Boolean))].sort();
+  users.forEach(u => {
+    const o = document.createElement('option');
+    o.value = u; o.textContent = u;
+    if (u === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function tt_onClientChange() {}
+function tt_manClientChange() {}
+
+// ── Start timer ────────────────────────────────────────────────────────────────
+async function ttStartTimer() {
+  if (!_account) { toast('Please sign in first', 'error'); return; }
+  const ck = ($('tt-new-client') || {}).value || '';
+  const desc = ($('tt-new-desc') || {}).value.trim();
+  const billable = ($('tt-new-billable') || {}).value || 'Yes';
+  if (!ck) { toast('Select a client first', 'error'); return; }
+  if (!desc) { toast('Enter a description', 'error'); return; }
+  if (_ttTimerRow) { toast('A timer is already running — stop it first', 'error'); return; }
+
+  const startTime = ttNowTimeStr();
+  const entryDate = ttNowDateStr();
+  try {
+    const siteId = await getSiteId();
+    const fields = {
+      Title: _ttUserName || _ttUserEmail,
+      [ttFi(_ttTimerColMap,'UserEmail')]: _ttUserEmail,
+      [ttFi(_ttTimerColMap,'ClientKey')]: ck,
+      [ttFi(_ttTimerColMap,'Description')]: desc,
+      [ttFi(_ttTimerColMap,'StartTime')]: startTime,
+      [ttFi(_ttTimerColMap,'Billable')]: billable,
+      [ttFi(_ttTimerColMap,'EntryDate')]: entryDate
+    };
+    Object.keys(fields).forEach(k => { if (!k || k === 'undefined') delete fields[k]; });
+    const result = await gPost('https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIMERS + '/items', {fields});
+    if (!result?.id) { toast('Could not start timer', 'error'); return; }
+    _ttTimerRow = { _spId: result.id, startTime, clientKey: ck, description: desc, billable, entryDate };
+    ttShowRunning();
+    ttUpdateTopbarBtn(true);
+    // clear form
+    if ($('tt-new-client')) $('tt-new-client').value = '';
+    if ($('tt-new-desc')) $('tt-new-desc').value = '';
+    toast('Timer started', 'success');
+  } catch(e) {
+    toast('Could not start timer: ' + e.message, 'error', 6000);
+  }
+}
+
+// ── Stop timer ────────────────────────────────────────────────────────────────
+async function ttStopTimer() {
+  if (!_ttTimerRow) return;
+  const endTime = ttNowTimeStr();
+  const secs = ttTimeDiff(_ttTimerRow.startTime, endTime);
+  const hours = ttSecsToHours(secs);
+  const duration = ttSecsToHMS(secs);
+  try {
+    const siteId = await getSiteId();
+    // Write to Tutin_Time_Entries
+    const fields = {
+      Title: _ttUserName || _ttUserEmail,
+      [ttFi(_ttColMap,'UserName')]: _ttUserName || _ttUserEmail,
+      [ttFi(_ttColMap,'ClientKey')]: _ttTimerRow.clientKey,
+      [ttFi(_ttColMap,'EntryDate')]: _ttTimerRow.entryDate,
+      [ttFi(_ttColMap,'StartTime')]: _ttTimerRow.startTime,
+      [ttFi(_ttColMap,'EndTime')]: endTime,
+      [ttFi(_ttColMap,'Duration')]: duration,
+      [ttFi(_ttColMap,'Hours')]: hours,
+      [ttFi(_ttColMap,'Description')]: _ttTimerRow.description,
+      [ttFi(_ttColMap,'Billable')]: _ttTimerRow.billable
+    };
+    Object.keys(fields).forEach(k => { if (!k || k === 'undefined') delete fields[k]; });
+    await gPost('https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIME_ENTRIES + '/items', {fields});
+    // Delete timer row
+    await gDelete('https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIMERS + '/items/' + _ttTimerRow._spId);
+    _ttTimerRow = null;
+    ttShowIdle();
+    ttUpdateTopbarBtn(false);
+    toast('✅ Time entry saved (' + duration + ')', 'success', 4000);
+    // Refresh entries
+    await ttLoadEntries();
+  } catch(e) {
+    toast('Stop timer failed: ' + e.message, 'error', 8000);
+  }
+}
+
+// ── Discard timer ─────────────────────────────────────────────────────────────
+async function ttDiscardTimer() {
+  if (!_ttTimerRow) return;
+  if (!confirm('Discard this timer? The time will not be saved.')) return;
+  try {
+    const siteId = await getSiteId();
+    await gDelete('https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIMERS + '/items/' + _ttTimerRow._spId);
+    _ttTimerRow = null;
+    ttShowIdle();
+    ttUpdateTopbarBtn(false);
+    toast('Timer discarded', 'info');
+  } catch(e) {
+    toast('Discard failed: ' + e.message, 'error', 6000);
+  }
+}
+
+// ── Manual entry ──────────────────────────────────────────────────────────────
+function ttCalcManDuration() {
+  const s = ($('tt-man-start') || {}).value;
+  const e = ($('tt-man-end') || {}).value;
+  const disp = $('tt-man-dur-display');
+  if (!s || !e || !disp) return;
+  const secs = ttTimeDiff(s + ':00', e + ':00');
+  disp.textContent = secs > 0 ? ttSecsToHMS(secs) + ' (' + ttSecsToHours(secs) + ' hrs)' : '';
+}
+
+async function ttSaveManual() {
+  if (!_account) { toast('Please sign in first', 'error'); return; }
+  const ck = ($('tt-man-client') || {}).value || '';
+  const dateStr = ($('tt-man-date') || {}).value || '';
+  const startT = ($('tt-man-start') || {}).value || '';
+  const endT = ($('tt-man-end') || {}).value || '';
+  const desc = ($('tt-man-desc') || {}).value.trim();
+  const billable = ($('tt-man-billable') || {}).value || 'Yes';
+
+  // Staff can only log today
+  if (_ttUserRole === 'Staff' && dateStr && dateStr !== ttNowDateStr()) {
+    toast('Staff can only log time for today', 'error', 5000);
+    return;
+  }
+  if (!ck) { toast('Select a client', 'error'); return; }
+  if (!dateStr) { toast('Enter a date', 'error'); return; }
+  if (!startT || !endT) { toast('Enter start and end time', 'error'); return; }
+  const secs = ttTimeDiff(startT + ':00', endT + ':00');
+  if (secs <= 0) { toast('End time must be after start time', 'error'); return; }
+  const duration = ttSecsToHMS(secs);
+  const hours = ttSecsToHours(secs);
+
+  try {
+    const siteId = await getSiteId();
+    const fields = {
+      Title: _ttUserName || _ttUserEmail,
+      [ttFi(_ttColMap,'UserName')]: _ttUserName || _ttUserEmail,
+      [ttFi(_ttColMap,'ClientKey')]: ck,
+      [ttFi(_ttColMap,'EntryDate')]: dateStr,
+      [ttFi(_ttColMap,'StartTime')]: startT + ':00',
+      [ttFi(_ttColMap,'EndTime')]: endT + ':00',
+      [ttFi(_ttColMap,'Duration')]: duration,
+      [ttFi(_ttColMap,'Hours')]: hours,
+      [ttFi(_ttColMap,'Description')]: desc,
+      [ttFi(_ttColMap,'Billable')]: billable
+    };
+    Object.keys(fields).forEach(k => { if (!k || k === 'undefined') delete fields[k]; });
+    await gPost('https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIME_ENTRIES + '/items', {fields});
+    // Clear form
+    if ($('tt-man-client')) $('tt-man-client').value = '';
+    if ($('tt-man-start')) $('tt-man-start').value = '';
+    if ($('tt-man-end')) $('tt-man-end').value = '';
+    if ($('tt-man-desc')) $('tt-man-desc').value = '';
+    const disp = $('tt-man-dur-display');
+    if (disp) disp.textContent = '';
+    toast('✅ Manual entry saved (' + duration + ')', 'success', 4000);
+    await ttLoadEntries();
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'error', 8000);
+  }
+}
+
+// ── Load entries ──────────────────────────────────────────────────────────────
+async function ttLoadEntries() {
+  if (!_account) return;
+  try {
+    const siteId = await getSiteId();
+    if (!Object.keys(_ttColMap).length) await ttLoadColMaps();
+    // Build filter based on role
+    let url = 'https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIME_ENTRIES + '/items?$top=999&$select=id&$expand=fields';
+    if (_ttUserRole === 'Staff') {
+      const userField = ttFi(_ttColMap, 'UserName');
+      const encoded = encodeURIComponent(_ttUserName || _ttUserEmail);
+      url += '&$filter=fields/' + userField + ' eq \'' + encoded + '\'';
+    }
+    const d = await gGet(url);
+    const items = d.value || [];
+    _ttEntries = items.map(item => {
+      const f = item.fields;
+      return {
+        _spId: item.id,
+        userName: ttFbd(f, _ttColMap, 'UserName') || f.Title || '',
+        clientKey: ttFbd(f, _ttColMap, 'ClientKey') || '',
+        entryDate: ttFbd(f, _ttColMap, 'EntryDate') || '',
+        startTime: ttFbd(f, _ttColMap, 'StartTime') || '',
+        endTime: ttFbd(f, _ttColMap, 'EndTime') || '',
+        duration: ttFbd(f, _ttColMap, 'Duration') || '',
+        hours: parseFloat(ttFbd(f, _ttColMap, 'Hours') || 0) || 0,
+        description: ttFbd(f, _ttColMap, 'Description') || '',
+        billable: ttFbd(f, _ttColMap, 'Billable') || 'No'
+      };
+    }).sort((a,b) => {
+      const dc = (b.entryDate || '').localeCompare(a.entryDate || '');
+      if (dc !== 0) return dc;
+      return (b.startTime || '').localeCompare(a.startTime || '');
+    });
+    ttPopulateUserFilter();
+    ttRenderEntries();
+  } catch(e) {
+    console.error('TT load entries error:', e);
+    toast('Could not load time entries: ' + e.message, 'error', 6000);
+  }
+}
+
+// ── Render entries table ───────────────────────────────────────────────────────
+function ttRenderEntries() {
+  const filtUser = ($('tt-filt-user') || {}).value || '';
+  const filtClient = ($('tt-filt-client') || {}).value || '';
+  const filtFrom = ($('tt-filt-from') || {}).value || '';
+  const filtTo = ($('tt-filt-to') || {}).value || '';
+  const filtBillable = ($('tt-filt-billable') || {}).value || '';
+
+  let filtered = _ttEntries.filter(e => {
+    if (filtUser && e.userName !== filtUser) return false;
+    if (filtClient && e.clientKey !== filtClient) return false;
+    if (filtFrom && e.entryDate < filtFrom) return false;
+    if (filtTo && e.entryDate > filtTo) return false;
+    if (filtBillable && e.billable !== filtBillable) return false;
+    return true;
+  });
+
+  const body = $('tt-entries-body');
+  if (!body) return;
+
+  if (!filtered.length) {
+    body.innerHTML = '<div class="tt-no-entries">No entries match the current filters.</div>';
+    const strip = $('tt-summary-strip'); if (strip) strip.style.display = 'none';
+    const total = $('tt-total-display'); if (total) total.textContent = '';
+    return;
+  }
+
+  // Totals
+  const totalHours = filtered.reduce((s, e) => s + e.hours, 0);
+  const billableHours = filtered.filter(e => e.billable === 'Yes').reduce((s, e) => s + e.hours, 0);
+  const totalDisplay = $('tt-total-display');
+  if (totalDisplay) totalDisplay.textContent = filtered.length + ' entries · ' + totalHours.toFixed(2) + ' hrs';
+
+  const strip = $('tt-summary-strip');
+  if (strip) {
+    strip.style.display = 'flex';
+    strip.innerHTML =
+      '<div class="ss-item"><div class="ss-label">Total Entries</div><div class="ss-val">' + filtered.length + '</div></div>' +
+      '<div class="ss-item"><div class="ss-label">Total Hours</div><div class="ss-val">' + totalHours.toFixed(2) + '</div></div>' +
+      '<div class="ss-item"><div class="ss-label">Billable Hours</div><div class="ss-val">' + billableHours.toFixed(2) + '</div></div>' +
+      '<div class="ss-item"><div class="ss-label">Non-Billable</div><div class="ss-val">' + (totalHours - billableHours).toFixed(2) + '</div></div>';
+  }
+
+  // Group by date for display
+  const isAdmin = _ttUserRole === 'Admin';
+  let html = '<table class="tt-table"><thead><tr>';
+  html += '<th>Date</th>';
+  if (isAdmin) html += '<th>Staff</th>';
+  html += '<th>Client</th><th>Start</th><th>End</th><th>Duration</th><th>Billable</th><th>Description</th><th></th></tr></thead><tbody>';
+
+  filtered.forEach(e => {
+    const client = DB.clients.find(c => c.clientKey === e.clientKey);
+    const clientName = client ? client.companyName : (e.clientKey || '—');
+    const canEdit = isAdmin || (e.userName === (_ttUserName || _ttUserEmail) && ttIsToday(e.entryDate));
+    const startDisp = e.startTime ? e.startTime.slice(0,5) : '—';
+    const endDisp = e.endTime ? e.endTime.slice(0,5) : '—';
+    html += '<tr>';
+    html += '<td>' + escHtml(e.entryDate || '—') + '</td>';
+    if (isAdmin) html += '<td>' + escHtml(e.userName || '—') + '</td>';
+    html += '<td>' + escHtml(clientName) + '</td>';
+    html += '<td>' + escHtml(startDisp) + '</td>';
+    html += '<td>' + escHtml(endDisp) + '</td>';
+    html += '<td class="tt-dur">' + escHtml(e.duration || '—') + '</td>';
+    html += '<td class="' + (e.billable === 'Yes' ? 'tt-bill-yes' : 'tt-bill-no') + '">' + escHtml(e.billable || '—') + '</td>';
+    html += '<td>' + escHtml(e.description || '—') + '</td>';
+    html += '<td><div class="tt-entry-actions">';
+    if (canEdit) {
+      html += '<button class="btn-icon" data-ttid="' + encodeURIComponent(e._spId) + '" data-ttaction="edit" title="Edit" style="font-size:13px;">✏️</button>';
+      html += '<button class="btn-icon" data-ttid="' + encodeURIComponent(e._spId) + '" data-ttaction="delete" title="Delete" style="font-size:13px;color:#991b1b;">🗑</button>';
+    }
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
+
+  // Delegate click
+  body.onclick = function(ev) {
+    const btn = ev.target.closest('[data-ttaction]');
+    if (!btn) return;
+    const spId = decodeURIComponent(btn.dataset.ttid || '');
+    if (btn.dataset.ttaction === 'delete') ttDeleteEntry(spId);
+    else if (btn.dataset.ttaction === 'edit') ttEditEntry(spId);
+  };
+}
+
+// ── Delete entry ──────────────────────────────────────────────────────────────
+async function ttDeleteEntry(spId) {
+  const entry = _ttEntries.find(e => e._spId === spId);
+  if (!entry) return;
+  // Staff restriction: own entries today only
+  if (_ttUserRole === 'Staff') {
+    if (!ttIsToday(entry.entryDate) || entry.userName !== (_ttUserName || _ttUserEmail)) {
+      toast('You can only delete your own entries from today', 'error', 5000);
+      return;
+    }
+  }
+  if (!confirm('Delete this time entry? This cannot be undone.')) return;
+  try {
+    const siteId = await getSiteId();
+    await gDelete('https://graph.microsoft.com/v1.0/sites/' + siteId + '/lists/' + L_TIME_ENTRIES + '/items/' + spId);
+    _ttEntries = _ttEntries.filter(e => e._spId !== spId);
+    ttRenderEntries();
+    toast('Entry deleted', 'success');
+  } catch(e) {
+    toast('Delete failed: ' + e.message, 'error', 6000);
+  }
+}
+
+// ── Edit entry (inline quick-edit via prompt for now) ─────────────────────────
+function ttEditEntry(spId) {
+  const entry = _ttEntries.find(e => e._spId === spId);
+  if (!entry) return;
+  // Staff restriction
+  if (_ttUserRole === 'Staff') {
+    if (!ttIsToday(entry.entryDate) || entry.userName !== (_ttUserName || _ttUserEmail)) {
+      toast('You can only edit your own entries from today', 'error', 5000);
+      return;
+    }
+  }
+  // Populate manual entry form with this entry's values for re-save
+  const ck = $('tt-man-client'); if (ck) ck.value = entry.clientKey;
+  const dt = $('tt-man-date'); if (dt) dt.value = entry.entryDate;
+  const st = $('tt-man-start'); if (st) st.value = (entry.startTime || '').slice(0,5);
+  const et = $('tt-man-end'); if (et) et.value = (entry.endTime || '').slice(0,5);
+  const de = $('tt-man-desc'); if (de) de.value = entry.description;
+  const bi = $('tt-man-billable'); if (bi) bi.value = entry.billable;
+  ttCalcManDuration();
+  // First delete the old entry then the user saves the edited one
+  ttDeleteEntry(spId).then(() => {
+    toast('Edit the entry above and click Log Entry to re-save', 'info', 6000);
+  });
+}
+
+// ── Clear filters ─────────────────────────────────────────────────────────────
+function ttClearFilters() {
+  const ids = ['tt-filt-user','tt-filt-client','tt-filt-from','tt-filt-to','tt-filt-billable'];
+  ids.forEach(id => { const el = $(id); if (el) el.value = ''; });
+  ttRenderEntries();
+}
+
+// ── Hook into initAuth flow ───────────────────────────────────────────────────
+const _origLoadAll = loadAll;
+// We patch initAuth to call TT role load after loadAll
+const _origInitAuth = initAuth;
+// Instead of patching (risky), we call ttInit after initAuth completes by
+// extending the auth flow in the existing initAuth function.
+// The cleanest approach: override setAuthPill to trigger TT init on connect.
+const _baseSetAuthPill = setAuthPill;
+window.setAuthPill = function(state) {
+  _baseSetAuthPill(state);
+  if (state === 'connected' && !_ttUserRole) {
+    // Queue after loadAll finishes (allow ~2s for loadAll to complete and DB to populate)
+    setTimeout(async () => {
+      await ttLoadColMaps();
+      await ttLoadUserRole();
+    }, 2000);
+  }
+};
 
 initAuth();
 
