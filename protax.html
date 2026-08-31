@@ -2868,28 +2868,26 @@ async function ttBootstrap() {
     }
 
     if (!currentUser) {
-      // Not registered in TutinTime — hide button
+      console.warn('TutinTime: email not in Tutin_Users:', email, 'Found users:', allActive);
       return;
     }
     _ttUser = currentUser;
     _ttAllUsers = allActive.sort();
 
-    // Use clients from existing ProTax DB (already loaded)
+    // Clients from existing ProTax DB
     _ttClients = DB.clients.map(c => c.companyName).filter(Boolean).sort();
 
-    // Load entries
-    await ttLoadEntries(usersMap, timersMap, entriesMap, siteId);
-
-    // Check running timer
-    await ttCheckRunningTimer(timersMap, siteId);
-
-    // Show the Time button
+    // Show button immediately after user confirmed
     const btn = document.getElementById('tt-btn');
     if (btn) btn.style.display = '';
-
     _ttInitDone = true;
+
+    // Load entries and timer in background
+    ttLoadEntries(usersMap, timersMap, entriesMap, siteId).catch(e => console.warn('TT entries:', e.message));
+    ttCheckRunningTimer(timersMap, siteId).catch(e => console.warn('TT timer:', e.message));
+
   } catch (e) {
-    console.warn('TutinTime bootstrap error:', e.message);
+    console.warn('TutinTime bootstrap error:', e.message, e.stack);
   }
 }
 
