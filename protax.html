@@ -2859,8 +2859,10 @@ async function ttBootstrap() {
       const uEmail = (ttFBD(f, usersMap, 'Email') || '').toString().trim().toLowerCase();
       const uName  = (ttFBD(f, usersMap, 'Title') || ttFBD(f, usersMap, 'Name') || '').toString().trim();
       const uRole  = (ttFBD(f, usersMap, 'Role') || 'Staff').toString().trim();
-      const uActive = (ttFBD(f, usersMap, 'Active') || '').toString().toLowerCase();
-      if (uActive !== 'yes' && uActive !== 'true') continue;
+      const uActiveRaw = ttFBD(f, usersMap, 'Active');
+      // SharePoint Yes/No columns return boolean true/false
+      const uActive = (uActiveRaw === true || uActiveRaw === 'true' || String(uActiveRaw).toLowerCase() === 'yes');
+      if (!uActive) continue;
       if (uName) allActive.push(uName);
       if (uEmail === email) {
         currentUser = { name: uName, role: uRole, email: uEmail };
