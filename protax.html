@@ -656,6 +656,37 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   </div>
 </div>
 
+<!-- Edit Director Modal -->
+<div id="edit-director-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-head"><h3>✏️ Edit Director / Member</h3><button class="modal-close" onclick="closeModal('edit-director-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg full"><label>Full Name</label><input id="ed-name"></div>
+        <div class="fg"><label>Role</label>
+          <select id="ed-role">
+            <option value="Director">Director</option>
+            <option value="Member">Member</option>
+            <option value="Trustee">Trustee</option>
+            <option value="Beneficiary">Beneficiary</option>
+            <option value="Shareholder">Shareholder</option>
+            <option value="Owner">Owner</option>
+          </select>
+        </div>
+        <div class="fg"><label>Interest / Shareholding %</label><input id="ed-interest" type="number" min="0" max="100"></div>
+        <div class="fg"><label>Phone</label><input id="ed-phone"></div>
+        <div class="fg"><label>Email</label><input id="ed-email" type="email"></div>
+        <div class="fg"><label>ID Number</label><input id="ed-idnumber"></div>
+        <div class="fg"><label>Personal Tax Number</label><input id="ed-taxno"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="saveEditDirector()">💾 Save Director</button>
+      <button class="btn btn-ghost" onclick="closeModal('edit-director-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add/Edit Return Type Modal -->
 <div id="edit-return-type-modal" class="modal-overlay">
   <div class="modal">
@@ -765,6 +796,7 @@ const L_CLIENTS='Tutin_Client_Register',L_DIRECTORS='Tutin_Directors_Register',L
 let msalApp=null,_account=null,_siteId=null;
 let _spReturnMap={};
 let _retColMap={};
+let dirColMap={};
 let _retFieldsByDisplay={};
 let clientColMap={};
 let DB_returnTypes=[];  // loaded from Tutin_ProTax_ReturnTypes
@@ -970,7 +1002,7 @@ async function loadAll(){
       return '';
     }
     clientColMap = await getColMap(L_CLIENTS);
-    const dirColMap    = await getColMap(L_DIRECTORS);
+    dirColMap          = await getColMap(L_DIRECTORS);
     const retColMap    = await getColMap(L_RETURNS);
     // Build clean display->internal map for saves (exclude __rev__ entries)
     _retFieldsByDisplay={};
@@ -1061,6 +1093,7 @@ async function loadAll(){
       if(!key)return;
       if(!dirsByKey[key])dirsByKey[key]=[];
       dirsByKey[key].push({
+        _spId:item.id,
         name:f.Title||'',
         role:fbd('Role')||'Director',
         interest:fbd('Interest','Shareholding')||'0',
@@ -1305,14 +1338,19 @@ function renderDirectors(clientKey){
   const dirs=getDirs(clientKey);
   const el=$('directors-list');
   if(!dirs.length){el.innerHTML='<div style="color:var(--ink-light);font-size:14px;padding-top:8px;">No directors found.</div>';return;}
-  el.innerHTML=dirs.map(d=>
+  el.innerHTML=dirs.map((d,i)=>
     '<div class="dir-item">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+    +'<div>'
     +'<div class="dir-role">'+escHtml(d.role)+(d.interest&&d.interest!=='0'?' · '+d.interest+'%':'')+'</div>'
     +'<div class="dir-name">'+escHtml(d.name)+'</div>'
     +(d.phone?'<div class="dir-detail">📞 '+escHtml(d.phone)+'</div>':'')
     +(d.idNumber?'<div class="dir-detail">ID: '+escHtml(d.idNumber)+'</div>':'')
     +(d.personalTaxNo?'<div class="dir-detail">Tax: '+escHtml(d.personalTaxNo)+'</div>':'')
     +(d.email?'<div class="dir-detail">✉ '+escHtml(d.email)+'</div>':'')
+    +'</div>'
+    +'<button onclick="showEditDirector(\''+clientKey+'\','+i+')" style="background:none;border:1px solid var(--rule);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--ink-mid);cursor:pointer;white-space:nowrap;margin-top:2px;">✏️ Edit</button>'
+    +'</div>'
     +'</div>'
   ).join('');
 }
@@ -2176,6 +2214,65 @@ async function saveClientEdit(){
   renderClientView();
   renderList();
   DB.clients.sort((a,b)=>a.companyName.localeCompare(b.companyName));
+}
+
+// ── Edit Director ─────────────────────────────────────────────────────────
+let _editDirClientKey=null;
+let _editDirIndex=null;
+
+function showEditDirector(clientKey, index){
+  const dirs=getDirs(clientKey);
+  const d=dirs[index];
+  if(!d){toast('Director not found','error');return;}
+  _editDirClientKey=clientKey;
+  _editDirIndex=index;
+  document.getElementById('ed-name').value=d.name||'';
+  document.getElementById('ed-role').value=d.role||'Director';
+  document.getElementById('ed-interest').value=d.interest&&d.interest!=='0'?d.interest:'';
+  document.getElementById('ed-phone').value=d.phone||'';
+  document.getElementById('ed-email').value=d.email||'';
+  document.getElementById('ed-idnumber').value=d.idNumber||'';
+  document.getElementById('ed-taxno').value=d.personalTaxNo||'';
+  openModal('edit-director-modal');
+}
+
+async function saveEditDirector(){
+  const dirs=getDirs(_editDirClientKey);
+  const d=dirs[_editDirIndex];
+  if(!d){toast('Director not found','error');return;}
+  if(!d._spId){toast('Director has no SharePoint ID — cannot save','error');return;}
+  // Update local object
+  d.name=document.getElementById('ed-name').value.trim()||d.name;
+  d.role=document.getElementById('ed-role').value||'Director';
+  d.interest=document.getElementById('ed-interest').value||'0';
+  d.phone=document.getElementById('ed-phone').value.trim();
+  d.email=document.getElementById('ed-email').value.trim();
+  d.idNumber=document.getElementById('ed-idnumber').value.trim();
+  d.personalTaxNo=document.getElementById('ed-taxno').value.trim();
+  try{
+    setSave('saving');
+    const siteId=await getSiteId();
+    const dMap=dirColMap||{};
+    const fi=(dn)=>{const e=Object.entries(dMap).find(([k,v])=>v===dn);return e?e[0]:dn;};
+    const fields={};
+    fields['Title']=d.name;
+    fields[fi('Role')]=d.role;
+    fields[fi('Interest')]=d.interest;
+    fields[fi('Phone')]=d.phone;
+    fields[fi('Email')]=d.email;
+    fields[fi('IDNumber')]=d.idNumber;
+    fields[fi('PersonalTaxNo')]=d.personalTaxNo;
+    Object.keys(fields).forEach(k=>{if(!k||k==='undefined')delete fields[k];});
+    await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_DIRECTORS+'/items/'+d._spId+'/fields',fields);
+    setSave('saved');
+    toast('✅ Director saved','success');
+    closeModal('edit-director-modal');
+    renderDirectors(_editDirClientKey);
+  }catch(e){
+    setSave('failed',e.message);
+    toast('⚠ Save failed: '+e.message,'error',8000);
+    console.error('saveEditDirector:',e);
+  }
 }
 
 function renameReturn(encodedId){
