@@ -360,7 +360,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
     <span>ProTax</span>
   </div>
   <span id="auth-pill" class="auth-pill offline" onclick="signIn()" style="flex-shrink:0;">⚪ Sign in</span>
-  <button id="tt-btn" onclick="openTT()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:white;padding:5px 13px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;display:none;">⏱ Time</button>
+  <button id="tt-btn" onclick="openTT()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:white;padding:5px 13px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;display:none;">⏱ <span id="tt-pill-label">Time</span></button>
   <div id="topbar-staff">
     <button class="staff-tab active" data-assignee="" onclick="setAssignee(this)">All</button>
     <button class="staff-tab" data-assignee="Johan Muller" onclick="setAssignee(this)">Johan</button>
@@ -2790,17 +2790,25 @@ async function addNewClient(){
 // ═══════════════════════════════════════════════════════════════════════
 
 // SP List names
-const L_TT_USERS   = 'Tutin_Users';
-const L_TT_TIMERS  = 'Tutin_Running_Timers';
-const L_TT_ENTRIES = 'Tutin_Time_Entries';
+const L_TT_USERS     = 'Tutin_Users';
+const L_TT_TIMERS    = 'Tutin_Running_Timers';
+const L_TT_ENTRIES   = 'Tutin_Time_Entries';
+const L_TT_PHRASES   = 'Tutin_User_Phrases';
+const L_TT_ANOMALIES = 'Tutin_Anomalies';
 
 // State
 let _ttUser = null;        // { name, role, email }
 let _ttClients = [];       // sorted client names (from Tutin_Client_Register, existing list)
 let _ttAllUsers = [];      // names of all active users (admin only)
 let _ttEntries = [];       // cached entries (all for admin, own for staff)
-let _ttTimerInterval = null;
-let _ttRunningTimer = null; // { id (SP item id), startTime, client, description, billable }
+let _ttTimerInterval    = null;
+let _ttPillInterval     = null;   // updates the pill button clock
+let _ttCutoffInterval   = null;   // checks for 18:00 cutoff
+let _ttCutoffWarned     = false;  // has the 18:00 warning been shown
+let _ttSnoozeCount      = 0;      // number of snoozes used
+let _ttRunningTimer     = null;   // { id, startTime, client, description, billable }
+let _ttPhrases          = [];     // cached user phrases [ {id, phrase, useCount, sortOrder} ]
+let _ttPhrasesMap       = {};     // col map for Tutin_User_Phrases
 let _ttColMaps = {};       // { listName: colMap }
 let _ttInitDone = false;
 let _ttSelectedReportClients = []; // multi-select for report client filter
@@ -2883,9 +2891,14 @@ async function ttBootstrap() {
     if (btn) btn.style.display = '';
     _ttInitDone = true;
 
-    // Load entries and timer in background
+    // Start pill clock and cutoff watcher
+    ttStartPillTick();
+    ttStartCutoffWatch();
+
+    // Load entries, timer and phrases in background
     ttLoadEntries(usersMap, timersMap, entriesMap, siteId).catch(e => console.warn('TT entries:', e.message));
     ttCheckRunningTimer(timersMap, siteId).catch(e => console.warn('TT timer:', e.message));
+    ttLoadPhrases().catch(e => console.warn('TT phrases:', e.message));
 
   } catch (e) {
     console.warn('TutinTime bootstrap error:', e.message, e.stack);
@@ -2985,6 +2998,8 @@ async function ttCheckRunningTimer(timersMap, siteId) {
     };
     ttUpdateTimerUI();
     ttStartTick();
+    // Next-day detection — if timer started on a previous day, auto-stop and flag
+    await ttCheckNextDay(_ttRunningTimer);
   } catch (e) {
     console.warn('ttCheckRunningTimer:', e.message);
   }
@@ -3251,6 +3266,293 @@ function ttFormatDuration(secs) {
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
   return [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+}
+
+// ── Pill button live timer ────────────────────────────────────────────────
+function ttStartPillTick() {
+  if (_ttPillInterval) clearInterval(_ttPillInterval);
+  _ttPillInterval = setInterval(() => {
+    const lbl = document.getElementById('tt-pill-label');
+    if (!lbl) return;
+    if (_ttRunningTimer) {
+      const elapsed = Math.floor((Date.now() - _ttRunningTimer.startTime.getTime()) / 1000);
+      lbl.textContent = ttFormatDuration(elapsed);
+      // pulse red border to indicate running
+      const btn = document.getElementById('tt-btn');
+      if (btn) btn.style.borderColor = 'rgba(255,100,100,.8)';
+    } else {
+      lbl.textContent = 'Time';
+      const btn = document.getElementById('tt-btn');
+      if (btn) btn.style.borderColor = 'rgba(255,255,255,.35)';
+    }
+  }, 1000);
+}
+
+// ── 18:00 cutoff ─────────────────────────────────────────────────────────
+function ttStartCutoffWatch() {
+  if (_ttCutoffInterval) clearInterval(_ttCutoffInterval);
+  _ttCutoffWarned = false;
+  _ttSnoozeCount  = 0;
+  _ttCutoffInterval = setInterval(() => ttCheckCutoff(), 30000); // check every 30s
+  ttCheckCutoff(); // check immediately
+}
+
+function ttCheckCutoff() {
+  if (!_ttRunningTimer) return;
+  const now  = new Date();
+  const h    = now.getHours();
+  const m    = now.getMinutes();
+  const totalMins = h * 60 + m;
+  // Warning at 17:58 (or snooze cutoff - 2 min)
+  const cutoff    = 18 * 60 + (_ttSnoozeCount * 30); // 18:00, 18:30, 19:00 max
+  const warnAt    = cutoff - 2;
+  if (totalMins >= cutoff) {
+    ttAutoCutoff('Auto-stopped at 18:00');
+  } else if (totalMins >= warnAt && !_ttCutoffWarned) {
+    _ttCutoffWarned = true;
+    ttShowCutoffWarning(cutoff);
+  }
+}
+
+function ttShowCutoffWarning(cutoffMins) {
+  const cutoffStr = `${String(Math.floor(cutoffMins/60)).padStart(2,'0')}:${String(cutoffMins%60).padStart(2,'0')}`;
+  // Show toast-style warning
+  let warn = document.getElementById('tt-cutoff-warn');
+  if (!warn) {
+    warn = document.createElement('div');
+    warn.id = 'tt-cutoff-warn';
+    warn.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#840811;color:#fff;padding:16px 20px;border-radius:10px;font-size:14px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:320px;';
+    document.body.appendChild(warn);
+  }
+  warn.innerHTML = `
+    <div style="font-weight:700;margin-bottom:8px;">⏱ Timer stopping at ${cutoffStr}</div>
+    <div style="font-size:13px;margin-bottom:12px;">Your timer will stop automatically in 2 minutes. Still working?</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="ttSnooze()" style="background:#fff;color:#840811;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;">Still Working (+30 min)</button>
+      <button onclick="ttDismissCutoffWarn()" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;">Dismiss</button>
+    </div>`;
+}
+
+function ttSnooze() {
+  if (_ttSnoozeCount >= 2) {
+    alert('Maximum snooze limit reached. Timer will stop at the next cutoff.');
+    return;
+  }
+  _ttSnoozeCount++;
+  _ttCutoffWarned = false;
+  ttDismissCutoffWarn();
+}
+
+function ttDismissCutoffWarn() {
+  const w = document.getElementById('tt-cutoff-warn');
+  if (w) w.remove();
+}
+
+async function ttAutoCutoff(reason) {
+  if (!_ttRunningTimer) return;
+  clearInterval(_ttCutoffInterval);
+  ttDismissCutoffWarn();
+  const timer = _ttRunningTimer;
+  try {
+    // Stop the timer and save the entry
+    await ttStopTimerInternal(reason);
+    // Log anomaly
+    await ttLogAnomaly(timer, reason);
+    // Show notification
+    let note = document.getElementById('tt-cutoff-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'tt-cutoff-note';
+      note.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1a7f4b;color:#fff;padding:16px 20px;border-radius:10px;font-size:14px;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.3);';
+      document.body.appendChild(note);
+    }
+    note.innerHTML = `<strong>Timer stopped automatically.</strong><br>Entry saved and flagged for admin review.`;
+    setTimeout(() => { if (note) note.remove(); }, 6000);
+  } catch(e) {
+    console.warn('Auto cutoff error:', e.message);
+  }
+}
+
+async function ttLogAnomaly(timer, reason) {
+  try {
+    const siteId = await getSiteId();
+    const now    = new Date();
+    const elapsed = Math.floor((now.getTime() - timer.startTime.getTime()) / 1000);
+    const hours   = parseFloat((elapsed / 3600).toFixed(4));
+    await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_ANOMALIES}/items`, {
+      fields: {
+        UserEmail:    _ttUser ? _ttUser.email : '',
+        UserName:     _ttUser ? _ttUser.name  : '',
+        ClientKey:    timer.client || '',
+        EntryDate:    now.toISOString().substring(0, 10),
+        HoursLogged:  hours,
+        StopReason:   reason,
+        Description:  timer.description || '',
+        TimeEntryId:  String(timer.savedEntryId || ''),
+        Reviewed:     false
+      }
+    });
+  } catch(e) {
+    console.warn('ttLogAnomaly:', e.message);
+  }
+}
+
+// ── Next-day detection ────────────────────────────────────────────────────
+async function ttCheckNextDay(timer) {
+  if (!timer) return;
+  const startDate = timer.startTime.toISOString().substring(0, 10);
+  const today     = new Date().toISOString().substring(0, 10);
+  if (startDate < today) {
+    // Timer is from a previous day — stop it at midnight of start date
+    console.warn('TutinTime: timer from previous day detected, auto-stopping');
+    const reason = `Next-day detection: timer started ${startDate}, stopped on load`;
+    await ttStopTimerInternal(reason);
+    await ttLogAnomaly(timer, reason);
+    // Show warning in UI
+    const status = document.getElementById('tt-timer-status');
+    if (status) status.textContent = `⚠ Previous day timer auto-stopped and flagged.`;
+  }
+}
+
+// ── Internal stop (used by auto-cutoff and next-day) ─────────────────────
+async function ttStopTimerInternal(reason) {
+  if (!_ttRunningTimer) return;
+  const timer  = _ttRunningTimer;
+  const siteId = await getSiteId();
+  const now    = new Date();
+  const elapsed = Math.floor((now.getTime() - timer.startTime.getTime()) / 1000);
+  const hours   = parseFloat((elapsed / 3600).toFixed(4));
+  const eMap    = _ttColMaps[L_TT_ENTRIES] || await ttGetColMap(L_TT_ENTRIES);
+  const fields  = {};
+  const ef      = (dn) => ttFieldName(eMap, dn);
+  fields[ef('UserName')]    = _ttUser ? _ttUser.name : '';
+  fields[ef('ClientKey')]   = timer.client || '';
+  fields[ef('EntryDate')]   = timer.startTime.toISOString().substring(0, 10);
+  fields[ef('StartTime')]   = timer.startTime.toTimeString().substring(0, 8);
+  fields[ef('EndTime')]     = now.toTimeString().substring(0, 8);
+  fields[ef('Hours')]       = hours;
+  fields[ef('Description')] = (timer.description || '') + (reason ? ` [${reason}]` : '');
+  fields[ef('Billable')]    = timer.billable || 'No';
+  const saved = await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_ENTRIES}/items`, { fields });
+  _ttRunningTimer.savedEntryId = saved && saved.id ? saved.id : '';
+  await gDelete(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_TIMERS}/items/${timer.id}`);
+  clearInterval(_ttTimerInterval);
+  _ttRunningTimer = null;
+  ttSetDisplay('00:00:00');
+  ttUpdateTimerUI();
+}
+
+// ── User phrases ──────────────────────────────────────────────────────────
+async function ttLoadPhrases() {
+  if (!_ttUser) return;
+  try {
+    const siteId = await getSiteId();
+    _ttPhrasesMap = await ttGetColMap(L_TT_PHRASES);
+    const raw = await getAll(L_TT_PHRASES, '$select=id&$expand=fields');
+    _ttPhrases = raw
+      .map(item => {
+        const f = item.fields || {};
+        return {
+          id:        item.id,
+          email:     (ttFBD(f, _ttPhrasesMap, 'UserEmail') || '').toLowerCase(),
+          phrase:    ttFBD(f, _ttPhrasesMap, 'Phrase') || '',
+          sortOrder: parseFloat(ttFBD(f, _ttPhrasesMap, 'SortOrder') || 0),
+          useCount:  parseFloat(ttFBD(f, _ttPhrasesMap, 'UseCount')  || 0)
+        };
+      })
+      .filter(p => p.email === _ttUser.email && p.phrase)
+      .sort((a, b) => b.useCount - a.useCount || a.sortOrder - b.sortOrder);
+  } catch(e) {
+    console.warn('ttLoadPhrases:', e.message);
+  }
+}
+
+function ttRenderPhrasePanel(targetInputId) {
+  // Remove any existing panel
+  document.querySelectorAll('.tt-phrase-panel').forEach(el => el.remove());
+  const input = document.getElementById(targetInputId);
+  if (!input) return;
+  const panel = document.createElement('div');
+  panel.className = 'tt-phrase-panel';
+  panel.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-top:8px;';
+  const chips = _ttPhrases.map(p => {
+    const safe = p.phrase.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<button class="tt-phrase-chip" data-id="${ttEsc(p.id)}" data-phrase="${ttEsc(p.phrase)}"
+      style="display:inline-block;margin:3px;padding:4px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9f9f9;font-size:13px;cursor:pointer;"
+      onclick="ttApplyPhrase(this,\'${targetInputId}\')">${safe}</button>`;
+  }).join('');
+  panel.innerHTML = `
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Click to append · <span style="cursor:pointer;color:#840811;" onclick="this.closest('.tt-phrase-panel').querySelector('.tt-phrase-new').style.display=\'\'">+ Add phrase</span></div>
+    <div>${chips || '<span style="font-size:13px;color:#aaa;">No saved phrases yet</span>'}</div>
+    <div class="tt-phrase-new" style="display:none;margin-top:10px;display:flex;gap:6px;align-items:center;">
+      <input id="tt-new-phrase-input" type="text" placeholder="New phrase…" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:13px;">
+      <button onclick="ttSaveNewPhrase(\'${targetInputId}\')" style="background:#840811;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;">Save</button>
+    </div>`;
+  // Insert after input's parent
+  input.closest('div') ? input.closest('div').appendChild(panel) : input.parentNode.insertBefore(panel, input.nextSibling);
+}
+
+function ttTogglePhrasePanel(targetInputId) {
+  const existing = document.querySelector('.tt-phrase-panel');
+  if (existing) { existing.remove(); return; }
+  ttRenderPhrasePanel(targetInputId);
+}
+
+function ttApplyPhrase(btn, targetInputId) {
+  const phrase = btn.dataset.phrase;
+  const input  = document.getElementById(targetInputId);
+  if (!input) return;
+  const cur = input.value.trim();
+  input.value = cur ? cur + ' · ' + phrase : phrase;
+  // Increment use count in background
+  ttIncrementPhraseUse(btn.dataset.id);
+  // If timer is running, update description on SP
+  if (_ttRunningTimer) {
+    _ttRunningTimer.description = input.value;
+    ttUpdateTimerDescription(input.value).catch(e => console.warn('phrase update:', e.message));
+  }
+}
+
+async function ttUpdateTimerDescription(desc) {
+  if (!_ttRunningTimer) return;
+  const siteId = await getSiteId();
+  const tMap   = _ttColMaps[L_TT_TIMERS] || {};
+  const fields = {};
+  fields[ttFieldName(tMap, 'Description')] = desc;
+  await gPatch(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_TIMERS}/items/${_ttRunningTimer.id}`, { fields });
+}
+
+async function ttSaveNewPhrase(targetInputId) {
+  const newInput = document.getElementById('tt-new-phrase-input');
+  if (!newInput) return;
+  const phrase = newInput.value.trim();
+  if (!phrase) return;
+  try {
+    const siteId = await getSiteId();
+    const fields = {
+      UserEmail: _ttUser ? _ttUser.email : '',
+      Phrase:    phrase,
+      SortOrder: _ttPhrases.length,
+      UseCount:  0
+    };
+    const saved = await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_PHRASES}/items`, { fields });
+    _ttPhrases.push({ id: saved.id, email: _ttUser.email, phrase, sortOrder: fields.SortOrder, useCount: 0 });
+    ttRenderPhrasePanel(targetInputId); // re-render
+  } catch(e) {
+    alert('Could not save phrase: ' + e.message);
+  }
+}
+
+async function ttIncrementPhraseUse(itemId) {
+  try {
+    const phrase = _ttPhrases.find(p => p.id === itemId);
+    if (!phrase) return;
+    phrase.useCount++;
+    const siteId = await getSiteId();
+    await gPatch(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_PHRASES}/items/${itemId}`, {
+      fields: { UseCount: phrase.useCount }
+    });
+  } catch(e) { /* non-critical */ }
 }
 
 async function ttStartTimer() {
@@ -3910,7 +4212,10 @@ initAuth();
           <!-- Description -->
           <div style="margin-bottom:10px;">
             <label class="tt-label">Description</label>
-            <input id="tt-desc-input" class="tt-input" placeholder="What are you working on?" oninput="ttUpdateTimerMeta()">
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input id="tt-desc-input" class="tt-input" placeholder="What are you working on?" oninput="ttUpdateTimerMeta()" style="flex:1;">
+              <button onclick="ttTogglePhrasePanel('tt-desc-input')" style="background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap;">⚡ Phrases</button>
+            </div>
           </div>
 
           <!-- Billable pill -->
@@ -4017,6 +4322,7 @@ initAuth();
         <div style="margin-bottom:10px;">
           <label class="tt-label">Description</label>
           <textarea id="tt-me-desc" class="tt-textarea" placeholder="Description of work"></textarea>
+          <button onclick="ttTogglePhrasePanel('tt-me-desc')" style="margin-top:4px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;">⚡ Phrases</button>
         </div>
         <div class="tt-grid4" style="margin-bottom:10px;">
           <div>
@@ -4092,6 +4398,7 @@ initAuth();
           <div style="margin-bottom:10px;">
             <label class="tt-label">Description</label>
             <textarea id="tt-edit-desc" class="tt-textarea"></textarea>
+            <button onclick="ttTogglePhrasePanel('tt-edit-desc')" style="margin-top:4px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;">⚡ Phrases</button>
           </div>
           <div class="tt-grid2" style="margin-bottom:10px;">
             <div>
