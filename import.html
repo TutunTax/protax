@@ -149,17 +149,7 @@ async function getToken() {
 
 async function doLogin() {
   try {
-    await msalApp.handleRedirectPromise();
-    let account = msalApp.getAllAccounts()[0];
-    if (!account) {
-      await msalApp.loginPopup({ scopes: ['Sites.ReadWrite.All'] });
-      account = msalApp.getAllAccounts()[0];
-    }
-    const resp = await msalApp.acquireTokenSilent({ scopes: ['Sites.ReadWrite.All'], account });
-    document.getElementById('auth-dot').className = 'dot green';
-    document.getElementById('auth-label').textContent = account.username;
-    document.getElementById('btn-login').style.display = 'none';
-    document.getElementById('btn-run').disabled = false;
+    await msalApp.loginRedirect({ scopes: ['Sites.ReadWrite.All'] });
   } catch(e) {
     document.getElementById('auth-label').textContent = 'Sign in failed: ' + e.message;
   }
@@ -269,16 +259,17 @@ function stopFix() { _stop = true; document.getElementById('btn-stop').style.dis
 
 (async () => {
   try {
-    await msalApp.handleRedirectPromise();
-    const account = msalApp.getAllAccounts()[0];
+    const result = await msalApp.handleRedirectPromise();
+    let account = result ? result.account : msalApp.getAllAccounts()[0];
     if (account) {
-      await msalApp.acquireTokenSilent({ scopes: ['Sites.ReadWrite.All'], account });
       document.getElementById('auth-dot').className = 'dot green';
       document.getElementById('auth-label').textContent = account.username;
       document.getElementById('btn-login').style.display = 'none';
       document.getElementById('btn-run').disabled = false;
     }
-  } catch(_) {}
+  } catch(e) {
+    document.getElementById('auth-label').textContent = 'Error: ' + e.message;
+  }
 })();
 </script>
 </body>
