@@ -98,13 +98,74 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .dir-name{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:5px;}
 .dir-detail{font-size:13px;color:var(--ink-mid);margin-top:2px;}
 
-/* ── Client nav tabs (Returns / Checklist / Tasks) ── */
+/* ── Client nav tabs ── */
 #client-nav{background:var(--white);border-bottom:1px solid var(--rule);display:flex;padding:0 20px;gap:0;flex-shrink:0;}
 .cnav-tab{padding:11px 18px;font-size:14px;font-weight:600;color:var(--ink-light);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .cnav-tab:hover{color:var(--ink);}
 .cnav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.cnav-tab.placeholder{opacity:.5;cursor:default;}
-.cnav-tab.placeholder:hover{color:var(--ink-light);}
+
+/* ── Assignments pane ── */
+#pane-assignments{display:none;flex:1;overflow-y:auto;padding:16px 20px;background:var(--surface);flex-direction:column;gap:0;}
+.asn-topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.asn-topbar h4{font-size:15px;font-weight:700;flex:1;margin:0;}
+.asn-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-light);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--rule);}
+.asn-section-label:first-child{margin-top:0;}
+.asn-card{background:var(--white);border-radius:8px;border:1px solid var(--rule);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s;}
+.asn-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.asn-card-row{display:flex;align-items:flex-start;gap:10px;}
+.asn-card-title{font-size:14px;font-weight:700;color:var(--ink);flex:1;}
+.asn-card-meta{font-size:12px;color:var(--ink-light);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;}
+.asn-card-note{font-size:12px;color:var(--ink-mid);margin-top:6px;font-style:italic;border-left:3px solid var(--rule);padding-left:8px;}
+.asn-empty{text-align:center;padding:28px 16px;color:var(--ink-light);font-size:13px;}
+.asn-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.asn-badge.not-started{background:#f3f4f6;color:#6b7280;}
+.asn-badge.in-progress{background:#dbeafe;color:#1d4ed8;}
+.asn-badge.waiting{background:#fef3c7;color:#92400e;}
+.asn-badge.complete{background:#d1fae5;color:#065f46;}
+.asn-badge.overdue{background:#fee2e2;color:#991b1b;}
+.asn-steps-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600;background:#f3f4f6;color:var(--ink-mid);}
+.asn-recent-label{font-size:11px;font-weight:600;color:var(--ink-light);text-align:center;padding:6px;cursor:pointer;text-decoration:underline;}
+
+/* ── Notes pane ── */
+#pane-notes{display:none;flex:1;overflow-y:auto;padding:24px;background:var(--surface);flex-direction:column;gap:16px;}
+.notes-card{background:var(--white);border-radius:8px;border:1px solid var(--rule);padding:20px;}
+.notes-card label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);display:block;margin-bottom:8px;}
+.notes-textarea{width:100%;min-height:200px;border:1px solid var(--rule);border-radius:6px;padding:12px;font-size:14px;font-family:inherit;resize:vertical;color:var(--ink);background:var(--white);box-sizing:border-box;}
+.notes-textarea:focus{outline:none;border-color:var(--accent);}
+.notes-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+.notes-saved-at{font-size:12px;color:var(--ink-light);}
+
+/* ── Assignment detail modal ── */
+.asn-detail-header{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.asn-detail-header .full{grid-column:1/-1;}
+.asn-field-row{margin-bottom:12px;}
+.asn-field-row label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);display:block;margin-bottom:4px;}
+.asn-field-row .asn-val{font-size:14px;color:var(--ink);}
+.asn-steps-list{list-style:none;padding:0;margin:0;}
+.asn-step-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);}
+.asn-step-item:last-child{border-bottom:none;}
+.asn-step-check{width:18px;height:18px;border-radius:4px;border:2px solid var(--rule);cursor:pointer;flex-shrink:0;margin-top:2px;accent-color:var(--accent);}
+.asn-step-check:checked{border-color:var(--accent);}
+.asn-step-body{flex:1;}
+.asn-step-name{font-size:14px;font-weight:600;color:var(--ink);}
+.asn-step-name.done{text-decoration:line-through;color:var(--ink-light);}
+.asn-step-instr{font-size:12px;color:var(--ink-mid);margin-top:3px;}
+.asn-step-who{font-size:11px;color:var(--ink-light);margin-top:3px;}
+.asn-progress-bar-wrap{background:#f3f4f6;border-radius:4px;height:6px;margin-bottom:14px;overflow:hidden;}
+.asn-progress-bar{background:var(--accent);height:6px;border-radius:4px;transition:width .3s;}
+.asn-progress-label{font-size:12px;font-weight:600;color:var(--ink-mid);margin-bottom:6px;}
+
+/* ── Setup panel (Admin) ── */
+#setup-panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:center;justify-content:center;}
+#setup-panel-overlay.open{display:flex;}
+.setup-panel{background:var(--white);border-radius:10px;width:640px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.25);}
+.setup-list-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--rule);}
+.setup-list-row:last-child{border-bottom:none;}
+.setup-list-name{font-size:14px;font-weight:600;color:var(--ink);}
+.setup-list-status{font-size:12px;padding:2px 10px;border-radius:20px;font-weight:600;}
+.setup-list-status.ok{background:#d1fae5;color:#065f46;}
+.setup-list-status.missing{background:#fee2e2;color:#991b1b;}
+.setup-list-status.checking{background:#f3f4f6;color:#6b7280;}
 
 /* ── Returns view ── */
 .returns-topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
@@ -372,6 +433,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   </div>
   <div id="topbar-right">
     <span id="sync-bar">Connecting…</span>
+    <button id="setup-btn" onclick="openModal('setup-panel-overlay')" title="SharePoint list setup (Admin)" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:white;padding:5px 13px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;">🔧 Setup</button>
   </div>
 </div>
 
@@ -463,8 +525,8 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
       <div id="client-nav">
         <div class="cnav-tab active" onclick="showClientPane('details')" id="tab-details">Client Details</div>
         <div class="cnav-tab" onclick="showClientPane('returns')" id="tab-returns">Tax Returns</div>
-        <div class="cnav-tab placeholder" title="Coming soon">Checklist</div>
-        <div class="cnav-tab placeholder" title="Coming soon">Tasks</div>
+        <div class="cnav-tab" onclick="showClientPane('assignments')" id="tab-assignments">Assignments</div>
+        <div class="cnav-tab" onclick="showClientPane('notes')" id="tab-notes">Notes</div>
       </div>
 
       <!-- Details pane: centre + directors -->
@@ -495,6 +557,35 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
         <div id="return-list-area"></div>
         <div id="wizard-area" style="margin-top:14px;"></div>
       </div>
+      <!-- Assignments pane -->
+      <div id="pane-assignments" style="display:none;flex:1;overflow-y:auto;padding:16px 20px;background:var(--surface);">
+        <div class="asn-topbar">
+          <h4 id="asn-pane-title">Assignments</h4>
+          <button class="btn btn-ghost btn-sm" onclick="openNewAssignmentModal()">＋ New Assignment</button>
+          <button class="btn btn-ghost btn-sm" style="opacity:.4;cursor:not-allowed;" title="Available in next update — Templates coming soon">📋 Deploy Template</button>
+        </div>
+        <div id="asn-open-section">
+          <div class="asn-section-label">Open Assignments</div>
+          <div id="asn-open-list"><div class="asn-empty">Loading…</div></div>
+        </div>
+        <div id="asn-recent-section" style="margin-top:8px;">
+          <div class="asn-section-label">Recently Completed <span id="asn-recent-toggle" class="asn-recent-label" onclick="asnToggleRecent()" style="display:none;">(show)</span></div>
+          <div id="asn-recent-list" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Notes pane -->
+      <div id="pane-notes" style="display:none;flex:1;overflow-y:auto;padding:24px;background:var(--surface);">
+        <div class="notes-card">
+          <label>Client Note</label>
+          <textarea id="notes-textarea" class="notes-textarea" placeholder="Add notes about this client…" oninput="notesDirty()"></textarea>
+          <div class="notes-footer">
+            <span id="notes-saved-at" class="notes-saved-at"></span>
+            <button class="btn btn-primary btn-sm" id="notes-save-btn" onclick="saveClientNote()" disabled>💾 Save Note</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -712,6 +803,112 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   </div>
 </div>
 
+<!-- ── New Assignment Modal ─────────────────────────────────────────── -->
+<div id="new-assignment-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>＋ New Assignment</h3>
+      <button class="modal-close" onclick="closeModal('new-assignment-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg full">
+          <label>Assignment *</label>
+          <input id="na-title" placeholder="What needs to be done?" style="width:100%;">
+        </div>
+        <div class="fg">
+          <label>Category *</label>
+          <select id="na-category" style="width:100%;">
+            <option value="">— Select —</option>
+            <option>Bookkeeping</option>
+            <option>Tax</option>
+            <option>Payroll</option>
+            <option>Secretarial</option>
+            <option>Compliance</option>
+            <option>Internal</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Assigned To *</label>
+          <select id="na-assignee" style="width:100%;"></select>
+        </div>
+        <div class="fg">
+          <label>Due Date * <span style="font-weight:400;font-size:11px;">(YYYYMMDD or 31 Aug 2026)</span></label>
+          <input id="na-due" placeholder="e.g. 20260930" style="width:100%;" onblur="formatDateInput(this);">
+        </div>
+        <div class="fg">
+          <label>Period <span style="font-weight:400;font-size:11px;">(optional)</span></label>
+          <input id="na-period" placeholder="e.g. August 2026" style="width:100%;">
+        </div>
+        <div class="fg">
+          <label>Waiting On <span style="font-weight:400;font-size:11px;">(optional)</span></label>
+          <select id="na-waiting" style="width:100%;">
+            <option value="">— None —</option>
+            <option>Client</option>
+            <option>SARS</option>
+            <option>CIPC</option>
+            <option>UIF</option>
+            <option>Compensation Fund</option>
+            <option>Third Party</option>
+            <option>Internal</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <label>Current Note <span style="font-weight:400;font-size:11px;">(optional)</span></label>
+          <textarea id="na-note" placeholder="Current position, what's outstanding, etc." style="width:100%;height:72px;resize:vertical;border:1px solid var(--rule);border-radius:6px;padding:10px;font-size:14px;font-family:inherit;box-sizing:border-box;"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('new-assignment-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewAssignment()">Create Assignment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Assignment Detail Modal ──────────────────────────────────────── -->
+<div id="assignment-detail-modal" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h3 id="adn-title-heading">Assignment</h3>
+      <button class="modal-close" onclick="closeModal('assignment-detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="adn-body">
+      <!-- populated by renderAssignmentDetail() -->
+    </div>
+    <div class="modal-footer" id="adn-footer">
+      <button class="btn btn-ghost" onclick="closeModal('assignment-detail-modal')">Close</button>
+      <button class="btn btn-primary" id="adn-save-btn" onclick="saveAssignmentDetail()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── List Setup Panel (Admin) ─────────────────────────────────────── -->
+<div id="setup-panel-overlay" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h3>⚙️ SharePoint List Setup</h3>
+      <button class="modal-close" onclick="closeModal('setup-panel-overlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-note" style="margin-bottom:16px;">This creates the SharePoint lists required for Assignments and Notes. Run once. Safe to re-run — existing lists are skipped.</div>
+      <div id="setup-list-status">
+        <!-- populated by checkSetupLists() -->
+        <div style="color:var(--ink-light);font-size:13px;">Click Check Status to inspect lists.</div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn btn-ghost" onclick="checkSetupLists()">🔍 Check Status</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="closeModal('setup-panel-overlay')">Close</button>
+        <button class="btn btn-primary" onclick="runSetupLists()">▶ Create Missing Lists</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -793,6 +990,9 @@ var st,ct,ut,lt,dt,ht,pt,gt,ft,mt=function(){function t(e,t,r){this.networkInter
 const MSAL_CONFIG={auth:{clientId:'b650f7f7-44c6-403f-808f-fd459f12b36c',authority:'https://login.microsoftonline.com/93c093ef-7bd4-4c11-b658-80e6abb197ed',redirectUri:window.location.href.split('?')[0].split('#')[0]},cache:{cacheLocation:'localStorage',storeAuthStateInCookie:false}};
 const SP_HOST='tutinsa.sharepoint.com',SITE_PATH='/sites/TutinBusinessAdminServices',SCOPES=['https://graph.microsoft.com/.default'];
 const L_CLIENTS='Tutin_Client_Register',L_DIRECTORS='Tutin_Directors_Register',L_RETURNS='Tutin_Client_ProTaxReturns';
+const L_ASSIGNMENTS='Tutin_Assignments',L_ASSIGNMENT_STEPS='Tutin_Assignment_Steps';
+const L_ASN_TEMPLATES='Tutin_Assignment_Templates',L_TEMPLATE_STEPS='Tutin_Template_Steps';
+const L_CLIENT_NOTES='Tutin_Client_Notes';
 let msalApp=null,_account=null,_siteId=null;
 let _spReturnMap={};
 let _retColMap={};
@@ -804,6 +1004,17 @@ let _rtColMap={};  // column map for Tutin_ProTax_ReturnTypes
 const L_RETURN_TYPES='Tutin_ProTax_ReturnTypes';  // display->internal for returns list, populated on load
 let DB={clients:[],directors:{},returns:[]};
 let activeClientKey=null,activeReturnId=null,activeType='irp6',activePeriod=null,activeAssignee='',activePane='details';
+// Assignments / Notes state
+let DB_assignments=[];        // all loaded assignments
+let DB_assignmentSteps={};    // { assignmentId: [steps] }
+let _asnColMap={};            // display->internal for Tutin_Assignments
+let _asnStepsColMap={};       // display->internal for Tutin_Assignment_Steps
+let _asnLoaded=false;         // whether assignments have been fetched this session
+let _asnRecentVisible=false;  // toggle for recently completed in client pane
+let _asnDetailId=null;        // which assignment is open in detail modal
+let _notesSpId={};            // { clientKey: sharePointItemId } for Tutin_Client_Notes
+let _notesColMap={};
+let _notesDirty=false;
 let _wizStep=1,_saving=false;
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const Rfmt=n=>{const v=parseFloat(n)||0;return'R\u00a0'+v.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});};
@@ -1295,13 +1506,631 @@ function showClientPane(pane){
   activePane=pane;
   $('pane-details').style.display=pane==='details'?'flex':'none';
   $('pane-returns').style.display=pane==='returns'?'block':'none';
+  $('pane-assignments').style.display=pane==='assignments'?'block':'none';
+  $('pane-notes').style.display=pane==='notes'?'block':'none';
   document.querySelectorAll('.cnav-tab').forEach(t=>{
-    if(t.classList.contains('placeholder'))return;
     t.classList.toggle('active',t.id==='tab-'+pane);
   });
-
   if(pane==='details')renderDetailsPane();
   if(pane==='returns')renderReturnsPane();
+  if(pane==='assignments')renderAssignmentsPane();
+  if(pane==='notes')renderNotesPane();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ASSIGNMENTS MODULE
+// ══════════════════════════════════════════════════════════════════
+
+// ── Column map helpers for Assignments ──────────────────────────
+async function asnGetColMap(listName){
+  const siteId=await getSiteId();
+  const d=await gGet('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+listName+'/columns?$top=100');
+  const map={};
+  (d.value||[]).forEach(col=>{
+    const internal=col.name||'';
+    const display=col.displayName||col.title||col.name||'';
+    if(internal&&display&&!internal.startsWith('_'))map[internal]=display;
+  });
+  return map;
+}
+function asnFbd(fields,colMap,displayName){
+  const entry=Object.entries(colMap).find(([k,v])=>v===displayName);
+  if(entry&&fields[entry[0]]!=null)return fields[entry[0]];
+  if(fields[displayName]!=null)return fields[displayName];
+  const lc=displayName.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const m=Object.keys(fields).find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')===lc);
+  if(m&&fields[m]!=null)return fields[m];
+  return '';
+}
+function asnWriteMap(colMap){
+  // returns display->internal reverse map
+  const r={};
+  Object.entries(colMap).forEach(([k,v])=>{r[v]=k;});
+  return r;
+}
+
+// ── Load assignments from SharePoint ────────────────────────────
+async function asnLoad(force=false){
+  if(_asnLoaded&&!force)return;
+  try{
+    const siteId=await getSiteId();
+    _asnColMap=await asnGetColMap(L_ASSIGNMENTS);
+    _asnStepsColMap=await asnGetColMap(L_ASSIGNMENT_STEPS);
+    const rawAsn=await getAll(L_ASSIGNMENTS,'$select=id&$expand=fields');
+    DB_assignments=rawAsn.map(item=>{
+      const f=item.fields;
+      const fbd=(dn)=>asnFbd(f,_asnColMap,dn);
+      return{
+        _spId:item.id,
+        assignmentId:fbd('AssignmentID')||'',
+        title:f.Title||fbd('Assignment')||'',
+        clientKey:fbd('ClientKey')||'',
+        assignedTo:fbd('AssignedTo')||'',
+        dueDate:fbd('DueDate')||'',
+        status:fbd('Status')||'Not Started',
+        category:fbd('Category')||'',
+        period:fbd('Period')||'',
+        currentNote:fbd('CurrentNote')||'',
+        waitingOn:fbd('WaitingOn')||'',
+        sourceTemplate:fbd('SourceTemplate')||'',
+        deploymentKey:fbd('DeploymentKey')||'',
+        completedDate:fbd('CompletedDate')||'',
+        completedBy:fbd('CompletedBy')||''
+      };
+    });
+    const rawSteps=await getAll(L_ASSIGNMENT_STEPS,'$select=id&$expand=fields');
+    DB_assignmentSteps={};
+    rawSteps.forEach(item=>{
+      const f=item.fields;
+      const fbd=(dn)=>asnFbd(f,_asnStepsColMap,dn);
+      const asnId=fbd('Assignment')||'';
+      if(!asnId)return;
+      if(!DB_assignmentSteps[asnId])DB_assignmentSteps[asnId]=[];
+      DB_assignmentSteps[asnId].push({
+        _spId:item.id,
+        asnId:asnId,
+        title:f.Title||fbd('Step')||'',
+        sequence:Number(fbd('Sequence'))||0,
+        instruction:fbd('Instruction')||'',
+        completed:fbd('Completed')||false,
+        completedDate:fbd('CompletedDate')||'',
+        completedBy:fbd('CompletedBy')||''
+      });
+    });
+    // sort steps by sequence
+    Object.keys(DB_assignmentSteps).forEach(k=>{
+      DB_assignmentSteps[k].sort((a,b)=>a.sequence-b.sequence);
+    });
+    _asnLoaded=true;
+  }catch(e){
+    console.warn('Assignments load failed:',e.message);
+    _asnLoaded=false;
+    throw e;
+  }
+}
+
+// ── Helpers ─────────────────────────────────────────────────────
+function asnIsOverdue(asn){
+  if(!asn.dueDate||asn.status==='Complete')return false;
+  const parts=asn.dueDate.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+  if(!parts)return false;
+  const MNAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const d=new Date(parts[3],MNAMES.indexOf(parts[2]),parseInt(parts[1]));
+  return d<new Date(new Date().toDateString());
+}
+function asnStatusBadge(asn){
+  if(asn.status==='Complete')return '<span class="asn-badge complete">Complete</span>';
+  if(asnIsOverdue(asn))return '<span class="asn-badge overdue">Overdue</span>';
+  const cls={
+    'Not Started':'not-started',
+    'In Progress':'in-progress',
+    'Waiting':'waiting'
+  }[asn.status]||'not-started';
+  return`<span class="asn-badge ${cls}">${escHtml(asn.status)}</span>`;
+}
+function asnStepsPill(asn){
+  const steps=DB_assignmentSteps[asn._spId]||[];
+  if(!steps.length)return '';
+  const done=steps.filter(s=>s.completed).length;
+  return`<span class="asn-steps-pill">${done}/${steps.length} steps</span>`;
+}
+function asnFormatDate(raw){
+  if(!raw)return '—';
+  const d=new Date(raw);
+  if(!isNaN(d))return d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear();
+  return raw;
+}
+function asnNextId(){
+  if(!DB_assignments.length)return 'ASN-000001';
+  const nums=DB_assignments.map(a=>{
+    const m=(a.assignmentId||'').match(/ASN-(\d+)/);
+    return m?parseInt(m[1]):0;
+  });
+  return 'ASN-'+String(Math.max(...nums)+1).padStart(6,'0');
+}
+
+// ── Render Assignments pane for current client ───────────────────
+async function renderAssignmentsPane(){
+  const c=getClient();if(!c)return;
+  const openList=$('asn-open-list');
+  const recentList=$('asn-recent-list');
+  const toggle=$('asn-recent-toggle');
+  if(openList)openList.innerHTML='<div class="asn-empty">Loading…</div>';
+  try{
+    await asnLoad();
+    const ck=c.clientKey;
+    const open=DB_assignments.filter(a=>a.clientKey===ck&&a.status!=='Complete');
+    const recent=DB_assignments.filter(a=>a.clientKey===ck&&a.status==='Complete')
+      .sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||'')).slice(0,10);
+    // sort open: overdue first, then by due date
+    open.sort((a,b)=>{
+      const ao=asnIsOverdue(a),bo=asnIsOverdue(b);
+      if(ao&&!bo)return-1;if(!ao&&bo)return 1;
+      return (a.dueDate||'').localeCompare(b.dueDate||'');
+    });
+    if(openList){
+      if(!open.length){openList.innerHTML='<div class="asn-empty">No open assignments.</div>';}
+      else openList.innerHTML=open.map(a=>asnCardHtml(a)).join('');
+    }
+    if(recentList){
+      if(!recent.length){recentList.innerHTML='<div class="asn-empty">None.</div>';}
+      else recentList.innerHTML=recent.map(a=>asnCardHtml(a)).join('');
+    }
+    if(toggle){
+      toggle.style.display=recent.length?'':'none';
+      toggle.textContent=_asnRecentVisible?'(hide)':'(show)';
+    }
+    if(recentList)recentList.style.display=_asnRecentVisible?'block':'none';
+  }catch(e){
+    if(openList)openList.innerHTML='<div class="asn-empty">Could not load assignments. Please run Setup if this is your first time.</div>';
+  }
+}
+function asnCardHtml(a){
+  const overdue=asnIsOverdue(a);
+  return`<div class="asn-card${overdue?' style=\"border-left:3px solid #ef4444;\"':''}" onclick="openAssignmentDetail('${a._spId}')">
+    <div class="asn-card-row">
+      <div class="asn-card-title">${escHtml(a.title)}</div>
+      ${asnStatusBadge(a)}&nbsp;${asnStepsPill(a)}
+    </div>
+    <div class="asn-card-meta">
+      <span>📋 ${escHtml(a.category||'—')}</span>
+      <span>👤 ${escHtml(a.assignedTo||'—')}</span>
+      <span>📅 ${escHtml(a.dueDate||'—')}</span>
+      ${a.period?'<span>🗓 '+escHtml(a.period)+'</span>':''}
+      ${a.waitingOn?'<span>⏳ Waiting: '+escHtml(a.waitingOn)+'</span>':''}
+    </div>
+    ${a.currentNote?`<div class="asn-card-note">${escHtml(a.currentNote)}</div>`:''}
+  </div>`;
+}
+function asnToggleRecent(){
+  _asnRecentVisible=!_asnRecentVisible;
+  const el=$('asn-recent-list');
+  const toggle=$('asn-recent-toggle');
+  if(el)el.style.display=_asnRecentVisible?'block':'none';
+  if(toggle)toggle.textContent=_asnRecentVisible?'(hide)':'(show)';
+}
+
+// ── New Assignment modal ─────────────────────────────────────────
+function openNewAssignmentModal(){
+  const c=getClient();if(!c)return;
+  // populate assignee dropdown from _ttAllUsers (already loaded by TutinTime init)
+  const sel=$('na-assignee');
+  if(sel){
+    const users=_ttAllUsers.length?_ttAllUsers:['Johan Muller','Maryna Muller','Keanu van Wyk','Jermaine Jansen','Damien','Andre','Vonique Bezuidenhoud'];
+    sel.innerHTML='<option value="">— Select —</option>'+users.map(u=>`<option>${escHtml(u)}</option>`).join('');
+    // pre-select if the client has an assignedTo
+    if(c.assignedTo)sel.value=c.assignedTo;
+  }
+  // clear fields
+  ['na-title','na-due','na-period','na-note'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  const cat=$('na-category');if(cat)cat.value='';
+  const wait=$('na-waiting');if(wait)wait.value='';
+  openModal('new-assignment-modal');
+}
+async function saveNewAssignment(){
+  const c=getClient();if(!c){toast('No client selected','error');return;}
+  const title=($('na-title')||{}).value?.trim();
+  const category=($('na-category')||{}).value;
+  const assignedTo=($('na-assignee')||{}).value;
+  const dueRaw=($('na-due')||{}).value?.trim();
+  if(!title){toast('Assignment title is required','error');return;}
+  if(!category){toast('Category is required','error');return;}
+  if(!assignedTo){toast('Assigned To is required','error');return;}
+  if(!dueRaw){toast('Due Date is required','error');return;}
+  // Format due date for display
+  const parsedDue=parseInputDate(dueRaw);
+  const dueDisplay=parsedDue?formatDateDisplay(parsedDue):dueRaw;
+  const period=($('na-period')||{}).value?.trim()||'';
+  const note=($('na-note')||{}).value?.trim()||'';
+  const waitingOn=($('na-waiting')||{}).value||'';
+  const asnId=asnNextId();
+  try{
+    await asnLoad(); // ensure column map is ready
+    const siteId=await getSiteId();
+    const writeMap=asnWriteMap(_asnColMap);
+    // Helper: get internal field name or fall back to display name
+    const wf=(displayName,val)=>{
+      const internal=writeMap[displayName];
+      return internal?{[internal]:val}:{[displayName]:val};
+    };
+    const fields=Object.assign(
+      {Title:title},
+      wf('AssignmentID',asnId),
+      wf('ClientKey',c.clientKey),
+      wf('AssignedTo',assignedTo),
+      wf('DueDate',dueDisplay),
+      wf('Status','Not Started'),
+      wf('Category',category),
+      period?wf('Period',period):{},
+      note?wf('CurrentNote',note):{},
+      waitingOn?wf('WaitingOn',waitingOn):{}
+    );
+    const result=await gPost('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_ASSIGNMENTS+'/items',{fields});
+    // push into local DB
+    DB_assignments.push({
+      _spId:result.id,
+      assignmentId:asnId,
+      title,clientKey:c.clientKey,assignedTo,
+      dueDate:dueDisplay,status:'Not Started',
+      category,period,currentNote:note,waitingOn,
+      sourceTemplate:'',deploymentKey:'',completedDate:'',completedBy:''
+    });
+    closeModal('new-assignment-modal');
+    toast('Assignment created — '+asnId,'success');
+    renderAssignmentsPane();
+  }catch(e){
+    console.error('saveNewAssignment:',e);
+    toast('Could not save assignment: '+e.message,'error',6000);
+  }
+}
+
+// ── Assignment Detail modal ──────────────────────────────────────
+function openAssignmentDetail(spId){
+  const asn=DB_assignments.find(a=>a._spId===spId);
+  if(!asn)return;
+  _asnDetailId=spId;
+  const steps=(DB_assignmentSteps[spId]||[]);
+  const done=steps.filter(s=>s.completed).length;
+  const isComplete=asn.status==='Complete';
+  const isOverdue=asnIsOverdue(asn);
+  const users=_ttAllUsers.length?_ttAllUsers:['Johan Muller','Maryna Muller','Keanu van Wyk','Jermaine Jansen','Damien','Andre','Vonique Bezuidenhoud'];
+  const statusOpts=['Not Started','In Progress','Waiting','Complete'].map(s=>`<option${s===asn.status?' selected':''}>${s}</option>`).join('');
+  const waitOpts=['','Client','SARS','CIPC','UIF','Compensation Fund','Third Party','Internal','Other'].map(w=>`<option value="${w}"${w===asn.waitingOn?' selected':''}>${w||'— None —'}</option>`).join('');
+  $('adn-title-heading').textContent=asn.assignmentId?asn.assignmentId+' — '+asn.title:asn.title;
+  $('adn-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+      <div class="fg"><label>Status</label><select id="adn-status" style="width:100%;">${statusOpts}</select></div>
+      <div class="fg"><label>Assigned To</label><select id="adn-assignee" style="width:100%;">${users.map(u=>`<option${u===asn.assignedTo?' selected':''}>${escHtml(u)}</option>`).join('')}</select></div>
+      <div class="fg"><label>Category</label>
+        <select id="adn-category" style="width:100%;">
+          ${['Bookkeeping','Tax','Payroll','Secretarial','Compliance','Internal','Other'].map(cat=>`<option${cat===asn.category?' selected':''}>${cat}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Due Date</label><input id="adn-due" value="${escHtml(asn.dueDate)}" style="width:100%;" onblur="formatDateInput(this);"></div>
+      <div class="fg"><label>Period</label><input id="adn-period" value="${escHtml(asn.period)}" style="width:100%;"></div>
+      <div class="fg"><label>Waiting On</label><select id="adn-waiting" style="width:100%;">${waitOpts}</select></div>
+      <div class="fg" style="grid-column:1/-1;"><label>Current Note</label>
+        <textarea id="adn-note" style="width:100%;height:72px;resize:vertical;border:1px solid var(--rule);border-radius:6px;padding:10px;font-size:14px;font-family:inherit;box-sizing:border-box;">${escHtml(asn.currentNote)}</textarea>
+      </div>
+      ${asn.sourceTemplate?`<div class="fg" style="grid-column:1/-1;"><label>Source Template</label><div class="asn-val">${escHtml(asn.sourceTemplate)}</div></div>`:''}
+      ${isComplete?`<div class="fg" style="grid-column:1/-1;color:var(--green);font-size:13px;">✅ Completed ${escHtml(asn.completedDate)} by ${escHtml(asn.completedBy)}</div>`:''}
+    </div>
+    ${steps.length?`
+      <div style="border-top:1px solid var(--rule);padding-top:14px;">
+        <div class="asn-progress-label">${done} of ${steps.length} Steps Complete</div>
+        <div class="asn-progress-bar-wrap"><div class="asn-progress-bar" style="width:${steps.length?Math.round(done/steps.length*100):0}%"></div></div>
+        <ul class="asn-steps-list" id="adn-steps-list">
+          ${steps.map(s=>`
+            <li class="asn-step-item">
+              <input type="checkbox" class="asn-step-check" ${s.completed?'checked':''} onchange="asnToggleStep('${spId}','${s._spId}',this)">
+              <div class="asn-step-body">
+                <div class="asn-step-name${s.completed?' done':''}" id="adn-step-name-${s._spId}">${escHtml(s.title)}</div>
+                ${s.instruction?`<div class="asn-step-instr">${escHtml(s.instruction)}</div>`:''}
+                ${s.completed?`<div class="asn-step-who">✓ ${escHtml(s.completedBy||'—')} · ${escHtml(s.completedDate||'')}</div>`:''}
+              </div>
+            </li>`).join('')}
+        </ul>
+      </div>`:'<div style="color:var(--ink-light);font-size:13px;padding-top:4px;">No steps for this assignment.</div>'}
+  `;
+  openModal('assignment-detail-modal');
+}
+
+async function saveAssignmentDetail(){
+  const asn=DB_assignments.find(a=>a._spId===_asnDetailId);
+  if(!asn)return;
+  const newStatus=$('adn-status').value;
+  const wasComplete=asn.status==='Complete';
+  const nowComplete=newStatus==='Complete';
+  const dueRaw=($('adn-due')||{}).value?.trim();
+  const parsedDue=parseInputDate(dueRaw);
+  const dueDisplay=parsedDue?formatDateDisplay(parsedDue):dueRaw;
+  // auto-set completedDate / completedBy
+  const now=new Date();
+  const nowStr=now.getDate()+' '+MONTHS[now.getMonth()]+' '+now.getFullYear();
+  const completer=_ttUser?_ttUser.name:'';
+  try{
+    const siteId=await getSiteId();
+    const writeMap=asnWriteMap(_asnColMap);
+    const wf=(dn,val)=>{const i=writeMap[dn];return i?{[i]:val}:{[dn]:val};};
+    const fields=Object.assign(
+      wf('Status',newStatus),
+      wf('AssignedTo',$('adn-assignee').value),
+      wf('Category',$('adn-category').value),
+      wf('DueDate',dueDisplay),
+      wf('Period',$('adn-period').value.trim()),
+      wf('CurrentNote',$('adn-note').value.trim()),
+      wf('WaitingOn',$('adn-waiting').value),
+      nowComplete&&!wasComplete?Object.assign(wf('CompletedDate',nowStr),wf('CompletedBy',completer)):{},
+      !nowComplete&&wasComplete?Object.assign(wf('CompletedDate',''),wf('CompletedBy','')):{},
+    );
+    await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_ASSIGNMENTS+'/items/'+asn._spId+'/fields',fields);
+    // update local state
+    Object.assign(asn,{
+      status:newStatus,assignedTo:$('adn-assignee').value,
+      category:$('adn-category').value,dueDate:dueDisplay,
+      period:$('adn-period').value.trim(),
+      currentNote:$('adn-note').value.trim(),
+      waitingOn:$('adn-waiting').value,
+      completedDate:nowComplete&&!wasComplete?nowStr:(!nowComplete&&wasComplete?'':asn.completedDate),
+      completedBy:nowComplete&&!wasComplete?completer:(!nowComplete&&wasComplete?'':asn.completedBy)
+    });
+    closeModal('assignment-detail-modal');
+    toast('Assignment saved','success');
+    renderAssignmentsPane();
+  }catch(e){
+    console.error('saveAssignmentDetail:',e);
+    toast('Save failed: '+e.message,'error',6000);
+  }
+}
+
+async function asnToggleStep(asnSpId,stepSpId,checkbox){
+  const steps=DB_assignmentSteps[asnSpId]||[];
+  const step=steps.find(s=>s._spId===stepSpId);
+  if(!step)return;
+  const nowDone=checkbox.checked;
+  const now=new Date();
+  const nowStr=now.getDate()+' '+MONTHS[now.getMonth()]+' '+now.getFullYear();
+  const completer=_ttUser?_ttUser.name:'';
+  try{
+    const siteId=await getSiteId();
+    const writeMap=asnWriteMap(_asnStepsColMap);
+    const wf=(dn,val)=>{const i=writeMap[dn];return i?{[i]:val}:{[dn]:val};};
+    const fields=Object.assign(
+      wf('Completed',nowDone),
+      nowDone?Object.assign(wf('CompletedDate',nowStr),wf('CompletedBy',completer)):Object.assign(wf('CompletedDate',''),wf('CompletedBy',''))
+    );
+    await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_ASSIGNMENT_STEPS+'/items/'+stepSpId+'/fields',fields);
+    step.completed=nowDone;
+    step.completedDate=nowDone?nowStr:'';
+    step.completedBy=nowDone?completer:'';
+    // Auto-advance status: Not Started → In Progress when first step ticked
+    const asn=DB_assignments.find(a=>a._spId===asnSpId);
+    if(asn&&asn.status==='Not Started'&&nowDone){
+      const statusWriteMap=asnWriteMap(_asnColMap);
+      const sf=(dn,val)=>{const i=statusWriteMap[dn];return i?{[i]:val}:{[dn]:val};};
+      await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_ASSIGNMENTS+'/items/'+asnSpId+'/fields',sf('Status','In Progress'));
+      asn.status='In Progress';
+    }
+    // refresh the modal in place
+    openAssignmentDetail(asnSpId);
+  }catch(e){
+    checkbox.checked=!nowDone; // revert
+    toast('Could not save step: '+e.message,'error',5000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  NOTES MODULE
+// ══════════════════════════════════════════════════════════════════
+async function renderNotesPane(){
+  const c=getClient();if(!c)return;
+  const ta=$('notes-textarea');
+  const savedAt=$('notes-saved-at');
+  const saveBtn=$('notes-save-btn');
+  if(!ta)return;
+  ta.value='';
+  if(savedAt)savedAt.textContent='';
+  if(saveBtn)saveBtn.disabled=true;
+  _notesDirty=false;
+  try{
+    // load notes col map once
+    if(!Object.keys(_notesColMap).length){
+      _notesColMap=await asnGetColMap(L_CLIENT_NOTES);
+    }
+    const siteId=await getSiteId();
+    // find existing note for this client
+    const ck=c.clientKey.replace(/'/g,"''");
+    const url=`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_CLIENT_NOTES}/items?$select=id&$expand=fields&$filter=fields/ClientKey eq '${ck}'`;
+    let d;
+    try{d=await gGet(url);}catch{
+      // filter may fail on first use; fall back to full load
+      const all=await getAll(L_CLIENT_NOTES,'$select=id&$expand=fields');
+      d={value:all.filter(item=>{
+        const fbd=(dn)=>asnFbd(item.fields,_notesColMap,dn);
+        return fbd('ClientKey')===c.clientKey;
+      })};
+    }
+    if(d.value&&d.value.length){
+      const item=d.value[0];
+      const fbd=(dn)=>asnFbd(item.fields,_notesColMap,dn);
+      _notesSpId[c.clientKey]=item.id;
+      ta.value=fbd('Notes')||'';
+      if(savedAt){
+        const mod=item.fields.Modified||item.fields.modified||'';
+        if(mod)savedAt.textContent='Last saved: '+new Date(mod).toLocaleDateString('en-ZA');
+      }
+    }else{
+      _notesSpId[c.clientKey]=null;
+    }
+  }catch(e){
+    ta.placeholder='Could not load note. Please run Setup if this is your first time.';
+    console.warn('Notes load:',e.message);
+  }
+}
+function notesDirty(){
+  _notesDirty=true;
+  const btn=$('notes-save-btn');
+  if(btn)btn.disabled=false;
+}
+async function saveClientNote(){
+  const c=getClient();if(!c)return;
+  const ta=$('notes-textarea');
+  const savedAt=$('notes-saved-at');
+  const saveBtn=$('notes-save-btn');
+  if(!ta)return;
+  const noteText=ta.value;
+  try{
+    const siteId=await getSiteId();
+    const writeMap=asnWriteMap(_notesColMap);
+    const wf=(dn,val)=>{const i=writeMap[dn];return i?{[i]:val}:{[dn]:val};};
+    const fields=Object.assign(
+      {Title:c.companyName},
+      wf('ClientKey',c.clientKey),
+      wf('Notes',noteText)
+    );
+    if(_notesSpId[c.clientKey]){
+      await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_CLIENT_NOTES+'/items/'+_notesSpId[c.clientKey]+'/fields',fields);
+    }else{
+      const result=await gPost('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_CLIENT_NOTES+'/items',{fields});
+      _notesSpId[c.clientKey]=result.id;
+    }
+    if(savedAt)savedAt.textContent='Last saved: '+new Date().toLocaleDateString('en-ZA');
+    if(saveBtn)saveBtn.disabled=true;
+    _notesDirty=false;
+    toast('Note saved','success');
+  }catch(e){
+    console.error('saveClientNote:',e);
+    toast('Could not save note: '+e.message,'error',6000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SETUP PANEL — creates SharePoint lists via Graph API
+// ══════════════════════════════════════════════════════════════════
+const SETUP_LISTS=[
+  {name:'Tutin_Assignments',label:'Assignments',
+   columns:[
+     {displayName:'AssignmentID',name:'AssignmentID',text:{}},
+     {displayName:'ClientKey',name:'ClientKey',text:{}},
+     {displayName:'AssignedTo',name:'AssignedTo',text:{}},
+     {displayName:'DueDate',name:'DueDate',text:{}},
+     {displayName:'Status',name:'Status',choice:{choices:['Not Started','In Progress','Waiting','Complete'],defaultValue:'Not Started',displayAs:'dropDownMenu'}},
+     {displayName:'Category',name:'Category',choice:{choices:['Bookkeeping','Tax','Payroll','Secretarial','Compliance','Internal','Other'],displayAs:'dropDownMenu'}},
+     {displayName:'Period',name:'Period',text:{}},
+     {displayName:'CurrentNote',name:'CurrentNote',text:{allowMultipleLines:true,linesForEditing:4}},
+     {displayName:'WaitingOn',name:'WaitingOn',choice:{choices:['Client','SARS','CIPC','UIF','Compensation Fund','Third Party','Internal','Other'],displayAs:'dropDownMenu'}},
+     {displayName:'SourceTemplate',name:'SourceTemplate',text:{}},
+     {displayName:'DeploymentKey',name:'DeploymentKey',text:{}},
+     {displayName:'CompletedDate',name:'CompletedDate',text:{}},
+     {displayName:'CompletedBy',name:'CompletedBy',text:{}}
+   ]
+  },
+  {name:'Tutin_Assignment_Steps',label:'Assignment Steps',
+   columns:[
+     {displayName:'Step',name:'Step',text:{}},
+     {displayName:'Assignment',name:'Assignment',text:{}},
+     {displayName:'Sequence',name:'Sequence',number:{decimalPlaces:'none'}},
+     {displayName:'Instruction',name:'Instruction',text:{allowMultipleLines:true,linesForEditing:6}},
+     {displayName:'Completed',name:'Completed',boolean:{}},
+     {displayName:'CompletedDate',name:'CompletedDate',text:{}},
+     {displayName:'CompletedBy',name:'CompletedBy',text:{}}
+   ]
+  },
+  {name:'Tutin_Assignment_Templates',label:'Assignment Templates',
+   columns:[
+     {displayName:'TemplateName',name:'TemplateName',text:{}},
+     {displayName:'ClientKey',name:'ClientKey',text:{}},
+     {displayName:'Category',name:'Category',choice:{choices:['Bookkeeping','Tax','Payroll','Secretarial','Compliance','Internal','Other'],displayAs:'dropDownMenu'}},
+     {displayName:'Description',name:'Description',text:{allowMultipleLines:true,linesForEditing:4}},
+     {displayName:'Recurring',name:'Recurring',boolean:{}},
+     {displayName:'Frequency',name:'Frequency',choice:{choices:['Monthly','Bi-Monthly','Quarterly','Bi-Annual','Annual','Ad Hoc'],displayAs:'dropDownMenu'}},
+     {displayName:'DefaultAssignee',name:'DefaultAssignee',text:{}},
+     {displayName:'DefaultDueRule',name:'DefaultDueRule',text:{}},
+     {displayName:'Active',name:'Active',boolean:{}}
+   ]
+  },
+  {name:'Tutin_Template_Steps',label:'Template Steps',
+   columns:[
+     {displayName:'Step',name:'Step',text:{}},
+     {displayName:'Template',name:'Template',text:{}},
+     {displayName:'Sequence',name:'Sequence',number:{decimalPlaces:'none'}},
+     {displayName:'Instruction',name:'Instruction',text:{allowMultipleLines:true,linesForEditing:6}},
+     {displayName:'Active',name:'Active',boolean:{}}
+   ]
+  },
+  {name:'Tutin_Client_Notes',label:'Client Notes',
+   columns:[
+     {displayName:'ClientKey',name:'ClientKey',text:{}},
+     {displayName:'Notes',name:'Notes',text:{allowMultipleLines:true,linesForEditing:10}}
+   ]
+  }
+];
+
+async function checkSetupLists(){
+  const el=$('setup-list-status');
+  if(!el)return;
+  el.innerHTML='<div style="color:var(--ink-light);font-size:13px;">Checking…</div>';
+  try{
+    const siteId=await getSiteId();
+    const d=await gGet('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists?$select=name,displayName');
+    const existing=new Set((d.value||[]).map(l=>l.name));
+    el.innerHTML=SETUP_LISTS.map(l=>{
+      const ok=existing.has(l.name);
+      return`<div class="setup-list-row">
+        <span class="setup-list-name">${escHtml(l.name)}</span>
+        <span class="setup-list-status ${ok?'ok':'missing'}">${ok?'✓ Exists':'✗ Missing'}</span>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="color:#dc2626;font-size:13px;">Could not check: '+escHtml(e.message)+'</div>';
+  }
+}
+
+async function runSetupLists(){
+  const el=$('setup-list-status');
+  if(!el)return;
+  try{
+    const siteId=await getSiteId();
+    const d=await gGet('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists?$select=name,displayName');
+    const existing=new Set((d.value||[]).map(l=>l.name));
+    for(const listDef of SETUP_LISTS){
+      if(existing.has(listDef.name)){
+        console.log('Setup: skipping existing list',listDef.name);
+        continue;
+      }
+      // Create the list
+      toast('Creating '+listDef.name+'…','info',8000);
+      const created=await gPost('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists',{
+        displayName:listDef.name,
+        list:{template:'genericList'},
+        columns:[{name:'Title',text:{}}]
+      });
+      const listId=created.id;
+      // Add columns
+      for(const col of listDef.columns){
+        // skip Title — it already exists
+        if(col.name==='Title')continue;
+        const body={name:col.name,displayName:col.displayName};
+        if(col.text)body.text=col.text;
+        if(col.number)body.number=col.number;
+        if(col.choice)body.choice=col.choice;
+        if(col.boolean)body.boolean=col.boolean;
+        try{
+          await gPost('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+listId+'/columns',body);
+        }catch(ce){
+          console.warn('Column create failed ('+col.name+'):',ce.message);
+        }
+      }
+      existing.add(listDef.name);
+    }
+    toast('Setup complete!','success');
+    await checkSetupLists();
+    // reset col maps so they reload
+    _asnColMap={};_asnStepsColMap={};_notesColMap={};_asnLoaded=false;
+  }catch(e){
+    console.error('runSetupLists:',e);
+    toast('Setup error: '+e.message,'error',8000);
+  }
 }
 
 function renderDetailsPane(){
@@ -2986,6 +3815,9 @@ async function ttBootstrap() {
     // Show button immediately after user confirmed
     const btn = document.getElementById('tt-btn');
     if (btn) btn.style.display = '';
+    // Show Setup button for Admin users only
+    const setupBtn = document.getElementById('setup-btn');
+    if (setupBtn && currentUser && currentUser.role === 'Admin') setupBtn.style.display = '';
     _ttInitDone = true;
 
     // Start pill clock and cutoff watcher
