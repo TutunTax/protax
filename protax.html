@@ -306,6 +306,21 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .asn-ov-all-row{background:#fff;border-radius:8px;border:1px solid var(--rule);padding:12px 16px;margin-bottom:8px;cursor:pointer;display:flex;align-items:flex-start;gap:12px;}
 .asn-ov-all-row:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
 .asn-ov-all-client{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:3px;}
+
+/* Template list and editor */
+.tpl-card{background:var(--white);border-radius:8px;border:1px solid var(--rule);padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:box-shadow .15s;}
+.tpl-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.tpl-card-body{flex:1;}
+.tpl-card-name{font-size:14px;font-weight:700;color:var(--ink);}
+.tpl-card-meta{font-size:12px;color:var(--ink-light);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;}
+.tpl-card-client{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);}
+.tpl-inactive-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#f3f4f6;color:#6b7280;font-weight:600;}
+.tpl-step-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);}
+.tpl-step-row:last-child{border-bottom:none;}
+.tpl-step-seq{width:36px;height:32px;border:1px solid var(--rule);border-radius:6px;text-align:center;font-size:13px;font-weight:600;padding:0;flex-shrink:0;}
+.tpl-step-name{flex:1;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:14px;font-family:inherit;}
+.tpl-step-instr{width:100%;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:13px;font-family:inherit;resize:vertical;min-height:48px;margin-top:6px;box-sizing:border-box;}
+.tpl-step-del{width:30px;height:30px;border:1px solid #fecaca;border-radius:6px;background:white;color:#dc2626;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;}
 #tt-header{background:#8B1A1A;color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;}
 #tt-header h1{font-size:17px;font-weight:700;margin:0;}
 .tt-close{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
@@ -583,7 +598,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
         <div class="asn-topbar">
           <h4 id="asn-pane-title">Assignments</h4>
           <button class="btn btn-ghost btn-sm" onclick="openNewAssignmentModal()">＋ New Assignment</button>
-          <button class="btn btn-ghost btn-sm" style="opacity:.4;cursor:not-allowed;" title="Available in next update — Templates coming soon">📋 Deploy Template</button>
+          <button class="btn btn-ghost btn-sm" onclick="tplOpenDeployFromClient()">📋 Deploy Template</button>
         </div>
         <div id="asn-open-section">
           <div class="asn-section-label">Open Assignments</div>
@@ -1702,6 +1717,554 @@ async function saveNewUser(){
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  TEMPLATES MODULE
+// ══════════════════════════════════════════════════════════════════
+
+// ── State ────────────────────────────────────────────────────────
+let DB_templates=[];          // all loaded templates
+let DB_templateSteps={};      // { templateSpId: [steps] }
+let _tplColMap={};            // display->internal for Tutin_Assignment_Templates
+let _tplStepsColMap={};       // display->internal for Tutin_Template_Steps
+let _tplLoaded=false;
+let _tplEditingId=null;       // spId of template being edited (null = new)
+let _tplEditingSteps=[];      // in-memory steps for current editor session
+let _tplDeployingId=null;     // spId of template being deployed
+let _tplDeployFromClient=false; // true when opened from client pane
+
+// ── Load templates from SharePoint ──────────────────────────────
+async function tplLoad(force=false){
+  if(_tplLoaded&&!force)return;
+  try{
+    const siteId=await getSiteId();
+    if(!Object.keys(_tplColMap).length)_tplColMap=await asnGetColMap(L_ASN_TEMPLATES);
+    if(!Object.keys(_tplStepsColMap).length)_tplStepsColMap=await asnGetColMap(L_TEMPLATE_STEPS);
+    const rawTpl=await getAll(L_ASN_TEMPLATES,'$select=id&$expand=fields');
+    DB_templates=rawTpl.map(item=>{
+      const f=item.fields||{};
+      const fbd=(dn)=>asnFbd(f,_tplColMap,dn);
+      return{
+        _spId:item.id,
+        name:f.Title||fbd('TemplateName')||'',
+        clientKey:fbd('ClientKey')||'',
+        category:fbd('Category')||'',
+        description:fbd('Description')||'',
+        recurring:fbd('Recurring')||false,
+        frequency:fbd('Frequency')||'',
+        defaultAssignee:fbd('DefaultAssignee')||'',
+        defaultDueRule:fbd('DefaultDueRule')||'',
+        active:(()=>{const v=fbd('Active');return v===true||v==='true'||String(v).toLowerCase()==='yes';})()
+      };
+    });
+    const rawSteps=await getAll(L_TEMPLATE_STEPS,'$select=id&$expand=fields');
+    DB_templateSteps={};
+    rawSteps.forEach(item=>{
+      const f=item.fields||{};
+      const fbd=(dn)=>asnFbd(f,_tplStepsColMap,dn);
+      const tplId=fbd('Template')||'';
+      if(!tplId)return;
+      if(!DB_templateSteps[tplId])DB_templateSteps[tplId]=[];
+      DB_templateSteps[tplId].push({
+        _spId:item.id,
+        templateId:tplId,
+        title:f.Title||fbd('Step')||'',
+        sequence:Number(fbd('Sequence'))||0,
+        instruction:fbd('Instruction')||'',
+        active:(()=>{const v=fbd('Active');return v===true||v==='true'||String(v).toLowerCase()==='yes';})()
+      });
+    });
+    Object.keys(DB_templateSteps).forEach(k=>{
+      DB_templateSteps[k].sort((a,b)=>a.sequence-b.sequence);
+    });
+    _tplLoaded=true;
+  }catch(e){
+    console.error('tplLoad:',e);
+    throw e;
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function tplWriteMap(colMap){
+  const r={};Object.entries(colMap).forEach(([k,v])=>{r[v]=k;});return r;
+}
+function tplWf(colMap,dn,val){
+  const wm=tplWriteMap(colMap);
+  const internal=wm[dn];
+  return internal?{[internal]:val}:{[dn]:val};
+}
+function tplClientName(clientKey){
+  if(!clientKey)return'General';
+  const c=DB.clients.find(cl=>cl.clientKey===clientKey);
+  return c?c.companyName:clientKey;
+}
+
+// ── Render template list ─────────────────────────────────────────
+async function tplRenderList(){
+  const body=$('tpl-list-body');
+  if(!body)return;
+  body.innerHTML='<div class="asn-empty">Loading…</div>';
+  $('tpl-list-view').style.display='block';
+  $('tpl-editor-view').style.display='none';
+  try{
+    await tplLoad();
+    const fCat=($('tpl-f-category')||{}).value||'';
+    const fType=($('tpl-f-type')||{}).value||'';
+    const fInactive=($('tpl-f-inactive')||{}).checked;
+    let list=DB_templates.filter(t=>{
+      if(!fInactive&&!t.active)return false;
+      if(fCat&&t.category!==fCat)return false;
+      if(fType==='general'&&t.clientKey)return false;
+      if(fType==='client'&&!t.clientKey)return false;
+      return true;
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!list.length){body.innerHTML='<div class="asn-empty">No templates found.</div>';return;}
+    body.innerHTML=list.map(t=>{
+      const steps=(DB_templateSteps[t._spId]||[]).length;
+      const clientLabel=t.clientKey?`<span class="tpl-card-client">${escHtml(tplClientName(t.clientKey))}</span>`:'<span style="font-size:11px;color:var(--ink-light);">General</span>';
+      return`<div class="tpl-card" onclick="tplOpenEditor('${t._spId}')">
+        <div class="tpl-card-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            ${clientLabel}
+            ${!t.active?'<span class="tpl-inactive-badge">Inactive</span>':''}
+          </div>
+          <div class="tpl-card-name">${escHtml(t.name)}</div>
+          <div class="tpl-card-meta">
+            <span>📋 ${escHtml(t.category||'—')}</span>
+            ${t.recurring?`<span>🔄 ${escHtml(t.frequency)}</span>`:''}
+            ${steps?`<span>📝 ${steps} step${steps!==1?'s':''}</span>`:'<span>No steps</span>'}
+            ${t.defaultAssignee?`<span>👤 ${escHtml(t.defaultAssignee)}</span>`:''}
+          </div>
+          ${t.description?`<div style="font-size:12px;color:var(--ink-mid);margin-top:4px;font-style:italic;">${escHtml(t.description)}</div>`:''}
+        </div>
+        <div style="color:var(--ink-light);font-size:18px;">›</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    body.innerHTML=`<div class="asn-empty" style="color:#dc2626;">Could not load templates: ${escHtml(e.message)}</div>`;
+  }
+}
+
+// ── Open template editor ─────────────────────────────────────────
+async function tplOpenEditor(spId){
+  $('tpl-list-view').style.display='none';
+  $('tpl-editor-view').style.display='block';
+  _tplEditingId=spId;
+  _tplEditingSteps=[];
+  // Populate client dropdown
+  const clientSel=$('tpl-client');
+  if(clientSel){
+    clientSel.innerHTML='<option value="">— General (no client) —</option>'+
+      DB.clients.filter(c=>c.clientStatus!=='Inactive')
+        .sort((a,b)=>a.companyName.localeCompare(b.companyName))
+        .map(c=>`<option value="${escHtml(c.clientKey)}">${escHtml(c.companyName)}</option>`).join('');
+  }
+  // Populate assignee dropdown
+  const assigneeSel=$('tpl-assignee');
+  if(assigneeSel){
+    assigneeSel.innerHTML='<option value="">— None —</option>'+
+      _ttAllUsers.map(u=>`<option>${escHtml(u)}</option>`).join('');
+  }
+  if(!spId){
+    // New template
+    $('tpl-editor-title').textContent='New Template';
+    $('tpl-toggle-active-btn').style.display='none';
+    $('tpl-deploy-btn').disabled=true;$('tpl-deploy-btn').style.opacity='.4';$('tpl-deploy-btn').style.cursor='not-allowed';
+    ['tpl-name','tpl-duerule'].forEach(id=>{const e=$(id);if(e)e.value='';});
+    ['tpl-category','tpl-recurring','tpl-frequency'].forEach(id=>{const e=$(id);if(e)e.value=e.options[0]?.value||'';});
+    ($('tpl-description')||{}).value='';
+    ($('tpl-client')||{}).value='';
+    ($('tpl-assignee')||{}).value='';
+    tplToggleFrequency();
+    tplRenderStepEditor([]);
+  }else{
+    await tplLoad();
+    const tpl=DB_templates.find(t=>t._spId===spId);
+    if(!tpl){toast('Template not found','error');return;}
+    $('tpl-editor-title').textContent=tpl.name||'Template';
+    const toggleBtn=$('tpl-toggle-active-btn');
+    toggleBtn.style.display='';
+    toggleBtn.textContent=tpl.active?'Deactivate':'Activate';
+    toggleBtn.className='btn btn-ghost btn-sm'+(tpl.active?' btn-danger-ghost':'');
+    $('tpl-deploy-btn').disabled=!tpl.active;
+    $('tpl-deploy-btn').style.opacity=tpl.active?'1':'.4';
+    $('tpl-deploy-btn').style.cursor=tpl.active?'pointer':'not-allowed';
+    ($('tpl-name')||{}).value=tpl.name;
+    ($('tpl-category')||{}).value=tpl.category;
+    ($('tpl-client')||{}).value=tpl.clientKey||'';
+    ($('tpl-assignee')||{}).value=tpl.defaultAssignee||'';
+    ($('tpl-recurring')||{}).value=tpl.recurring?'Yes':'No';
+    ($('tpl-frequency')||{}).value=tpl.frequency||'Monthly';
+    ($('tpl-duerule')||{}).value=tpl.defaultDueRule||'';
+    ($('tpl-description')||{}).value=tpl.description||'';
+    tplToggleFrequency();
+    const steps=DB_templateSteps[spId]||[];
+    _tplEditingSteps=steps.map(s=>({...s}));
+    tplRenderStepEditor(_tplEditingSteps);
+  }
+}
+
+function tplCloseEditor(){
+  _tplEditingId=null;
+  _tplEditingSteps=[];
+  $('tpl-list-view').style.display='block';
+  $('tpl-editor-view').style.display='none';
+  tplRenderList();
+}
+
+function tplToggleFrequency(){
+  const rec=($('tpl-recurring')||{}).value;
+  const row=$('tpl-frequency-row');
+  if(row)row.style.display=rec==='Yes'?'block':'none';
+}
+
+// ── Template step editor ─────────────────────────────────────────
+function tplRenderStepEditor(steps){
+  const el=$('tpl-steps-list');if(!el)return;
+  if(!steps.length){
+    el.innerHTML='<div class="asn-empty" style="padding:16px;">No steps yet. Click ＋ Add Step to add procedure steps.</div>';
+    return;
+  }
+  el.innerHTML=steps.map((s,i)=>`
+    <div class="tpl-step-row" id="tpl-step-row-${i}">
+      <input type="number" class="tpl-step-seq" value="${s.sequence||((i+1)*10)}" min="1" oninput="tplStepField(${i},'sequence',this.value)" title="Order">
+      <div style="flex:1;">
+        <input class="tpl-step-name" placeholder="Step name *" value="${escHtml(s.title||'')}" oninput="tplStepField(${i},'title',this.value)">
+        <textarea class="tpl-step-instr" placeholder="Instructions (optional)" oninput="tplStepField(${i},'instruction',this.value)">${escHtml(s.instruction||'')}</textarea>
+      </div>
+      <button class="tpl-step-del" onclick="tplDeleteStep(${i})" title="Remove step">✕</button>
+    </div>`).join('');
+}
+
+function tplStepField(idx,field,val){
+  if(_tplEditingSteps[idx])_tplEditingSteps[idx][field]=field==='sequence'?Number(val):val;
+}
+
+function tplAddStep(){
+  const maxSeq=_tplEditingSteps.length?Math.max(..._tplEditingSteps.map(s=>s.sequence||0)):0;
+  _tplEditingSteps.push({_spId:null,title:'',sequence:maxSeq+10,instruction:'',active:true});
+  tplRenderStepEditor(_tplEditingSteps);
+  // Focus the new step name input
+  setTimeout(()=>{
+    const rows=document.querySelectorAll('.tpl-step-name');
+    if(rows.length)rows[rows.length-1].focus();
+  },50);
+}
+
+function tplDeleteStep(idx){
+  _tplEditingSteps.splice(idx,1);
+  tplRenderStepEditor(_tplEditingSteps);
+}
+
+// ── Save template ────────────────────────────────────────────────
+async function tplSaveTemplate(){
+  const name=($('tpl-name')||{}).value?.trim();
+  const category=($('tpl-category')||{}).value;
+  if(!name){toast('Template name is required','error');return;}
+  if(!category){toast('Category is required','error');return;}
+  // Validate steps
+  for(let i=0;i<_tplEditingSteps.length;i++){
+    if(!(_tplEditingSteps[i].title||'').trim()){
+      toast(`Step ${i+1} needs a name`,'error');return;
+    }
+  }
+  const clientKey=($('tpl-client')||{}).value||'';
+  const recurring=($('tpl-recurring')||{}).value==='Yes';
+  const frequency=($('tpl-frequency')||{}).value||'';
+  const defaultAssignee=($('tpl-assignee')||{}).value||'';
+  const defaultDueRule=($('tpl-duerule')||{}).value?.trim()||'';
+  const description=($('tpl-description')||{}).value?.trim()||'';
+  try{
+    const siteId=await getSiteId();
+    const wf=(dn,val)=>tplWf(_tplColMap,dn,val);
+    const fields=Object.assign(
+      {Title:name},
+      wf('TemplateName',name),
+      wf('ClientKey',clientKey),
+      wf('Category',category),
+      wf('Description',description),
+      wf('Recurring',recurring),
+      recurring?wf('Frequency',frequency):{},
+      defaultAssignee?wf('DefaultAssignee',defaultAssignee):{},
+      defaultDueRule?wf('DefaultDueRule',defaultDueRule):{},
+      wf('Active',true)
+    );
+    let tplSpId=_tplEditingId;
+    if(!tplSpId){
+      // Create new template
+      const result=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASN_TEMPLATES}/items`,{fields});
+      tplSpId=result.id;
+      DB_templates.push({_spId:tplSpId,name,clientKey,category,description,recurring,frequency,defaultAssignee,defaultDueRule,active:true});
+    }else{
+      // Update existing
+      await gPatch(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASN_TEMPLATES}/items/${tplSpId}/fields`,fields);
+      const tpl=DB_templates.find(t=>t._spId===tplSpId);
+      if(tpl)Object.assign(tpl,{name,clientKey,category,description,recurring,frequency,defaultAssignee,defaultDueRule});
+    }
+    // Save steps: delete removed, patch existing, post new
+    const sfWf=(dn,val)=>tplWf(_tplStepsColMap,dn,val);
+    const existingStepIds=new Set((DB_templateSteps[tplSpId]||[]).map(s=>s._spId));
+    const keptIds=new Set(_tplEditingSteps.filter(s=>s._spId).map(s=>s._spId));
+    // Delete removed steps
+    for(const oldId of existingStepIds){
+      if(!keptIds.has(oldId)){
+        try{await gDelete(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TEMPLATE_STEPS}/items/${oldId}`);}
+        catch(e){console.warn('Step delete:',e.message);}
+      }
+    }
+    // Upsert steps
+    const savedSteps=[];
+    for(const step of _tplEditingSteps){
+      const sf=Object.assign(
+        {Title:step.title||'Step'},
+        sfWf('Step',step.title||'Step'),
+        sfWf('Template',tplSpId),
+        sfWf('Sequence',Number(step.sequence)||10),
+        sfWf('Instruction',step.instruction||''),
+        sfWf('Active',true)
+      );
+      if(step._spId){
+        await gPatch(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TEMPLATE_STEPS}/items/${step._spId}/fields`,sf);
+        savedSteps.push({...step});
+      }else{
+        const r=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TEMPLATE_STEPS}/items`,{fields:sf});
+        savedSteps.push({...step,_spId:r.id,templateId:tplSpId});
+      }
+    }
+    DB_templateSteps[tplSpId]=savedSteps;
+    _tplEditingId=tplSpId;
+    $('tpl-editor-title').textContent=name;
+    $('tpl-toggle-active-btn').style.display='';
+    $('tpl-toggle-active-btn').textContent='Deactivate';
+    $('tpl-deploy-btn').disabled=false;
+    $('tpl-deploy-btn').style.opacity='1';
+    $('tpl-deploy-btn').style.cursor='pointer';
+    toast('Template saved','success');
+  }catch(e){
+    console.error('tplSaveTemplate:',e);
+    toast('Could not save template: '+e.message,'error',6000);
+  }
+}
+
+// ── Toggle template active/inactive ─────────────────────────────
+async function tplToggleActive(){
+  if(!_tplEditingId)return;
+  const tpl=DB_templates.find(t=>t._spId===_tplEditingId);
+  if(!tpl)return;
+  const nowActive=!tpl.active;
+  try{
+    const siteId=await getSiteId();
+    const wf=(dn,val)=>tplWf(_tplColMap,dn,val);
+    await gPatch(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASN_TEMPLATES}/items/${_tplEditingId}/fields`,wf('Active',nowActive));
+    tpl.active=nowActive;
+    const btn=$('tpl-toggle-active-btn');
+    if(btn)btn.textContent=nowActive?'Deactivate':'Activate';
+    $('tpl-deploy-btn').disabled=!nowActive;
+    $('tpl-deploy-btn').style.opacity=nowActive?'1':'.4';
+    $('tpl-deploy-btn').style.cursor=nowActive?'pointer':'not-allowed';
+    toast(nowActive?'Template activated':'Template deactivated','success');
+  }catch(e){
+    toast('Could not update template: '+e.message,'error',6000);
+  }
+}
+
+// ── Deploy flow ──────────────────────────────────────────────────
+function tplOpenDeploy(){
+  // Called from template editor
+  if(!_tplEditingId)return;
+  _tplDeployingId=_tplEditingId;
+  _tplDeployFromClient=false;
+  _tplShowDeployModal();
+}
+
+function tplOpenDeployFromClient(){
+  // Called from client pane Deploy Template button
+  const c=getClient();if(!c)return;
+  _tplDeployFromClient=true;
+  _tplDeployingId=null; // will be chosen in modal
+  // Build a quick template picker modal — reuse deploy-modal with template selector
+  tplShowClientDeployPicker(c.clientKey);
+}
+
+async function tplShowClientDeployPicker(clientKey){
+  try{
+    await tplLoad();
+    // Filter: general templates + templates for this client only
+    const available=DB_templates.filter(t=>t.active&&(!t.clientKey||t.clientKey===clientKey));
+    if(!available.length){
+      toast('No templates available for this client','info');
+      return;
+    }
+    // Populate template selector in deploy modal
+    const clientSel=$('deploy-client');
+    const client=DB.clients.find(c=>c.clientKey===clientKey);
+    // Show template picker before the deploy form
+    // We'll repurpose the deploy modal with a template-select first step
+    $('deploy-template-name').innerHTML=`
+      <div style="margin-bottom:4px;">Select a template to deploy:</div>
+      <select id="deploy-tpl-pick" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;font-family:inherit;" onchange="tplPickerChanged()">
+        <option value="">— Select template —</option>
+        ${available.map(t=>`<option value="${t._spId}">${escHtml(t.name)}${t.clientKey?' (client-specific)':' (general)'}</option>`).join('')}
+      </select>`;
+    // Pre-lock client
+    if(clientSel){
+      clientSel.innerHTML=`<option value="${escHtml(clientKey)}">${escHtml(client?client.companyName:clientKey)}</option>`;
+      clientSel.disabled=true;
+    }
+    $('deploy-client-lock-note').textContent='(locked to this client)';
+    // Populate assignee
+    const assigneeSel=$('deploy-assignee');
+    if(assigneeSel){
+      assigneeSel.innerHTML='<option value="">— Select —</option>'+_ttAllUsers.map(u=>`<option>${escHtml(u)}</option>`).join('');
+    }
+    ($('deploy-due')||{}).value='';
+    ($('deploy-period')||{}).value='';
+    ($('deploy-note')||{}).value='';
+    $('deploy-duplicate-warning').style.display='none';
+    $('deploy-confirm-btn').disabled=true;
+    openModal('deploy-modal');
+  }catch(e){
+    toast('Could not load templates: '+e.message,'error',6000);
+  }
+}
+
+function tplPickerChanged(){
+  const sel=$('deploy-tpl-pick');
+  if(!sel||!sel.value){$('deploy-confirm-btn').disabled=true;return;}
+  _tplDeployingId=sel.value;
+  const tpl=DB_templates.find(t=>t._spId===sel.value);
+  if(tpl){
+    // Pre-fill defaults
+    const assigneeSel=$('deploy-assignee');
+    if(assigneeSel&&tpl.defaultAssignee)assigneeSel.value=tpl.defaultAssignee;
+  }
+  $('deploy-confirm-btn').disabled=false;
+}
+
+async function _tplShowDeployModal(){
+  const tpl=DB_templates.find(t=>t._spId===_tplDeployingId);
+  if(!tpl)return;
+  $('deploy-template-name').textContent=tpl.name;
+  // Client dropdown
+  const clientSel=$('deploy-client');
+  if(clientSel){
+    if(tpl.clientKey){
+      // Client-specific: lock to that client
+      const c=DB.clients.find(cl=>cl.clientKey===tpl.clientKey);
+      clientSel.innerHTML=`<option value="${escHtml(tpl.clientKey)}">${escHtml(c?c.companyName:tpl.clientKey)}</option>`;
+      clientSel.disabled=true;
+      $('deploy-client-lock-note').textContent='(locked to this client)';
+    }else{
+      // General: let user pick any client or none
+      clientSel.disabled=false;
+      $('deploy-client-lock-note').textContent='(general template — select client or leave blank)';
+      clientSel.innerHTML='<option value="">— No client (internal) —</option>'+
+        DB.clients.filter(c=>c.clientStatus!=='Inactive')
+          .sort((a,b)=>a.companyName.localeCompare(b.companyName))
+          .map(c=>`<option value="${escHtml(c.clientKey)}">${escHtml(c.companyName)}</option>`).join('');
+    }
+  }
+  // Assignee
+  const assigneeSel=$('deploy-assignee');
+  if(assigneeSel){
+    assigneeSel.innerHTML='<option value="">— Select —</option>'+_ttAllUsers.map(u=>`<option>${escHtml(u)}</option>`).join('');
+    if(tpl.defaultAssignee)assigneeSel.value=tpl.defaultAssignee;
+  }
+  ($('deploy-due')||{}).value='';
+  ($('deploy-period')||{}).value='';
+  ($('deploy-note')||{}).value='';
+  $('deploy-duplicate-warning').style.display='none';
+  $('deploy-confirm-btn').disabled=false;
+  openModal('deploy-modal');
+}
+
+async function tplExecuteDeploy(){
+  if(!_tplDeployingId){toast('No template selected','error');return;}
+  const tpl=DB_templates.find(t=>t._spId===_tplDeployingId);
+  if(!tpl){toast('Template not found','error');return;}
+  const clientKey=($('deploy-client')||{}).value||'';
+  const assignedTo=($('deploy-assignee')||{}).value||'';
+  const dueRaw=($('deploy-due')||{}).value?.trim()||'';
+  const period=($('deploy-period')||{}).value?.trim()||'';
+  const note=($('deploy-note')||{}).value?.trim()||'';
+  if(!assignedTo){toast('Assigned To is required','error');return;}
+  if(!dueRaw){toast('Due Date is required','error');return;}
+  // Parse due date
+  const parsedDue=parseInputDate(dueRaw);
+  const dueDisplay=parsedDue?formatDateDisplay(parsedDue):dueRaw;
+  // Build deployment key for duplicate protection
+  const deploymentKey=tpl._spId+'|'+(clientKey||'NONE')+'|'+(period||'ADHOC');
+  // Check duplicate
+  await asnLoad(true);
+  const duplicate=DB_assignments.find(a=>a.deploymentKey===deploymentKey);
+  if(duplicate){
+    const warn=$('deploy-duplicate-warning');
+    if(warn){
+      warn.style.display='block';
+      const c=DB.clients.find(cl=>cl.clientKey===duplicate.clientKey);
+      warn.innerHTML=`⚠️ <strong>Duplicate detected.</strong> An assignment already exists for this template + client + period:<br><br><strong>${escHtml(duplicate.title)}</strong> · ${escHtml(duplicate.assignedTo)} · ${escHtml(duplicate.dueDate)} · ${escHtml(duplicate.status)}<br><br>Deployment blocked to prevent duplicates.`;
+    }
+    return;
+  }
+  // Create the assignment
+  const asnId=asnNextId();
+  const client=DB.clients.find(cl=>cl.clientKey===clientKey);
+  const asnTitle=tpl.name+(period?' — '+period:'');
+  try{
+    const siteId=await getSiteId();
+    const awf=(dn,val)=>{const wm=asnWriteMap(_asnColMap);const i=wm[dn];return i?{[i]:val}:{[dn]:val};};
+    const asnFields=Object.assign(
+      {Title:asnTitle},
+      awf('AssignmentID',asnId),
+      awf('ClientKey',clientKey),
+      awf('AssignedTo',assignedTo),
+      awf('DueDate',dueDisplay),
+      awf('Status','Not Started'),
+      awf('Category',tpl.category),
+      period?awf('Period',period):{},
+      note?awf('CurrentNote',note):{},
+      awf('SourceTemplate',tpl._spId),
+      awf('DeploymentKey',deploymentKey)
+    );
+    const asnResult=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENTS}/items`,{fields:asnFields});
+    const asnSpId=asnResult.id;
+    // Copy template steps into assignment steps
+    const tplSteps=DB_templateSteps[tpl._spId]||[];
+    const stepWf=(dn,val)=>{const wm=asnWriteMap(_asnStepsColMap);const i=wm[dn];return i?{[i]:val}:{[dn]:val};};
+    const copiedSteps=[];
+    for(const ts of tplSteps){
+      if(!ts.active)continue;
+      const sf=Object.assign(
+        {Title:ts.title},
+        stepWf('Step',ts.title),
+        stepWf('Assignment',asnSpId),
+        stepWf('Sequence',ts.sequence),
+        stepWf('Instruction',ts.instruction||''),
+        stepWf('Completed',false)
+      );
+      const sr=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENT_STEPS}/items`,{fields:sf});
+      copiedSteps.push({_spId:sr.id,asnId:asnSpId,title:ts.title,sequence:ts.sequence,instruction:ts.instruction||'',completed:false,completedDate:'',completedBy:''});
+    }
+    // Update local DB
+    const newAsn={_spId:asnSpId,assignmentId:asnId,title:asnTitle,clientKey,assignedTo,dueDate:dueDisplay,status:'Not Started',category:tpl.category,period,currentNote:note,waitingOn:'',sourceTemplate:tpl._spId,deploymentKey,completedDate:'',completedBy:''};
+    DB_assignments.push(newAsn);
+    DB_assignmentSteps[asnSpId]=copiedSteps;
+    closeModal('deploy-modal');
+    const stepCount=copiedSteps.length;
+    toast(`Deployed: ${asnTitle} · ${stepCount} step${stepCount!==1?'s':''} copied`,'success',5000);
+    // If deployed from client pane, refresh it
+    if(_tplDeployFromClient&&activeClientKey===clientKey){
+      renderAssignmentsPane();
+    }
+    // Refresh overview if overlay is open
+    if($('asn-overlay').classList.contains('open')){
+      asnOvRenderOverview();
+    }
+  }catch(e){
+    console.error('tplExecuteDeploy:',e);
+    toast('Deployment failed: '+e.message,'error',8000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  ASSIGNMENTS OVERLAY
 // ══════════════════════════════════════════════════════════════════
 let _asnOvActiveTab='overview';
@@ -1714,6 +2277,9 @@ async function openAssignmentsOverlay(){
     sel.innerHTML='<option value="">All Team Members</option>'+
       _ttAllUsers.map(u=>`<option>${escHtml(u)}</option>`).join('');
   }
+  // Show Templates tab for Admin users only
+  const tplTab=$('asn-ov-tab-templates');
+  if(tplTab)tplTab.style.display=(_ttUser&&_ttUser.role==='Admin')?'':'none';
   try{
     await asnLoad();
     asnOvShowTab(_asnOvActiveTab,null,true);
@@ -1742,10 +2308,12 @@ function asnOvShowTab(tab,btn,silent=false){
     if(tab==='overview')asnOvRenderOverview();
     if(tab==='all')asnOvRenderAll();
     if(tab==='mywork')asnOvRenderMyWork();
+    if(tab==='templates')tplRenderList();
   }else{
     if(tab==='overview')asnOvRenderOverview();
     if(tab==='all')asnOvRenderAll();
     if(tab==='mywork')asnOvRenderMyWork();
+    if(tab==='templates')tplRenderList();
   }
 }
 
@@ -5510,6 +6078,7 @@ initAuth();
         <button class="asn-ov-tab active" onclick="asnOvShowTab('overview',this)">Overview</button>
         <button class="asn-ov-tab" onclick="asnOvShowTab('all',this)">All Assignments</button>
         <button class="asn-ov-tab" onclick="asnOvShowTab('mywork',this)">My Work</button>
+        <button class="asn-ov-tab" id="asn-ov-tab-templates" onclick="asnOvShowTab('templates',this)" style="display:none;">Templates</button>
       </nav>
     </div>
   </div>
@@ -5571,6 +6140,155 @@ initAuth();
       </div>
     </div>
 
+    <!-- ── TEMPLATES TAB ── -->
+    <div class="asn-ov-panel" id="asn-ov-panel-templates">
+      <div style="max-width:1100px;margin:auto;">
+        <!-- Template list view -->
+        <div id="tpl-list-view">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+            <div style="font-size:15px;font-weight:700;flex:1;">Assignment Templates</div>
+            <select id="tpl-f-category" onchange="tplRenderList()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Categories</option>
+              <option>Bookkeeping</option><option>Tax</option><option>Payroll</option>
+              <option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
+            </select>
+            <select id="tpl-f-type" onchange="tplRenderList()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Types</option>
+              <option value="general">General</option>
+              <option value="client">Client-Specific</option>
+            </select>
+            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="tpl-f-inactive" onchange="tplRenderList()"> Show Inactive
+            </label>
+            <button class="btn btn-primary btn-sm" onclick="tplOpenEditor(null)">＋ New Template</button>
+          </div>
+          <div id="tpl-list-body"></div>
+        </div>
+
+        <!-- Template editor view (hidden by default) -->
+        <div id="tpl-editor-view" style="display:none;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <button class="btn btn-ghost btn-sm" onclick="tplCloseEditor()">← Templates</button>
+            <div id="tpl-editor-title" style="font-size:16px;font-weight:700;flex:1;">New Template</div>
+            <button class="btn btn-ghost btn-sm" id="tpl-toggle-active-btn" onclick="tplToggleActive()" style="display:none;"></button>
+            <button class="btn btn-primary btn-sm" onclick="tplSaveTemplate()">💾 Save Template</button>
+          </div>
+
+          <!-- Template fields -->
+          <div class="tt-card" style="margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="fg full" style="grid-column:1/-1;">
+                <label>Template Name *</label>
+                <input id="tpl-name" placeholder="e.g. Monthly Processing, UIF Registration" style="width:100%;">
+              </div>
+              <div class="fg">
+                <label>Category *</label>
+                <select id="tpl-category" style="width:100%;">
+                  <option value="">— Select —</option>
+                  <option>Bookkeeping</option><option>Tax</option><option>Payroll</option>
+                  <option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label>Client <span style="font-weight:400;font-size:11px;">(leave blank for general template)</span></label>
+                <select id="tpl-client" style="width:100%;">
+                  <option value="">— General (no client) —</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label>Default Assignee <span style="font-weight:400;font-size:11px;">(optional)</span></label>
+                <select id="tpl-assignee" style="width:100%;">
+                  <option value="">— None —</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label>Recurring</label>
+                <select id="tpl-recurring" onchange="tplToggleFrequency()" style="width:100%;">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+              <div class="fg" id="tpl-frequency-row" style="display:none;">
+                <label>Frequency</label>
+                <select id="tpl-frequency" style="width:100%;">
+                  <option>Monthly</option><option>Bi-Monthly</option><option>Quarterly</option>
+                  <option>Bi-Annual</option><option>Annual</option><option>Ad Hoc</option>
+                </select>
+              </div>
+              <div class="fg" id="tpl-duerule-row">
+                <label>Default Due Rule <span style="font-weight:400;font-size:11px;">(optional, e.g. "15th of month")</span></label>
+                <input id="tpl-duerule" placeholder="e.g. Last day of month" style="width:100%;">
+              </div>
+              <div class="fg full" style="grid-column:1/-1;">
+                <label>Description <span style="font-weight:400;font-size:11px;">(optional)</span></label>
+                <textarea id="tpl-description" style="width:100%;height:60px;resize:vertical;border:1px solid var(--rule);border-radius:6px;padding:10px;font-size:14px;font-family:inherit;box-sizing:border-box;" placeholder="Brief description of what this template covers…"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Template Steps -->
+          <div class="tt-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <div style="font-size:15px;font-weight:700;flex:1;">Template Steps</div>
+              <button class="btn btn-ghost btn-sm" onclick="tplAddStep()">＋ Add Step</button>
+            </div>
+            <div id="tpl-steps-list">
+              <div class="asn-empty" style="padding:16px;">No steps yet. Click ＋ Add Step to add procedure steps.</div>
+            </div>
+          </div>
+
+          <!-- Deploy from editor -->
+          <div style="margin-top:16px;padding:14px 16px;background:var(--white);border-radius:8px;border:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:14px;font-weight:700;">Deploy this Template</div>
+              <div style="font-size:12px;color:var(--ink-light);margin-top:2px;">Creates an Assignment (and copies steps) from this template.</div>
+            </div>
+            <button class="btn btn-primary" id="tpl-deploy-btn" onclick="tplOpenDeploy()" style="opacity:.4;cursor:not-allowed;" disabled>📋 Deploy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Deploy Template Modal ──────────────────────────────────────── -->
+<div id="deploy-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>📋 Deploy Template</h3>
+      <button class="modal-close" onclick="closeModal('deploy-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="deploy-template-name" style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--accent);"></div>
+      <div class="form-grid">
+        <div class="fg full">
+          <label>Client <span id="deploy-client-lock-note" style="font-weight:400;font-size:11px;"></span></label>
+          <select id="deploy-client" style="width:100%;"></select>
+        </div>
+        <div class="fg">
+          <label>Assigned To *</label>
+          <select id="deploy-assignee" style="width:100%;"></select>
+        </div>
+        <div class="fg">
+          <label>Due Date *</label>
+          <input id="deploy-due" placeholder="e.g. 30 September 2026" style="width:100%;" onblur="formatDateInput(this);">
+        </div>
+        <div class="fg full">
+          <label>Period <span style="font-weight:400;font-size:11px;">(required for recurring templates — used for duplicate protection)</span></label>
+          <input id="deploy-period" placeholder="e.g. September 2026" style="width:100%;">
+        </div>
+        <div class="fg full">
+          <label>Note <span style="font-weight:400;font-size:11px;">(optional)</span></label>
+          <textarea id="deploy-note" style="width:100%;height:60px;resize:vertical;border:1px solid var(--rule);border-radius:6px;padding:10px;font-size:14px;font-family:inherit;box-sizing:border-box;"></textarea>
+        </div>
+      </div>
+      <div id="deploy-duplicate-warning" style="display:none;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:12px;margin-top:12px;font-size:13px;color:#991b1b;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('deploy-modal')">Cancel</button>
+      <button class="btn btn-primary" id="deploy-confirm-btn" onclick="tplExecuteDeploy()">▶ Deploy</button>
+    </div>
   </div>
 </div>
 
