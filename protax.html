@@ -2665,7 +2665,7 @@ function asnOvRenderOverview(){
   const overdueEl=$('asn-ov-overdue-list');
   if(overdueEl){
     if(!overdue.length){overdueEl.innerHTML='<div class="asn-empty">None overdue 🎉</div>';}
-    else overdueEl.innerHTML=overdue.slice(0,8).map(a=>asnOvMiniRow(a)).join('');
+    else overdueEl.innerHTML=overdue.map(a=>asnOvMiniRow(a)).join('');
   }
   // Due this week
   const weekEl=$('asn-ov-week-list');
@@ -2681,7 +2681,7 @@ function asnOvRenderOverview(){
       return d>=now&&d<=weekEnd;
     });
     if(!thisWeek.length){weekEl.innerHTML='<div class="asn-empty">Nothing due this week</div>';}
-    else weekEl.innerHTML=thisWeek.slice(0,8).map(a=>asnOvMiniRow(a)).join('');
+    else weekEl.innerHTML=thisWeek.map(a=>asnOvMiniRow(a)).join('');
   }
 }
 
@@ -6608,11 +6608,11 @@ initAuth();
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
           <div class="tt-card">
             <div style="font-weight:700;font-size:15px;margin-bottom:14px;">⚠️ Overdue</div>
-            <div id="asn-ov-overdue-list"><div class="asn-empty">Loading…</div></div>
+            <div id="asn-ov-overdue-list" style="max-height:480px;overflow-y:auto;"><div class="asn-empty">Loading…</div></div>
           </div>
           <div class="tt-card">
             <div style="font-weight:700;font-size:15px;margin-bottom:14px;">📅 Due This Week</div>
-            <div id="asn-ov-week-list"><div class="asn-empty">Loading…</div></div>
+            <div id="asn-ov-week-list" style="max-height:480px;overflow-y:auto;"><div class="asn-empty">Loading…</div></div>
           </div>
         </div>
       </div>
