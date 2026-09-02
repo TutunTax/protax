@@ -2712,13 +2712,29 @@ function asnOvRenderMyWork(){
   const el=$('asn-ov-mywork-list');if(!el)return;
   const myName=_ttUser?_ttUser.name:'';
   if(!myName){el.innerHTML='<div class="asn-empty">Sign in to see your work.</div>';return;}
-  const mine=DB_assignments.filter(a=>a.assignedTo===myName&&a.status!=='Complete');
+  const fStatus=($('mw-f-status')||{}).value||'';
+  const fCategory=($('mw-f-category')||{}).value||'';
+  const fSearch=(($('mw-f-search')||{}).value||'').toLowerCase();
+  const fOverdue=($('mw-f-overdue')||{}).checked;
+  let mine=DB_assignments.filter(a=>{
+    if(a.assignedTo!==myName)return false;
+    // If no status filter, default to excluding Complete (show open work)
+    if(!fStatus&&a.status==='Complete')return false;
+    if(fStatus&&a.status!==fStatus)return false;
+    if(fCategory&&a.category!==fCategory)return false;
+    if(fOverdue&&!asnIsOverdue(a))return false;
+    if(fSearch&&!(a.title.toLowerCase().includes(fSearch)||(a.currentNote||'').toLowerCase().includes(fSearch)))return false;
+    return true;
+  });
   mine.sort((a,b)=>{
     const ao=asnIsOverdue(a),bo=asnIsOverdue(b);
     if(ao&&!bo)return-1;if(!ao&&bo)return 1;
     return(a.dueDate||'').localeCompare(b.dueDate||'');
   });
-  if(!mine.length){el.innerHTML='<div class="asn-empty">You have no open assignments 🎉</div>';return;}
+  if(!mine.length){
+    el.innerHTML=`<div class="asn-empty">${fStatus||fCategory||fSearch||fOverdue?'No assignments match these filters.':'You have no open assignments 🎉'}</div>`;
+    return;
+  }
   el.innerHTML=mine.map(a=>{
     const client=DB.clients.find(c=>c.clientKey===a.clientKey);
     const clientName=client?client.companyName:a.clientKey;
@@ -2739,6 +2755,13 @@ function asnOvRenderMyWork(){
       </div>
     </div>`;
   }).join('');
+}
+
+function mwClearFilters(){
+  ['mw-f-status','mw-f-category'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  const s=$('mw-f-search');if(s)s.value='';
+  const o=$('mw-f-overdue');if(o)o.checked=false;
+  asnOvRenderMyWork();
 }
 
 function asnOvClearFilters(){
@@ -6483,6 +6506,26 @@ initAuth();
     <!-- ── MY WORK TAB ── -->
     <div class="asn-ov-panel" id="asn-ov-panel-mywork">
       <div style="max-width:800px;margin:auto;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+          <select id="mw-f-status" onchange="asnOvRenderMyWork()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+            <option value="">All Statuses</option>
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Waiting">Waiting</option>
+            <option value="Complete">Complete</option>
+          </select>
+          <select id="mw-f-category" onchange="asnOvRenderMyWork()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+            <option value="">All Categories</option>
+            <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option><option>VAT201</option>
+            <option>COIDA</option><option>CIPC</option><option>Audit</option>
+            <option>Bookkeeping</option><option>Payroll</option><option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
+          </select>
+          <input id="mw-f-search" placeholder="🔍 Search…" oninput="asnOvRenderMyWork()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;flex:1;min-width:160px;">
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="mw-f-overdue" onchange="asnOvRenderMyWork()"> Overdue only
+          </label>
+          <button onclick="mwClearFilters()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;cursor:pointer;">Clear</button>
+        </div>
         <div id="asn-ov-mywork-list"><div class="asn-empty">Loading…</div></div>
       </div>
     </div>
