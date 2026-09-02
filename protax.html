@@ -851,6 +851,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
           <option value="itr12">ITR12</option>
           <option value="emp201">EMP201</option>
           <option value="emp501">EMP501</option>
+            <option value="vat201">VAT201</option>
         </select>
       </div>
       <div class="fg"><label>Name (e.g. IRP6 2027-01)</label><input id="ert-name" placeholder="IRP6 2027-01"></div>
@@ -892,6 +893,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
             <option>ITR12</option>
             <option>EMP201</option>
             <option>EMP501</option>
+            <option>VAT201</option>
             <option>COIDA</option>
             <option>CIPC</option>
             <option>Audit</option>
@@ -3125,7 +3127,7 @@ function openAssignmentDetail(spId){
       <div class="fg"><label>Assigned To</label><select id="adn-assignee" style="width:100%;">${users.map(u=>`<option${u===asn.assignedTo?' selected':''}>${escHtml(u)}</option>`).join('')}</select></div>
       <div class="fg"><label>Category</label>
         <select id="adn-category" style="width:100%;">
-          ${['IRP6','ITR14','ITR12','EMP201','EMP501','COIDA','CIPC','Audit','Bookkeeping','Payroll','Secretarial','Compliance','Internal','Other'].map(cat=>`<option${cat===asn.category?' selected':''}>${cat}</option>`).join('')}
+          ${['IRP6','ITR14','ITR12','EMP201','EMP501','VAT201','COIDA','CIPC','Audit','Bookkeeping','Payroll','Secretarial','Compliance','Internal','Other'].map(cat=>`<option${cat===asn.category?' selected':''}>${cat}</option>`).join('')}
         </select>
       </div>
       <div class="fg"><label>Due Date</label><input id="adn-due" value="${escHtml(asn.dueDate)}" style="width:100%;" onblur="formatDateInput(this);"></div>
@@ -3337,7 +3339,7 @@ const SETUP_LISTS=[
      {displayName:'AssignedTo',name:'AssignedTo',text:{}},
      {displayName:'DueDate',name:'DueDate',text:{}},
      {displayName:'Status',name:'Status',choice:{choices:['Not Started','In Progress','Waiting','Complete'],defaultValue:'Not Started',displayAs:'dropDownMenu'}},
-     {displayName:'Category',name:'Category',choice:{choices:['IRP6','ITR14','ITR12','EMP201','EMP501','COIDA','CIPC','Audit','Bookkeeping','Payroll','Secretarial','Compliance','Internal','Other'],displayAs:'dropDownMenu'}},
+     {displayName:'Category',name:'Category',choice:{choices:['IRP6','ITR14','ITR12','EMP201','EMP501','VAT201','COIDA','CIPC','Audit','Bookkeeping','Payroll','Secretarial','Compliance','Internal','Other'],displayAs:'dropDownMenu'}},
      {displayName:'Period',name:'Period',text:{}},
      {displayName:'CurrentNote',name:'CurrentNote',text:{allowMultipleLines:true,linesForEditing:4}},
      {displayName:'WaitingOn',name:'WaitingOn',choice:{choices:['Client','SARS','CIPC','UIF','Compensation Fund','Third Party','Internal','Other'],displayAs:'dropDownMenu'}},
@@ -3362,7 +3364,7 @@ const SETUP_LISTS=[
    columns:[
      {displayName:'TemplateName',name:'TemplateName',text:{}},
      {displayName:'ClientKey',name:'ClientKey',text:{}},
-     {displayName:'Category',name:'Category',choice:{choices:['IRP6','ITR14','ITR12','EMP201','EMP501','COIDA','CIPC','Audit','Bookkeeping','Payroll','Secretarial','Compliance','Internal','Other'],displayAs:'dropDownMenu'}},
+     {displayName:'Category',name:'Category',choice:{choices:['IRP6','ITR14','ITR12','EMP201','EMP501','VAT201','COIDA','CIPC','Audit','Bookkeeping','Payroll','Secretarial','Compliance','Internal','Other'],displayAs:'dropDownMenu'}},
      {displayName:'Description',name:'Description',text:{allowMultipleLines:true,linesForEditing:4}},
      {displayName:'Recurring',name:'Recurring',boolean:{}},
      {displayName:'Frequency',name:'Frequency',choice:{choices:['Monthly','Bi-Monthly','Quarterly','Bi-Annual','Annual','Ad Hoc'],displayAs:'dropDownMenu'}},
@@ -6542,7 +6544,7 @@ initAuth();
           </select>
           <select id="asn-f-category" onchange="asnOvRenderAll()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
             <option value="">All Categories</option>
-            <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option><option>COIDA</option><option>CIPC</option><option>Audit</option><option>Bookkeeping</option><option>Payroll</option><option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
+            <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option><option>VAT201</option><option>COIDA</option><option>CIPC</option><option>Audit</option><option>Bookkeeping</option><option>Payroll</option><option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
           </select>
           <input id="asn-f-search" placeholder="🔍 Search…" oninput="asnOvRenderAll()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;flex:1;min-width:180px;">
           <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
@@ -6590,7 +6592,7 @@ initAuth();
             <div style="font-size:15px;font-weight:700;flex:1;">Assignment Templates</div>
             <select id="tpl-f-category" onchange="tplRenderList()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
               <option value="">All Categories</option>
-              <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option><option>COIDA</option><option>CIPC</option><option>Audit</option><option>Bookkeeping</option><option>Payroll</option><option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
+              <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option><option>VAT201</option><option>COIDA</option><option>CIPC</option><option>Audit</option><option>Bookkeeping</option><option>Payroll</option><option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
             </select>
             <select id="tpl-f-type" onchange="tplRenderList()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
               <option value="">All Types</option>
@@ -6625,7 +6627,7 @@ initAuth();
                 <label>Category *</label>
                 <select id="tpl-category" style="width:100%;">
                   <option value="">— Select —</option>
-              <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option>
+              <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option><option>VAT201</option>
               <option>COIDA</option><option>CIPC</option><option>Audit</option>
               <option>Bookkeeping</option><option>Payroll</option><option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
                 </select>
