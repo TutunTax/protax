@@ -2386,19 +2386,23 @@ function depFilterClients(){
   const fEmployer=($('dep-f-employer')||{}).value||'';
   const fEntity=($('dep-f-entity')||{}).value||'';
   const fProvTax=($('dep-f-provtax')||{}).value||'';
+  const fVatVendor=($('dep-f-vatvendor')||{}).value||'';
   const fStatus=($('dep-f-status')||{}).value;
   const fSearch=(($('dep-f-search')||{}).value||'').toLowerCase().trim();
   const tpl=DB_templates.find(t=>t._spId===tplId);
+  // If no template selected, clear list
+  if(!tplId){_depClients=[];depRenderClientList();return;}
   let clients=DB.clients.filter(c=>{
     // Status filter (default: Active only)
     if(fStatus==='Active'&&c.clientStatus==='Inactive')return false;
-    if(fStatus===''){ /* show all */ }
     // If template is client-specific, lock to that client
     if(tpl&&tpl.clientKey&&c.clientKey!==tpl.clientKey)return false;
-    // Assignee filter — if set, only show clients assigned to this person
+    // Assignee filter — optional, only filter if selected
     if(assignee&&(c.assignedTo||'').trim().toLowerCase()!==assignee.trim().toLowerCase())return false;
     // Employer filter
     if(fEmployer&&(c.employer||'')!==fEmployer)return false;
+    // VAT Vendor filter
+    if(fVatVendor&&(c.vatVendor||'')!==fVatVendor)return false;
     // Entity type filter
     if(fEntity&&(c.entityType||'')!==fEntity)return false;
     // Provisional taxpayer filter
@@ -2421,7 +2425,7 @@ function depRenderClientList(){
   const period=($('dep-period')||{}).value?.trim()||'';
   const assignee=($('dep-assignee')||{}).value||'';
   if(!tplId||!assignee){
-    el.innerHTML='<div class="asn-empty" style="padding:24px;">Select a template and assignee to see clients.</div>';
+    el.innerHTML='<div class="asn-empty" style="padding:24px;">Select a template to see clients.</div>';
     const sc=$('dep-selection-count');if(sc)sc.textContent='';
     const cc=$('dep-client-count');if(cc)cc.textContent='';
     return;
@@ -2440,7 +2444,8 @@ function depRenderClientList(){
     const isDup=!!period&&DB_assignments.some(a=>a.deploymentKey===deployKey);
     const meta=[
       c.entityType||'',
-      c.employer==='Yes'?'Employer':'',
+      c.employer&&c.employer!=='No'?'Employer: '+c.employer:'',
+      c.vatVendor&&c.vatVendor!=='Not Registered'?'VAT: '+c.vatVendor:'',
       c.provisionalTaxPayer==='Yes'?'Prov. Tax':'',
       c.clientStatus==='Inactive'?'⚠ Inactive':''
     ].filter(Boolean).join(' · ');
@@ -2482,7 +2487,7 @@ function depSelectAll(select){
 }
 
 function depClearFilters(){
-  ['dep-f-employer','dep-f-entity','dep-f-provtax'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  ['dep-f-employer','dep-f-vatvendor','dep-f-entity','dep-f-provtax'].forEach(id=>{const e=$(id);if(e)e.value='';});
   const st=$('dep-f-status');if(st)st.value='Active';
   const sr=$('dep-f-search');if(sr)sr.value='';
   depFilterClients();
@@ -6743,7 +6748,16 @@ initAuth();
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--rule);align-items:center;">
             <div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Employer:</span>
               <select id="dep-f-employer" onchange="depFilterClients()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
-                <option value="">All</option><option value="Yes">Yes</option><option value="No">No</option>
+                <option value="">All</option><option value="Yes">Yes</option><option value="No">No</option><option value="Zero Return">Zero Return</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--ink-light);white-space:nowrap;">VAT:</span>
+              <select id="dep-f-vatvendor" onchange="depFilterClients()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+                <option value="">All</option>
+                <option value="Not Registered">Not Registered</option>
+                <option value="Category A">Category A</option>
+                <option value="Category B">Category B</option>
+                <option value="Category C">Category C</option>
               </select>
             </div>
             <div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Entity:</span>
@@ -6767,7 +6781,7 @@ initAuth();
           </div>
           <!-- Client list -->
           <div id="dep-client-list" style="max-height:380px;overflow-y:auto;border:1px solid var(--rule);border-radius:6px;background:white;">
-            <div class="asn-empty" style="padding:24px;">Select a template and assignee to see clients.</div>
+            <div class="asn-empty" style="padding:24px;">Select a template to see clients.</div>
           </div>
           <div id="dep-selection-count" style="font-size:13px;color:var(--ink-light);margin-top:8px;font-weight:600;"></div>
         </div>
