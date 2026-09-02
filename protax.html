@@ -2424,7 +2424,7 @@ function depRenderClientList(){
   const tplId=($('dep-tpl')||{}).value||'';
   const period=($('dep-period')||{}).value?.trim()||'';
   const assignee=($('dep-assignee')||{}).value||'';
-  if(!tplId||!assignee){
+  if(!tplId){
     el.innerHTML='<div class="asn-empty" style="padding:24px;">Select a template to see clients.</div>';
     const sc=$('dep-selection-count');if(sc)sc.textContent='';
     const cc=$('dep-client-count');if(cc)cc.textContent='';
