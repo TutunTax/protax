@@ -2519,14 +2519,14 @@ async function depExecute(){
           const sr=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENT_STEPS}/items`,{fields:sf});
           copiedSteps.push({_spId:sr.id,asnId:asnSpId,title:ts.title,sequence:ts.sequence,instruction:ts.instruction||'',completed:false,completedDate:'',completedBy:''});
         }
-        DB_assignments.push({_spId:asnSpId,assignmentId:asnId,title:asnTitle,clientKey:client.clientKey,assignedTo,dueDate:dueDisplay,status:'Not Started',category:tpl.category,period,currentNote:'',waitingOn:'',sourceTemplate:tplId,deploymentKey,completedDate:'',completedBy:''});
+        DB_assignments.push({_spId:asnSpId,assignmentId:asnId,title:asnTitle,clientKey:client.clientKey,assignedTo,dueDate:dueDisplay,status:'Not Started',category:tpl.category,period,currentNote:'',waitingOn:'',sourceTemplate:tplId,deploymentKey:deployKey,completedDate:'',completedBy:''});
         DB_assignmentSteps[asnSpId]=copiedSteps;
         deployed++;
         if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed`;
       }catch(err){
-        console.error('Deploy error for',client.companyName,err);
+        console.error('Deploy error for',client.companyName,err.message,err);
         failed++;
-        if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed`;
+        if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed — Last error: ${err.message}`;
       }
     }
     const msg=`✅ Done: ${deployed} deployed${skipped?' · '+skipped+' already existed':''}${failed?' · '+failed+' failed':''}`;
@@ -6605,31 +6605,30 @@ initAuth();
             <button class="btn btn-ghost btn-sm" onclick="depSelectAll(false)">Clear All</button>
           </div>
           <!-- Filter strip -->
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--rule);">
-            <select id="dep-f-employer" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
-              <option value="">All Clients</option>
-              <option value="Yes">Employers Only</option>
-              <option value="No">Non-Employers</option>
-            </select>
-            <select id="dep-f-entity" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
-              <option value="">All Entity Types</option>
-              <option value="Company">Company</option>
-              <option value="CC">CC</option>
-              <option value="SoleProp">Sole Proprietor</option>
-              <option value="Individual">Individual</option>
-              <option value="Trust">Trust</option>
-            </select>
-            <select id="dep-f-provtax" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
-              <option value="">All Provisional Tax</option>
-              <option value="Yes">Provisional Taxpayer</option>
-              <option value="No">Not Provisional</option>
-            </select>
-            <select id="dep-f-status" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
-              <option value="Active">Active Only</option>
-              <option value="">Active + Inactive</option>
-            </select>
-            <input id="dep-f-search" placeholder="🔍 Search clients…" oninput="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;flex:1;min-width:160px;">
-            <button onclick="depClearFilters()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;cursor:pointer;">Clear filters</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--rule);align-items:center;">
+            <div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Employer:</span>
+              <select id="dep-f-employer" onchange="depFilterClients()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+                <option value="">All</option><option value="Yes">Yes</option><option value="No">No</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Entity:</span>
+              <select id="dep-f-entity" onchange="depFilterClients()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+                <option value="">All</option><option value="Company">Company</option><option value="CC">CC</option>
+                <option value="SoleProp">Sole Prop</option><option value="Individual">Individual</option><option value="Trust">Trust</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Prov. Tax:</span>
+              <select id="dep-f-provtax" onchange="depFilterClients()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+                <option value="">All</option><option value="Yes">Yes</option><option value="No">No</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;"><span style="font-size:12px;font-weight:600;color:var(--ink-light);white-space:nowrap;">Status:</span>
+              <select id="dep-f-status" onchange="depFilterClients()" style="padding:6px 8px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+                <option value="Active">Active Only</option><option value="">All</option>
+              </select>
+            </div>
+            <input id="dep-f-search" placeholder="🔍 Search clients…" oninput="depFilterClients()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;flex:1;min-width:140px;">
+            <button onclick="depClearFilters()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;cursor:pointer;white-space:nowrap;">Clear</button>
           </div>
           <!-- Client list -->
           <div id="dep-client-list" style="max-height:380px;overflow-y:auto;border:1px solid var(--rule);border-radius:6px;background:white;">
