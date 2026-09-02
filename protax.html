@@ -308,8 +308,8 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .asn-ov-all-client{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:3px;}
 #tt-header{background:#8B1A1A;color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;}
 #tt-header h1{font-size:17px;font-weight:700;margin:0;}
-#tt-close{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;}
-#tt-close:hover{background:rgba(255,255,255,.25);}
+.tt-close{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.tt-close:hover{background:rgba(255,255,255,.25);}
 #tt-nav{display:flex;gap:2px;overflow-x:auto;}
 .tt-tab{padding:6px 14px;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.75);background:transparent;border:none;white-space:nowrap;}
 .tt-tab:hover{color:#fff;background:rgba(255,255,255,.15);}
@@ -454,7 +454,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   </div>
   <div id="topbar-right">
     <span id="sync-bar">Connecting…</span>
-    <button id="setup-btn" onclick="openModal('setup-panel-overlay')" title="SharePoint list setup (Admin)" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:white;padding:5px 13px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;">🔧 Setup</button>
+    <button id="setup-btn" onclick="openModal('setup-panel-overlay')" title="Settings (Admin)" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:white;padding:5px 13px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;">⚙️ Settings</button>
   </div>
 </div>
 
@@ -908,24 +908,54 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 
 <!-- ── List Setup Panel (Admin) ─────────────────────────────────────── -->
 <div id="setup-panel-overlay" class="modal-overlay">
-  <div class="modal modal-lg">
+  <div class="modal modal-lg" style="max-width:700px;">
     <div class="modal-head">
-      <h3>⚙️ SharePoint List Setup</h3>
+      <h3>⚙️ Settings</h3>
       <button class="modal-close" onclick="closeModal('setup-panel-overlay')">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="info-note" style="margin-bottom:16px;">This creates the SharePoint lists required for Assignments and Notes. Run once. Safe to re-run — existing lists are skipped.</div>
-      <div id="setup-list-status">
-        <!-- populated by checkSetupLists() -->
-        <div style="color:var(--ink-light);font-size:13px;">Click Check Status to inspect lists.</div>
+    <!-- Settings tabs -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--rule);padding:0 20px;">
+      <div class="cnav-tab active" id="stab-users" onclick="showSettingsTab('users')" style="font-size:13px;padding:9px 16px;">👥 Users</div>
+      <div class="cnav-tab" id="stab-lists" onclick="showSettingsTab('lists')" style="font-size:13px;padding:9px 16px;">🗄 SharePoint Lists</div>
+    </div>
+    <!-- Users tab -->
+    <div id="settings-panel-users" class="modal-body" style="min-height:300px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:13px;color:var(--ink-light);">Manage team members. Changes take effect on next sign-in.</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddUserForm()">＋ Add User</button>
+      </div>
+      <div id="settings-users-list"><div style="color:var(--ink-light);font-size:13px;">Loading…</div></div>
+      <!-- Add user inline form -->
+      <div id="add-user-form" style="display:none;background:var(--surface);border-radius:8px;border:1px solid var(--rule);padding:16px;margin-top:14px;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:12px;">New User</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="fg"><label>Full Name *</label><input id="nu-name" placeholder="e.g. Johan Muller" style="width:100%;"></div>
+          <div class="fg"><label>Email *</label><input id="nu-email" placeholder="name@tutin.co.za" style="width:100%;"></div>
+          <div class="fg"><label>Role</label>
+            <select id="nu-role" style="width:100%;">
+              <option value="Staff">Staff</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+          <button class="btn btn-ghost btn-sm" onclick="closeAddUserForm()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="saveNewUser()">Save User</button>
+        </div>
       </div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between;">
-      <button class="btn btn-ghost" onclick="checkSetupLists()">🔍 Check Status</button>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" onclick="closeModal('setup-panel-overlay')">Close</button>
-        <button class="btn btn-primary" onclick="runSetupLists()">▶ Create Missing Lists</button>
+    <!-- Lists tab (hidden by default) -->
+    <div id="settings-panel-lists" class="modal-body" style="display:none;min-height:300px;">
+      <div class="info-note" style="margin-bottom:16px;">Verify that all required SharePoint lists exist. All lists were created during initial setup — this is for diagnostics only.</div>
+      <div id="setup-list-status">
+        <div style="color:var(--ink-light);font-size:13px;">Click Check Status to inspect lists.</div>
       </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--rule);">
+        <button class="btn btn-ghost" onclick="checkSetupLists()">🔍 Check Status</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('setup-panel-overlay')">Close</button>
     </div>
   </div>
 </div>
@@ -1548,6 +1578,129 @@ function showClientPane(pane){
   if(pane==='returns')renderReturnsPane();
   if(pane==='assignments')renderAssignmentsPane();
   if(pane==='notes')renderNotesPane();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SETTINGS PANEL
+// ══════════════════════════════════════════════════════════════════
+function showSettingsTab(tab){
+  ['users','lists'].forEach(t=>{
+    const panel=$('settings-panel-'+t);
+    const btn=$('stab-'+t);
+    if(panel)panel.style.display=t===tab?'block':'none';
+    if(btn)btn.classList.toggle('active',t===tab);
+  });
+  if(tab==='users')loadSettingsUsers();
+}
+
+// Override openModal for setup-panel-overlay to always open on Users tab
+const _origOpenModal=openModal;
+function openModal(id){
+  _origOpenModal(id);
+  if(id==='setup-panel-overlay')showSettingsTab('users');
+}
+
+async function loadSettingsUsers(){
+  const el=$('settings-users-list');
+  if(!el)return;
+  el.innerHTML='<div style="color:var(--ink-light);font-size:13px;">Loading…</div>';
+  try{
+    const siteId=await getSiteId();
+    const uMap=_ttColMaps&&_ttColMaps[L_TT_USERS]?_ttColMaps[L_TT_USERS]:await ttGetColMap(L_TT_USERS);
+    const raw=await getAll(L_TT_USERS,'$select=id&$expand=fields');
+    const users=raw.map(item=>{
+      const f=item.fields||{};
+      return{
+        id:item.id,
+        name:ttFBD(f,uMap,'Title')||ttFBD(f,uMap,'Name')||'',
+        email:ttFBD(f,uMap,'Email')||'',
+        role:ttFBD(f,uMap,'Role')||'Staff',
+        active:(()=>{const v=ttFBD(f,uMap,'Active');return v===true||v==='true'||String(v).toLowerCase()==='yes';})()
+      };
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!users.length){el.innerHTML='<div style="color:var(--ink-light);font-size:13px;">No users found.</div>';return;}
+    el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <thead><tr style="border-bottom:2px solid var(--rule);text-align:left;">
+        <th style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);">Name</th>
+        <th style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);">Email</th>
+        <th style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);">Role</th>
+        <th style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);">Status</th>
+        <th style="padding:8px 10px;"></th>
+      </tr></thead>
+      <tbody>
+      ${users.map(u=>`<tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:10px;">${escHtml(u.name)}</td>
+        <td style="padding:10px;color:var(--ink-light);font-size:13px;">${escHtml(u.email)}</td>
+        <td style="padding:10px;">${escHtml(u.role)}</td>
+        <td style="padding:10px;">
+          <span style="padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${u.active?'#d1fae5':'#fee2e2'};color:${u.active?'#065f46':'#991b1b'};">
+            ${u.active?'Active':'Inactive'}
+          </span>
+        </td>
+        <td style="padding:10px;text-align:right;">
+          <button class="btn btn-ghost btn-sm" onclick="settingsToggleUser('${u.id}',${u.active})" style="font-size:12px;">
+            ${u.active?'Deactivate':'Activate'}
+          </button>
+        </td>
+      </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }catch(e){
+    el.innerHTML=`<div style="color:#dc2626;font-size:13px;">Could not load users: ${escHtml(e.message)}</div>`;
+  }
+}
+
+async function settingsToggleUser(spId,currentlyActive){
+  try{
+    const siteId=await getSiteId();
+    const uMap=_ttColMaps&&_ttColMaps[L_TT_USERS]?_ttColMaps[L_TT_USERS]:await ttGetColMap(L_TT_USERS);
+    const activeField=Object.entries(uMap).find(([k,v])=>v==='Active');
+    const fieldName=activeField?activeField[0]:'Active';
+    await gPatch(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_USERS}/items/${spId}/fields`,{[fieldName]:!currentlyActive});
+    toast((currentlyActive?'User deactivated':'User activated'),'success');
+    // Refresh user list and staff tabs
+    await loadSettingsUsers();
+    const allRaw=await getAll(L_TT_USERS,'$select=id&$expand=fields');
+    const uMap2=_ttColMaps&&_ttColMaps[L_TT_USERS]?_ttColMaps[L_TT_USERS]:await ttGetColMap(L_TT_USERS);
+    _ttAllUsers=allRaw
+      .filter(item=>{const v=ttFBD(item.fields||{},uMap2,'Active');return v===true||v==='true'||String(v).toLowerCase()==='yes';})
+      .map(item=>ttFBD(item.fields||{},uMap2,'Title')||ttFBD(item.fields||{},'','Name')||'')
+      .filter(Boolean).sort();
+    renderStaffTabs(_ttAllUsers);
+  }catch(e){
+    toast('Could not update user: '+e.message,'error',6000);
+  }
+}
+
+function openAddUserForm(){
+  const f=$('add-user-form');if(f)f.style.display='block';
+  ['nu-name','nu-email'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  const r=$('nu-role');if(r)r.value='Staff';
+}
+function closeAddUserForm(){
+  const f=$('add-user-form');if(f)f.style.display='none';
+}
+async function saveNewUser(){
+  const name=($('nu-name')||{}).value?.trim();
+  const email=($('nu-email')||{}).value?.trim().toLowerCase();
+  const role=($('nu-role')||{}).value||'Staff';
+  if(!name){toast('Name is required','error');return;}
+  if(!email||!email.includes('@')){toast('Valid email is required','error');return;}
+  try{
+    const siteId=await getSiteId();
+    const uMap=_ttColMaps&&_ttColMaps[L_TT_USERS]?_ttColMaps[L_TT_USERS]:await ttGetColMap(L_TT_USERS);
+    const wf=(dn,val)=>{const entry=Object.entries(uMap).find(([k,v])=>v===dn);return entry?{[entry[0]]:val}:{[dn]:val};};
+    const fields=Object.assign({Title:name},wf('Email',email),wf('Role',role),wf('Active',true));
+    await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_USERS}/items`,{fields});
+    toast('User added: '+name,'success');
+    closeAddUserForm();
+    // Update live state
+    _ttAllUsers=[..._ttAllUsers,name].sort();
+    renderStaffTabs(_ttAllUsers);
+    await loadSettingsUsers();
+  }catch(e){
+    toast('Could not add user: '+e.message,'error',6000);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
