@@ -454,7 +454,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   </div>
   <div id="topbar-right">
     <span id="sync-bar">Connecting…</span>
-    <button id="setup-btn" onclick="openModal('setup-panel-overlay')" title="Settings (Admin)" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:white;padding:5px 13px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;">⚙️ Settings</button>
+    <button id="setup-btn" onclick="openModal('setup-panel-overlay');showSettingsTab('users');" title="Settings (Admin)" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:white;padding:5px 13px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;">⚙️ Settings</button>
   </div>
 </div>
 
@@ -1591,13 +1591,6 @@ function showSettingsTab(tab){
     if(btn)btn.classList.toggle('active',t===tab);
   });
   if(tab==='users')loadSettingsUsers();
-}
-
-// Override openModal for setup-panel-overlay to always open on Users tab
-const _origOpenModal=openModal;
-function openModal(id){
-  _origOpenModal(id);
-  if(id==='setup-panel-overlay')showSettingsTab('users');
 }
 
 async function loadSettingsUsers(){
