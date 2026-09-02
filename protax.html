@@ -595,7 +595,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
           </div>
           <button class="add-return-btn" onclick="addReturn()">＋ New Return</button>
           <button class="btn btn-ghost btn-sm" onclick="openModal('period-modal')" title="Bulk deploy returns">🚀 Bulk Deploy</button>
-          <button class="btn btn-ghost btn-sm" onclick="openModal('return-types-modal')" title="Manage return types">⚙️ Settings</button>
+          <button class="btn btn-ghost btn-sm" onclick="openReturnSettings()" title="Manage return types">⚙️ Settings</button>
         </div>
         <div id="return-list-area"></div>
         <div id="wizard-area" style="margin-top:14px;"></div>
@@ -729,12 +729,22 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
             <option value="No">No</option>
           </select>
         </div>
-      </div>
-      <div style="margin-top:14px;padding:14px;background:var(--surface);border-radius:var(--radius);">
-        <div style="font-size:12px;font-weight:700;color:var(--ink-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Delete a Specific Return</div>
-        <div style="display:flex;gap:8px;">
-          <select id="ec-del-return" class="sb-select" style="flex:1;"><option value="">— Select return —</option></select>
-          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;" onclick="deleteReturn()">🗑 Delete</button>
+        <div class="fg"><label>Employer</label>
+          <select id="ec-employer">
+            <option value="">— Unknown —</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+            <option value="Zero Return">Zero Return</option>
+          </select>
+        </div>
+        <div class="fg"><label>VAT Vendor</label>
+          <select id="ec-vatvendor">
+            <option value="">— Unknown —</option>
+            <option value="Not Registered">Not Registered</option>
+            <option value="Category A">Category A</option>
+            <option value="Category B">Category B</option>
+            <option value="Category C">Category C</option>
+          </select>
         </div>
       </div>
     </div>
@@ -787,6 +797,14 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
       <span style="font-size:12px;color:var(--ink-light);">These options appear in the New Return dropdown for each type.</span>
     </div>
     <div id="return-types-list" style="flex:1;overflow-y:auto;padding:16px 20px;"></div>
+    <div style="padding:14px 20px;border-top:1px solid var(--rule);background:var(--surface);">
+      <div style="font-size:12px;font-weight:700;color:var(--ink-light);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Delete a Specific Return</div>
+      <div style="display:flex;gap:8px;">
+        <select id="ec-del-return" class="sb-select" style="flex:1;"><option value="">— Select return —</option></select>
+        <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;" onclick="deleteReturn()">🗑 Delete</button>
+      </div>
+      <div style="font-size:11px;color:var(--ink-light);margin-top:6px;">Open a client first, then select a return to delete.</div>
+    </div>
   </div>
 </div>
 
@@ -1376,7 +1394,9 @@ async function loadAll(){
         yearEnd:fbd('FinancialYearEnd')||'',
         taxClearance:fbd('TaxClearance')||'',
         contactName:fbd('ContactPerson')||'',
-        provisionalTaxPayer:fbd('ProvisionalTaxPayer')||''
+        provisionalTaxPayer:fbd('ProvisionalTaxPayer')||'',
+        employer:fbd('Employer')||'',
+        vatVendor:fbd('VatVendor')||''
       };
     });
     DB.clients.sort((a,b)=>a.companyName.localeCompare(b.companyName));
@@ -4278,9 +4298,19 @@ function openEditModal(){
   sv('ec-yearend',c.yearEnd||'');
   sv('ec-taxclear',c.taxClearance||'');
   sv('ec-provtax',c.provisionalTaxPayer||'');
-  // Returns list
-  const ds=$('ec-del-return');ds.innerHTML='<option value="">— Select return —</option>';
-  clientReturns(activeClientKey).forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=T_LABEL[r.returnType]+' '+r.returnPeriod+' — '+(S_LABEL[r.status]||r.status);ds.appendChild(o);});
+  sv('ec-employer',c.employer||'');
+  sv('ec-vatvendor',c.vatVendor||'');
+  // Populate delete-return dropdown in Settings modal
+  const ds=$('ec-del-return');
+  if(ds){
+    ds.innerHTML='<option value="">— Select return —</option>';
+    clientReturns(activeClientKey).forEach(r=>{
+      const o=document.createElement('option');
+      o.value=r.id;
+      o.textContent=(T_LABEL[r.returnType]||r.returnType)+' '+r.returnPeriod+' — '+(S_LABEL[r.status]||r.status);
+      ds.appendChild(o);
+    });
+  }
   openModal('edit-modal');
 }
 
@@ -4319,6 +4349,8 @@ async function saveClientEdit(){
   c.yearEnd=gv('ec-yearend');
   c.taxClearance=gv('ec-taxclear');
   c.provisionalTaxPayer=gv('ec-provtax');
+  c.employer=gv('ec-employer');
+  c.vatVendor=gv('ec-vatvendor');
   // Save to SharePoint Tutin_Client_Register
   if(c._spId){
     try{
@@ -4353,6 +4385,8 @@ async function saveClientEdit(){
       fields[fi('EntityType')]=c.entityType||'';
       fields[fi('FinancialYearEnd')]=c.yearEnd||'';
       fields[fi('ContactPerson')]=c.contactName||'';
+      fields[fi('Employer')]=c.employer||'';
+      fields[fi('VatVendor')]=c.vatVendor||'';
       // Remove undefined keys
       Object.keys(fields).forEach(k=>{if(!k||k==='undefined')delete fields[k];});
       await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_CLIENTS+'/items/'+c._spId+'/fields',fields);
@@ -4904,6 +4938,23 @@ document.addEventListener('click',function(e){
     setTimeout(populateBulkDeployDropdown,50);
   }
 });
+
+function openReturnSettings(){
+  // Populate the delete-return dropdown with current client's returns
+  const ds=$('ec-del-return');
+  if(ds){
+    ds.innerHTML='<option value="">— Select return —</option>';
+    if(activeClientKey){
+      clientReturns(activeClientKey).forEach(r=>{
+        const o=document.createElement('option');
+        o.value=r.id;
+        o.textContent=(T_LABEL[r.returnType]||r.returnType)+' '+r.returnPeriod+' — '+(S_LABEL[r.status]||r.status);
+        ds.appendChild(o);
+      });
+    }
+  }
+  openModal('return-types-modal');
+}
 
 function renderReturnTypesList(){
   const el=$('return-types-list');if(!el)return;
