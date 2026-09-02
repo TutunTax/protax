@@ -1522,7 +1522,12 @@ function renderList(){
   DB.clients.forEach(c=>{
     const inactive=c.clientStatus&&c.clientStatus.toLowerCase()==='inactive';
     if(inactive&&!showInactive)return;
-    if(activeAssignee&&(c.assignedTo||'').trim().toLowerCase()!==activeAssignee.trim().toLowerCase())return;
+    if(activeAssignee){
+      const clientVal=(c.assignedTo||'').trim().toLowerCase();
+      const filterVal=activeAssignee.trim().toLowerCase();
+      const filterFirst=filterVal.split(' ')[0];
+      if(clientVal!==filterVal&&clientVal!==filterFirst)return;
+    }
     if(search&&!c.companyName.toLowerCase().includes(search))return;
     if(fe&&(c.entityType||'')!==fe)return;
     const ftc=($('filter-taxclear')||{}).value||'';
@@ -2398,8 +2403,13 @@ function depFilterClients(){
     if(fStatus==='Active'&&c.clientStatus==='Inactive')return false;
     // If template is client-specific, lock to that client
     if(tpl&&tpl.clientKey&&c.clientKey!==tpl.clientKey)return false;
-    // Assignee filter — optional, only filter if selected
-    if(assignee&&(c.assignedTo||'').trim().toLowerCase()!==assignee.trim().toLowerCase())return false;
+    // Assignee filter — match full name or first name (client register uses short names)
+    if(assignee){
+      const clientVal=(c.assignedTo||'').trim().toLowerCase();
+      const filterVal=assignee.trim().toLowerCase();
+      const filterFirst=filterVal.split(' ')[0];
+      if(clientVal!==filterVal&&clientVal!==filterFirst)return false;
+    }
     // Employer filter
     if(fEmployer&&(c.employer||'')!==fEmployer)return false;
     // VAT Vendor filter
@@ -3016,7 +3026,13 @@ function openNewAssignmentModal(){
   if(sel){
     const users=_ttAllUsers.length?_ttAllUsers:['Johan Muller','Maryna Muller','Keanu van Wyk','Jermaine Jansen','Damien','Andre','Vonique Bezuidenhoud'];
     sel.innerHTML='<option value="">— Select —</option>'+users.map(u=>`<option>${escHtml(u)}</option>`).join('');
-    if(c.assignedTo)sel.value=c.assignedTo;
+    if(c.assignedTo){
+      // Try exact match first, then first-name match
+      const exact=users.find(u=>u.toLowerCase()===c.assignedTo.toLowerCase());
+      const firstMatch=users.find(u=>u.split(' ')[0].toLowerCase()===c.assignedTo.toLowerCase());
+      if(exact)sel.value=exact;
+      else if(firstMatch)sel.value=firstMatch;
+    }
   }
   ['na-title','na-due','na-period','na-note'].forEach(id=>{const e=$(id);if(e)e.value='';});
   const cat=$('na-category');if(cat)cat.value='';
