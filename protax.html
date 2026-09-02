@@ -1596,6 +1596,11 @@ function showSettingsTab(tab){
 async function loadSettingsUsers(){
   const el=$('settings-users-list');
   if(!el)return;
+  // Guard: ttGetColMap may not be available yet if TutinTime hasn't initialised
+  if(typeof ttGetColMap==='undefined'){
+    el.innerHTML='<div style="color:var(--ink-light);font-size:13px;">Please sign in first to manage users.</div>';
+    return;
+  }
   el.innerHTML='<div style="color:var(--ink-light);font-size:13px;">Loading…</div>';
   try{
     const siteId=await getSiteId();
