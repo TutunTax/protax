@@ -1967,7 +1967,7 @@ function tplRenderStepEditor(steps){
   }
   el.innerHTML=steps.map((s,i)=>`
     <div class="tpl-step-row" id="tpl-step-row-${i}">
-      <input type="number" class="tpl-step-seq" value="${s.sequence||((i+1)*10)}" min="1" oninput="tplStepField(${i},'sequence',this.value)" onblur="tplResortSteps()" title="Order">
+      <input type="number" class="tpl-step-seq" value="${s.sequence||((i+1))}" min="1" oninput="tplStepField(${i},'sequence',this.value)" onblur="tplResortSteps()" title="Order">
       <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;">
         <input class="tpl-step-name" placeholder="Step name *" value="${escHtml(s.title||'')}" oninput="tplStepField(${i},'title',this.value)">
         <textarea class="tpl-step-instr" placeholder="Instructions (optional)" oninput="tplStepField(${i},'instruction',this.value)">${escHtml(s.instruction||'')}</textarea>
@@ -1981,8 +1981,8 @@ function tplStepField(idx,field,val){
 }
 
 function tplAddStep(){
-  const maxSeq=_tplEditingSteps.length?Math.max(..._tplEditingSteps.map(s=>s.sequence||0)):0;
-  _tplEditingSteps.push({_spId:null,title:'',sequence:maxSeq+10,instruction:'',active:true});
+  const nextSeq=_tplEditingSteps.length?Math.max(..._tplEditingSteps.map(s=>Number(s.sequence)||0))+1:1;
+  _tplEditingSteps.push({_spId:null,title:'',sequence:nextSeq,instruction:'',active:true});
   tplRenderStepEditor(_tplEditingSteps);
   // Focus the new step name input
   setTimeout(()=>{
@@ -2490,11 +2490,10 @@ function depClearFilters(){
 
 async function depExecute(){
   const tplId=($('dep-tpl')||{}).value||'';
-  const assignedTo=($('dep-assignee')||{}).value||'';
+  const defaultAssignee=($('dep-assignee')||{}).value||'';
   const dueRaw=($('dep-due')||{}).value?.trim()||'';
   const period=($('dep-period')||{}).value?.trim()||'';
   if(!tplId){toast('Select a template first','error');return;}
-  if(!assignedTo){toast('Assignee is required','error');return;}
   if(!dueRaw){toast('Due Date is required','error');return;}
   if(!_depSelected.size){toast('No clients selected','error');return;}
   const parsedDue=parseInputDate(dueRaw);
@@ -2509,6 +2508,14 @@ async function depExecute(){
     const siteId=await getSiteId();
     await asnLoad(true);
     for(const client of clients){
+      // Use selected assignee, or fall back to client's own assigned staff member
+      const assignedTo=defaultAssignee||client.assignedTo||'';
+      if(!assignedTo){
+        console.warn('No assignee for',client.companyName,'— skipping');
+        failed++;
+        if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed`;
+        continue;
+      }
       const deployKey=tplId+'|'+client.clientKey+'|'+(period||'ADHOC');
       if(DB_assignments.some(a=>a.deploymentKey===deployKey)){
         skipped++;
@@ -6707,7 +6714,7 @@ initAuth();
               </select>
             </div>
             <div class="fg">
-              <label>Assign To * <span style="font-weight:400;font-size:11px;">(filters client list)</span></label>
+              <label>Assign To <span style="font-weight:400;font-size:11px;">(optional — defaults to each client's assigned staff member)</span></label>
               <select id="dep-assignee" onchange="depFilterClients()" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;">
                 <option value="">— Select assignee first —</option>
               </select>
