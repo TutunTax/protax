@@ -248,7 +248,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .btn-icon:hover{background:var(--rule);}
 
 /* ── Modals ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9500;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--white);border-radius:10px;width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.25);}
 .modal-lg{width:740px;}.modal-xl{width:980px;}
@@ -318,7 +318,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .tpl-step-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);}
 .tpl-step-row:last-child{border-bottom:none;}
 .tpl-step-seq{width:36px;height:32px;border:1px solid var(--rule);border-radius:6px;text-align:center;font-size:13px;font-weight:600;padding:0;flex-shrink:0;}
-.tpl-step-name{flex:1;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:14px;font-family:inherit;}
+.tpl-step-name{width:100%;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:14px;font-family:inherit;box-sizing:border-box;}
 .tpl-step-instr{width:100%;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:13px;font-family:inherit;resize:vertical;min-height:48px;margin-top:6px;box-sizing:border-box;}
 .tpl-step-del{width:30px;height:30px;border:1px solid #fecaca;border-radius:6px;background:white;color:#dc2626;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;}
 #tt-header{background:#8B1A1A;color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;}
@@ -1938,8 +1938,8 @@ function tplRenderStepEditor(steps){
   }
   el.innerHTML=steps.map((s,i)=>`
     <div class="tpl-step-row" id="tpl-step-row-${i}">
-      <input type="number" class="tpl-step-seq" value="${s.sequence||((i+1)*10)}" min="1" oninput="tplStepField(${i},'sequence',this.value)" title="Order">
-      <div style="flex:1;">
+      <input type="number" class="tpl-step-seq" value="${s.sequence||((i+1)*10)}" min="1" oninput="tplStepField(${i},'sequence',this.value)" onblur="tplResortSteps()" title="Order">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;">
         <input class="tpl-step-name" placeholder="Step name *" value="${escHtml(s.title||'')}" oninput="tplStepField(${i},'title',this.value)">
         <textarea class="tpl-step-instr" placeholder="Instructions (optional)" oninput="tplStepField(${i},'instruction',this.value)">${escHtml(s.instruction||'')}</textarea>
       </div>
@@ -1964,6 +1964,11 @@ function tplAddStep(){
 
 function tplDeleteStep(idx){
   _tplEditingSteps.splice(idx,1);
+  tplRenderStepEditor(_tplEditingSteps);
+}
+
+function tplResortSteps(){
+  _tplEditingSteps.sort((a,b)=>(Number(a.sequence)||0)-(Number(b.sequence)||0));
   tplRenderStepEditor(_tplEditingSteps);
 }
 
@@ -2278,6 +2283,264 @@ async function tplExecuteDeploy(){
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  DEPLOY MODULE (Deploy tab in Assignments overlay)
+// ══════════════════════════════════════════════════════════════════
+let _depClients=[];        // filtered visible clients
+let _depSelected=new Set(); // selected clientKeys
+
+async function depInit(){
+  // Reset progress
+  const prog=$('dep-progress');
+  if(prog){prog.style.display='none';prog.textContent='';}
+  _depSelected.clear();
+  try{
+    await tplLoad();
+    // Populate template dropdown — recurring first
+    const tplSel=$('dep-tpl');
+    if(tplSel){
+      const active=DB_templates.filter(t=>t.active).sort((a,b)=>{
+        if(a.recurring&&!b.recurring)return-1;
+        if(!a.recurring&&b.recurring)return 1;
+        return a.name.localeCompare(b.name);
+      });
+      const prev=tplSel.value;
+      tplSel.innerHTML='<option value="">— Select a template —</option>'+
+        active.map(t=>`<option value="${t._spId}">${escHtml(t.name)}${t.recurring?' 🔄':''}${t.clientKey?' (client-specific)':''}</option>`).join('');
+      if(prev)tplSel.value=prev;
+    }
+    // Populate assignee dropdown from live users
+    const aSel=$('dep-assignee');
+    if(aSel){
+      const prev=aSel.value;
+      aSel.innerHTML='<option value="">— Select assignee first —</option>'+
+        _ttAllUsers.map(u=>`<option value="${escHtml(u)}">${escHtml(u)}</option>`).join('');
+      if(prev)aSel.value=prev;
+    }
+    // If template already selected, refresh info
+    if($('dep-tpl')&&$('dep-tpl').value)depTemplateChanged();
+    else depRenderClientList();
+  }catch(e){
+    toast('Could not load deploy data: '+e.message,'error',6000);
+  }
+}
+
+function depTemplateChanged(){
+  const tplId=($('dep-tpl')||{}).value||'';
+  const info=$('dep-tpl-info');
+  _depSelected.clear();
+  if(!tplId){
+    if(info)info.style.display='none';
+    depRenderClientList();
+    return;
+  }
+  const tpl=DB_templates.find(t=>t._spId===tplId);
+  if(tpl&&info){
+    const steps=(DB_templateSteps[tplId]||[]).length;
+    info.style.display='block';
+    info.innerHTML=`📋 <strong>${escHtml(tpl.name)}</strong> &nbsp;·&nbsp; ${escHtml(tpl.category)}
+      &nbsp;·&nbsp; ${tpl.recurring?'🔄 Recurring: '+escHtml(tpl.frequency):'One-off'}
+      &nbsp;·&nbsp; ${steps} step${steps!==1?'s':''}
+      ${tpl.clientKey?'&nbsp;·&nbsp; <span style="color:var(--accent);font-weight:600;">Client-specific: '+escHtml(tplClientName(tpl.clientKey))+'</span>':''}
+      ${tpl.description?'<br><span style="color:var(--ink-light);">'+escHtml(tpl.description)+'</span>':''}`;
+  }
+  // Pre-fill default assignee
+  if(tpl&&tpl.defaultAssignee){
+    const as=$('dep-assignee');
+    if(as&&!as.value)as.value=tpl.defaultAssignee;
+  }
+  depFilterClients();
+}
+
+function depFilterClients(){
+  const tplId=($('dep-tpl')||{}).value||'';
+  const assignee=($('dep-assignee')||{}).value||'';
+  const fEmployer=($('dep-f-employer')||{}).value||'';
+  const fEntity=($('dep-f-entity')||{}).value||'';
+  const fProvTax=($('dep-f-provtax')||{}).value||'';
+  const fStatus=($('dep-f-status')||{}).value;
+  const fSearch=(($('dep-f-search')||{}).value||'').toLowerCase().trim();
+  const tpl=DB_templates.find(t=>t._spId===tplId);
+  let clients=DB.clients.filter(c=>{
+    // Status filter (default: Active only)
+    if(fStatus==='Active'&&c.clientStatus==='Inactive')return false;
+    if(fStatus===''){ /* show all */ }
+    // If template is client-specific, lock to that client
+    if(tpl&&tpl.clientKey&&c.clientKey!==tpl.clientKey)return false;
+    // Assignee filter — if set, only show clients assigned to this person
+    if(assignee&&(c.assignedTo||'').trim().toLowerCase()!==assignee.trim().toLowerCase())return false;
+    // Employer filter
+    if(fEmployer&&(c.employer||'')!==fEmployer)return false;
+    // Entity type filter
+    if(fEntity&&(c.entityType||'')!==fEntity)return false;
+    // Provisional taxpayer filter
+    if(fProvTax&&(c.provisionalTaxPayer||'')!==fProvTax)return false;
+    // Search
+    if(fSearch&&!c.companyName.toLowerCase().includes(fSearch))return false;
+    return true;
+  }).sort((a,b)=>a.companyName.localeCompare(b.companyName));
+  _depClients=clients;
+  depRenderClientList();
+}
+
+function depRefreshDuplicates(){
+  depRenderClientList();
+}
+
+function depRenderClientList(){
+  const el=$('dep-client-list');if(!el)return;
+  const tplId=($('dep-tpl')||{}).value||'';
+  const period=($('dep-period')||{}).value?.trim()||'';
+  const assignee=($('dep-assignee')||{}).value||'';
+  if(!tplId||!assignee){
+    el.innerHTML='<div class="asn-empty" style="padding:24px;">Select a template and assignee to see clients.</div>';
+    const sc=$('dep-selection-count');if(sc)sc.textContent='';
+    const cc=$('dep-client-count');if(cc)cc.textContent='';
+    return;
+  }
+  if(!_depClients.length){
+    el.innerHTML='<div class="asn-empty" style="padding:24px;">No clients match these filters.</div>';
+    const sc=$('dep-selection-count');if(sc)sc.textContent='';
+    const cc=$('dep-client-count');if(cc)cc.textContent=`0 clients`;
+    return;
+  }
+  const cc=$('dep-client-count');
+  if(cc)cc.textContent=`${_depClients.length} client${_depClients.length!==1?'s':''} visible`;
+  el.innerHTML=_depClients.map(c=>{
+    const checked=_depSelected.has(c.clientKey);
+    const deployKey=tplId+'|'+c.clientKey+'|'+(period||'ADHOC');
+    const isDup=!!period&&DB_assignments.some(a=>a.deploymentKey===deployKey);
+    const meta=[
+      c.entityType||'',
+      c.employer==='Yes'?'Employer':'',
+      c.provisionalTaxPayer==='Yes'?'Prov. Tax':'',
+      c.clientStatus==='Inactive'?'⚠ Inactive':''
+    ].filter(Boolean).join(' · ');
+    return`<label style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--rule);cursor:${isDup?'not-allowed':'pointer'};${isDup?'opacity:.45;':''}background:${checked?'#f0fdf4':isDup?'#fffbeb':'white'};">
+      <input type="checkbox" ${checked?'checked':''} ${isDup?'disabled title="Already deployed for this period"':''} onchange="depToggleClient('${c.clientKey}',this.checked)" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;color:${c.clientStatus==='Inactive'?'var(--ink-light)':'var(--ink)'};">${escHtml(c.companyName)}</div>
+        ${meta?`<div style="font-size:12px;color:var(--ink-light);margin-top:2px;">${escHtml(meta)}</div>`:''}
+      </div>
+      ${isDup?'<span style="font-size:11px;font-weight:700;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:20px;white-space:nowrap;">Already deployed</span>':''}
+    </label>`;
+  }).join('');
+  const count=_depSelected.size;
+  const sc=$('dep-selection-count');
+  if(sc)sc.textContent=count?`${count} client${count!==1?'s':''} selected`:'';
+}
+
+function depToggleClient(clientKey,checked){
+  if(checked)_depSelected.add(clientKey);
+  else _depSelected.delete(clientKey);
+  const count=_depSelected.size;
+  const sc=$('dep-selection-count');
+  if(sc)sc.textContent=count?`${count} client${count!==1?'s':''} selected`:'';
+  depRenderClientList();
+}
+
+function depSelectAll(select){
+  const tplId=($('dep-tpl')||{}).value||'';
+  const period=($('dep-period')||{}).value?.trim()||'';
+  _depClients.forEach(c=>{
+    const deployKey=tplId+'|'+c.clientKey+'|'+(period||'ADHOC');
+    const isDup=!!period&&DB_assignments.some(a=>a.deploymentKey===deployKey);
+    if(!isDup){
+      if(select)_depSelected.add(c.clientKey);
+      else _depSelected.delete(c.clientKey);
+    }
+  });
+  depRenderClientList();
+}
+
+function depClearFilters(){
+  ['dep-f-employer','dep-f-entity','dep-f-provtax'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  const st=$('dep-f-status');if(st)st.value='Active';
+  const sr=$('dep-f-search');if(sr)sr.value='';
+  depFilterClients();
+}
+
+async function depExecute(){
+  const tplId=($('dep-tpl')||{}).value||'';
+  const assignedTo=($('dep-assignee')||{}).value||'';
+  const dueRaw=($('dep-due')||{}).value?.trim()||'';
+  const period=($('dep-period')||{}).value?.trim()||'';
+  if(!tplId){toast('Select a template first','error');return;}
+  if(!assignedTo){toast('Assignee is required','error');return;}
+  if(!dueRaw){toast('Due Date is required','error');return;}
+  if(!_depSelected.size){toast('No clients selected','error');return;}
+  const parsedDue=parseInputDate(dueRaw);
+  const dueDisplay=parsedDue?formatDateDisplay(parsedDue):dueRaw;
+  const tpl=DB_templates.find(t=>t._spId===tplId);
+  if(!tpl){toast('Template not found','error');return;}
+  const clients=[..._depSelected].map(ck=>DB.clients.find(c=>c.clientKey===ck)).filter(Boolean);
+  const prog=$('dep-progress');
+  if(prog){prog.style.display='block';prog.textContent='Starting…';}
+  let deployed=0,skipped=0,failed=0;
+  try{
+    const siteId=await getSiteId();
+    await asnLoad(true);
+    for(const client of clients){
+      const deployKey=tplId+'|'+client.clientKey+'|'+(period||'ADHOC');
+      if(DB_assignments.some(a=>a.deploymentKey===deployKey)){
+        skipped++;
+        if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed`;
+        continue;
+      }
+      try{
+        const asnId=asnNextId();
+        const asnTitle=tpl.name+(period?' — '+period:'');
+        const awf=(dn,val)=>{const wm=asnWriteMap(_asnColMap);const i=wm[dn];return i?{[i]:val}:{[dn]:val};};
+        const asnFields=Object.assign(
+          {Title:asnTitle},
+          awf('AssignmentID',asnId),
+          awf('ClientKey',client.clientKey),
+          awf('AssignedTo',assignedTo),
+          awf('DueDate',dueDisplay),
+          awf('Status','Not Started'),
+          awf('Category',tpl.category),
+          period?awf('Period',period):{},
+          awf('SourceTemplate',tplId),
+          awf('DeploymentKey',deployKey)
+        );
+        const asnResult=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENTS}/items`,{fields:asnFields});
+        const asnSpId=asnResult.id;
+        // Copy template steps as assignment steps
+        const tplSteps=DB_templateSteps[tplId]||[];
+        const swf=(dn,val)=>{const wm=asnWriteMap(_asnStepsColMap);const i=wm[dn];return i?{[i]:val}:{[dn]:val};};
+        const copiedSteps=[];
+        for(const ts of tplSteps){
+          if(!ts.active)continue;
+          const sf=Object.assign(
+            {Title:ts.title},
+            swf('Step',ts.title),swf('Assignment',asnSpId),
+            swf('Sequence',ts.sequence),swf('Instruction',ts.instruction||''),
+            swf('Completed',false)
+          );
+          const sr=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENT_STEPS}/items`,{fields:sf});
+          copiedSteps.push({_spId:sr.id,asnId:asnSpId,title:ts.title,sequence:ts.sequence,instruction:ts.instruction||'',completed:false,completedDate:'',completedBy:''});
+        }
+        DB_assignments.push({_spId:asnSpId,assignmentId:asnId,title:asnTitle,clientKey:client.clientKey,assignedTo,dueDate:dueDisplay,status:'Not Started',category:tpl.category,period,currentNote:'',waitingOn:'',sourceTemplate:tplId,deploymentKey,completedDate:'',completedBy:''});
+        DB_assignmentSteps[asnSpId]=copiedSteps;
+        deployed++;
+        if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed`;
+      }catch(err){
+        console.error('Deploy error for',client.companyName,err);
+        failed++;
+        if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed`;
+      }
+    }
+    const msg=`✅ Done: ${deployed} deployed${skipped?' · '+skipped+' already existed':''}${failed?' · '+failed+' failed':''}`;
+    if(prog)prog.textContent=msg;
+    toast(msg.replace('✅ ',''),failed?'error':'success',6000);
+    _depSelected.clear();
+    depRenderClientList();
+    asnOvRenderOverview();
+  }catch(e){
+    toast('Deploy failed: '+e.message,'error',8000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  ASSIGNMENTS OVERLAY
 // ══════════════════════════════════════════════════════════════════
 let _asnOvActiveTab='overview';
@@ -2290,9 +2553,11 @@ async function openAssignmentsOverlay(){
     sel.innerHTML='<option value="">All Team Members</option>'+
       _ttAllUsers.map(u=>`<option>${escHtml(u)}</option>`).join('');
   }
-  // Show Templates tab for Admin users only
+  // Show Templates and Deploy tabs for Admin users only
   const tplTab=$('asn-ov-tab-templates');
   if(tplTab)tplTab.style.display=(_ttUser&&_ttUser.role==='Admin')?'':'none';
+  const depTab=$('asn-ov-tab-deploy');
+  if(depTab)depTab.style.display=(_ttUser&&_ttUser.role==='Admin')?'':'none';
   try{
     await asnLoad();
     asnOvShowTab(_asnOvActiveTab,null,true);
@@ -2322,11 +2587,13 @@ function asnOvShowTab(tab,btn,silent=false){
     if(tab==='all')asnOvRenderAll();
     if(tab==='mywork')asnOvRenderMyWork();
     if(tab==='templates')tplRenderList();
+    if(tab==='deploy')depInit();
   }else{
     if(tab==='overview')asnOvRenderOverview();
     if(tab==='all')asnOvRenderAll();
     if(tab==='mywork')asnOvRenderMyWork();
     if(tab==='templates')tplRenderList();
+    if(tab==='deploy')depInit();
   }
 }
 
@@ -6294,6 +6561,95 @@ initAuth();
             <button class="btn btn-primary" id="tpl-deploy-btn" onclick="tplOpenDeploy()" style="opacity:.4;cursor:not-allowed;" disabled>📋 Deploy</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── DEPLOY TAB ── -->
+    <div class="asn-ov-panel" id="asn-ov-panel-deploy">
+      <div style="max-width:1100px;margin:auto;">
+
+        <!-- Row 1: Template + Assignee -->
+        <div class="tt-card" style="margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Deployment Setup</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="fg">
+              <label>Template *</label>
+              <select id="dep-tpl" onchange="depTemplateChanged()" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;">
+                <option value="">— Select a template —</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Assign To * <span style="font-weight:400;font-size:11px;">(filters client list)</span></label>
+              <select id="dep-assignee" onchange="depFilterClients()" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;">
+                <option value="">— Select assignee first —</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Due Date *</label>
+              <input id="dep-due" placeholder="e.g. 30 September 2026" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;" onblur="formatDateInput(this);">
+            </div>
+            <div class="fg">
+              <label>Period <span style="font-weight:400;font-size:11px;">(required for recurring — prevents duplicates)</span></label>
+              <input id="dep-period" placeholder="e.g. September 2026" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;" oninput="depRefreshDuplicates()">
+            </div>
+          </div>
+          <div id="dep-tpl-info" style="display:none;margin-top:10px;padding:10px 12px;background:var(--surface);border-radius:6px;font-size:13px;color:var(--ink-mid);"></div>
+        </div>
+
+        <!-- Row 2: Client filters + list -->
+        <div class="tt-card" style="margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="font-size:15px;font-weight:700;flex:1;">Select Clients</div>
+            <span id="dep-client-count" style="font-size:13px;color:var(--ink-light);"></span>
+            <button class="btn btn-ghost btn-sm" onclick="depSelectAll(true)">Select All Visible</button>
+            <button class="btn btn-ghost btn-sm" onclick="depSelectAll(false)">Clear All</button>
+          </div>
+          <!-- Filter strip -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--rule);">
+            <select id="dep-f-employer" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Clients</option>
+              <option value="Yes">Employers Only</option>
+              <option value="No">Non-Employers</option>
+            </select>
+            <select id="dep-f-entity" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Entity Types</option>
+              <option value="Company">Company</option>
+              <option value="CC">CC</option>
+              <option value="SoleProp">Sole Proprietor</option>
+              <option value="Individual">Individual</option>
+              <option value="Trust">Trust</option>
+            </select>
+            <select id="dep-f-provtax" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Provisional Tax</option>
+              <option value="Yes">Provisional Taxpayer</option>
+              <option value="No">Not Provisional</option>
+            </select>
+            <select id="dep-f-status" onchange="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="Active">Active Only</option>
+              <option value="">Active + Inactive</option>
+            </select>
+            <input id="dep-f-search" placeholder="🔍 Search clients…" oninput="depFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;flex:1;min-width:160px;">
+            <button onclick="depClearFilters()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;cursor:pointer;">Clear filters</button>
+          </div>
+          <!-- Client list -->
+          <div id="dep-client-list" style="max-height:380px;overflow-y:auto;border:1px solid var(--rule);border-radius:6px;background:white;">
+            <div class="asn-empty" style="padding:24px;">Select a template and assignee to see clients.</div>
+          </div>
+          <div id="dep-selection-count" style="font-size:13px;color:var(--ink-light);margin-top:8px;font-weight:600;"></div>
+        </div>
+
+        <!-- Row 3: Deploy button -->
+        <div style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:8px;border:1px solid var(--rule);padding:14px 18px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;">Deploy</div>
+            <div style="font-size:12px;color:var(--ink-light);margin-top:2px;">Already-deployed period+template+client combinations are automatically skipped.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div id="dep-progress" style="font-size:13px;color:var(--ink-mid);display:none;max-width:300px;text-align:right;"></div>
+            <button class="btn btn-primary" onclick="depExecute()" style="min-width:140px;">▶ Deploy</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
