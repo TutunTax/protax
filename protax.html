@@ -238,7 +238,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .check-label{font-size:14px;font-weight:600;}.check-sub{font-size:12px;color:var(--ink-light);margin-top:2px;}
 .ttag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
 .t-irp6{background:#fce7f3;color:#9d174d;}.t-itr14{background:#dbeafe;color:#1e3a8a;}.t-itr12{background:#d1fae5;color:#065f46;}
-.t-emp201{background:#fef3c7;color:#92400e;}.t-emp501{background:#ede9fe;color:#5b21b6;}
+.t-emp201{background:#fef3c7;color:#92400e;}.t-emp501{background:#ede9fe;color:#5b21b6;}.t-vat201{background:#dcfce7;color:#166534;}
 .t-coida{background:#e0f2fe;color:#075985;}.t-cipc{background:#fce7f3;color:#831843;}.t-audit{background:#f3f4f6;color:#374151;}
 .returns-asn-section{margin-top:20px;padding-top:16px;border-top:2px solid var(--rule);}
 .returns-asn-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-light);margin-bottom:10px;}
@@ -589,6 +589,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
             <div class="rt-tab" data-type="itr12" onclick="setType('itr12')">ITR12</div>
             <div class="rt-tab" data-type="emp201" onclick="setType('emp201')">EMP201</div>
             <div class="rt-tab" data-type="emp501" onclick="setType('emp501')">EMP501</div>
+            <div class="rt-tab" data-type="vat201" onclick="setType('vat201')">VAT201</div>
             <div class="rt-tab" data-type="coida" onclick="setType('coida')">COIDA</div>
             <div class="rt-tab" data-type="cipc" onclick="setType('cipc')">CIPC</div>
             <div class="rt-tab" data-type="audit" onclick="setType('audit')">Audit</div>
@@ -1165,8 +1166,8 @@ const eLabel=t=>ENTITY_LABEL[t]||t||'—';
 const escHtml=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const S_LABEL={todo:'To Do',inprogress:'In Progress',awaiting:'Awaiting Approval',submitted:'Submitted'};
 const S_CLASS={todo:'b-todo',inprogress:'b-inprogress',awaiting:'b-awaiting',submitted:'b-submitted'};
-const T_CLASS={irp6:'t-irp6',itr14:'t-itr14',itr12:'t-itr12',emp201:'t-emp201',emp501:'t-emp501',coida:'t-coida',cipc:'t-cipc',audit:'t-audit'};
-const T_LABEL={irp6:'IRP6',itr14:'ITR14',itr12:'ITR12',emp201:'EMP201',emp501:'EMP501',coida:'COIDA',cipc:'CIPC',audit:'Audit'};
+const T_CLASS={irp6:'t-irp6',itr14:'t-itr14',itr12:'t-itr12',emp201:'t-emp201',emp501:'t-emp501',coida:'t-coida',cipc:'t-cipc',audit:'t-audit',vat201:'t-vat201'};
+const T_LABEL={irp6:'IRP6',itr14:'ITR14',itr12:'ITR12',emp201:'EMP201',emp501:'EMP501',coida:'COIDA',cipc:'CIPC',audit:'Audit',vat201:'VAT201'};
 
 // ── Date helpers ──────────────────────────────────────────────────────────
 // Accepts: 20260831 → "31 August 2026" or "2026-08-31" → "31 August 2026"
@@ -3153,7 +3154,10 @@ function openAssignmentDetail(spId){
     </div>
     ${steps.length?`
       <div style="border-top:1px solid var(--rule);padding-top:14px;">
-        <div class="asn-progress-label">${done} of ${steps.length} Steps Complete</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div class="asn-progress-label">${done} of ${steps.length} Steps Complete</div>
+          <button class="btn btn-ghost btn-sm" onclick="asnDetailShowAddStep('${spId}')">＋ Add Step</button>
+        </div>
         <div class="asn-progress-bar-wrap"><div class="asn-progress-bar" style="width:${steps.length?Math.round(done/steps.length*100):0}%"></div></div>
         <ul class="asn-steps-list" id="adn-steps-list">
           ${steps.map(s=>`
@@ -3166,7 +3170,22 @@ function openAssignmentDetail(spId){
               </div>
             </li>`).join('')}
         </ul>
-      </div>`:'<div style="color:var(--ink-light);font-size:13px;padding-top:4px;">No steps for this assignment.</div>'}
+      </div>`:`
+      <div style="border-top:1px solid var(--rule);padding-top:14px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="color:var(--ink-light);font-size:13px;">No steps for this assignment.</div>
+        <button class="btn btn-ghost btn-sm" onclick="asnDetailShowAddStep('${spId}')">＋ Add Step</button>
+      </div>`}
+    <div id="adn-add-step-form" style="display:none;margin-top:12px;padding:12px;background:var(--surface);border-radius:8px;border:1px solid var(--rule);">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">New Step</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input id="adn-new-step-name" placeholder="Step name *" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;font-family:inherit;box-sizing:border-box;">
+        <textarea id="adn-new-step-instr" placeholder="Instructions (optional)" style="width:100%;height:60px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;"></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost btn-sm" onclick="$('adn-add-step-form').style.display='none'">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="asnDetailSaveNewStep('${spId}')">Add Step</button>
+        </div>
+      </div>
+    </div>
   `;
   openModal('assignment-detail-modal');
 }
@@ -3216,6 +3235,50 @@ async function saveAssignmentDetail(){
   }catch(e){
     console.error('saveAssignmentDetail:',e);
     toast('Save failed: '+e.message,'error',6000);
+  }
+}
+
+function asnDetailShowAddStep(spId){
+  const form=$('adn-add-step-form');
+  if(!form)return;
+  const nameEl=$('adn-new-step-name');
+  const instrEl=$('adn-new-step-instr');
+  if(nameEl)nameEl.value='';
+  if(instrEl)instrEl.value='';
+  form.style.display='block';
+  setTimeout(()=>{if(nameEl)nameEl.focus();},50);
+}
+
+async function asnDetailSaveNewStep(asnSpId){
+  const name=($('adn-new-step-name')||{}).value?.trim();
+  const instr=($('adn-new-step-instr')||{}).value?.trim()||'';
+  if(!name){toast('Step name is required','error');return;}
+  const steps=DB_assignmentSteps[asnSpId]||[];
+  const maxSeq=steps.length?Math.max(...steps.map(s=>Number(s.sequence)||0)):0;
+  const nextSeq=maxSeq+1;
+  try{
+    const siteId=await getSiteId();
+    const swf=(dn,val)=>{const wm=asnWriteMap(_asnStepsColMap);const i=wm[dn];return i?{[i]:val}:{[dn]:val};};
+    const sf=Object.assign(
+      {Title:name},
+      swf('Step',name),
+      swf('Assignment',asnSpId),
+      swf('Sequence',nextSeq),
+      swf('Instruction',instr),
+      swf('Completed',false)
+    );
+    const result=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENT_STEPS}/items`,{fields:sf});
+    if(!DB_assignmentSteps[asnSpId])DB_assignmentSteps[asnSpId]=[];
+    DB_assignmentSteps[asnSpId].push({
+      _spId:result.id,asnId:asnSpId,
+      title:name,sequence:nextSeq,instruction:instr,
+      completed:false,completedDate:'',completedBy:''
+    });
+    toast('Step added','success');
+    openAssignmentDetail(asnSpId);
+  }catch(e){
+    console.error('asnDetailSaveNewStep:',e);
+    toast('Could not add step: '+e.message,'error',6000);
   }
 }
 
@@ -3616,7 +3679,7 @@ function renderReturnList(){
 }
 
 function renderReturnTypeAssignments(clientKey,returnType){
-  const catMap={irp6:'IRP6',itr14:'ITR14',itr12:'ITR12',emp201:'EMP201',emp501:'EMP501',coida:'COIDA',cipc:'CIPC',audit:'Audit'};
+  const catMap={irp6:'IRP6',itr14:'ITR14',itr12:'ITR12',emp201:'EMP201',emp501:'EMP501',coida:'COIDA',cipc:'CIPC',audit:'Audit',vat201:'VAT201'};
   const cat=catMap[returnType];
   if(!cat)return;
   if(!_asnLoaded){
