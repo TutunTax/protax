@@ -2391,8 +2391,8 @@ function depFilterClients(){
   const fStatus=($('dep-f-status')||{}).value;
   const fSearch=(($('dep-f-search')||{}).value||'').toLowerCase().trim();
   const tpl=DB_templates.find(t=>t._spId===tplId);
-  // If no template selected, clear list
-  if(!tplId){_depClients=[];depRenderClientList();return;}
+  // If no template or assignee, clear list
+  if(!tplId||!assignee){_depClients=[];depRenderClientList();return;}
   let clients=DB.clients.filter(c=>{
     // Status filter (default: Active only)
     if(fStatus==='Active'&&c.clientStatus==='Inactive')return false;
@@ -2425,8 +2425,8 @@ function depRenderClientList(){
   const tplId=($('dep-tpl')||{}).value||'';
   const period=($('dep-period')||{}).value?.trim()||'';
   const assignee=($('dep-assignee')||{}).value||'';
-  if(!tplId){
-    el.innerHTML='<div class="asn-empty" style="padding:24px;">Select a template to see clients.</div>';
+  if(!tplId||!assignee){
+    el.innerHTML=`<div class="asn-empty" style="padding:24px;">${!tplId?'Select a template first.':'Select an assignee to see their clients.'}</div>`;
     const sc=$('dep-selection-count');if(sc)sc.textContent='';
     const cc=$('dep-client-count');if(cc)cc.textContent='';
     return;
@@ -2496,10 +2496,11 @@ function depClearFilters(){
 
 async function depExecute(){
   const tplId=($('dep-tpl')||{}).value||'';
-  const defaultAssignee=($('dep-assignee')||{}).value||'';
+  const assignedTo=($('dep-assignee')||{}).value||'';
   const dueRaw=($('dep-due')||{}).value?.trim()||'';
   const period=($('dep-period')||{}).value?.trim()||'';
   if(!tplId){toast('Select a template first','error');return;}
+  if(!assignedTo){toast('Assign To is required — select who will do this work','error',5000);return;}
   if(!dueRaw){toast('Due Date is required','error');return;}
   if(!_depSelected.size){toast('No clients selected','error');return;}
   const parsedDue=parseInputDate(dueRaw);
@@ -2514,14 +2515,6 @@ async function depExecute(){
     const siteId=await getSiteId();
     await asnLoad(true);
     for(const client of clients){
-      // Use selected assignee, or fall back to client's own assigned staff member
-      const assignedTo=defaultAssignee||client.assignedTo||'';
-      if(!assignedTo){
-        console.warn('No assignee for',client.companyName,'— skipping');
-        failed++;
-        if(prog)prog.textContent=`${deployed} deployed · ${skipped} skipped · ${failed} failed`;
-        continue;
-      }
       const deployKey=tplId+'|'+client.clientKey+'|'+(period||'ADHOC');
       if(DB_assignments.some(a=>a.deploymentKey===deployKey)){
         skipped++;
