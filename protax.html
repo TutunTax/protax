@@ -238,6 +238,10 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .check-label{font-size:14px;font-weight:600;}.check-sub{font-size:12px;color:var(--ink-light);margin-top:2px;}
 .ttag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
 .t-irp6{background:#fce7f3;color:#9d174d;}.t-itr14{background:#dbeafe;color:#1e3a8a;}.t-itr12{background:#d1fae5;color:#065f46;}
+.t-emp201{background:#fef3c7;color:#92400e;}.t-emp501{background:#ede9fe;color:#5b21b6;}
+.t-coida{background:#e0f2fe;color:#075985;}.t-cipc{background:#fce7f3;color:#831843;}.t-audit{background:#f3f4f6;color:#374151;}
+.returns-asn-section{margin-top:20px;padding-top:16px;border-top:2px solid var(--rule);}
+.returns-asn-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-light);margin-bottom:10px;}
 
 /* ── Buttons ── */
 .btn{height:38px;padding:0 16px;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s;white-space:nowrap;}
@@ -318,7 +322,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .tpl-step-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);}
 .tpl-step-row:last-child{border-bottom:none;}
 .tpl-step-seq{width:36px;height:32px;border:1px solid var(--rule);border-radius:6px;text-align:center;font-size:13px;font-weight:600;padding:0;flex-shrink:0;}
-.tpl-step-name{flex:1;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:14px;font-family:inherit;}
+.tpl-step-name{width:100%;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:14px;font-family:inherit;box-sizing:border-box;}
 .tpl-step-instr{width:100%;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;font-size:13px;font-family:inherit;resize:vertical;min-height:48px;margin-top:6px;box-sizing:border-box;}
 .tpl-step-del{width:30px;height:30px;border:1px solid #fecaca;border-radius:6px;background:white;color:#dc2626;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;}
 #tt-header{background:#8B1A1A;color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;}
@@ -560,7 +564,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
       <!-- Navigation tabs -->
       <div id="client-nav">
         <div class="cnav-tab active" onclick="showClientPane('details')" id="tab-details">Client Details</div>
-        <div class="cnav-tab" onclick="showClientPane('returns')" id="tab-returns">Tax Returns</div>
+        <div class="cnav-tab" onclick="showClientPane('returns')" id="tab-returns">Returns</div>
         <div class="cnav-tab" onclick="showClientPane('assignments')" id="tab-assignments">Assignments</div>
         <div class="cnav-tab" onclick="showClientPane('notes')" id="tab-notes">Notes</div>
       </div>
@@ -583,8 +587,11 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
             <div class="rt-tab active" data-type="irp6" onclick="setType('irp6')">IRP6</div>
             <div class="rt-tab" data-type="itr14" onclick="setType('itr14')">ITR14</div>
             <div class="rt-tab" data-type="itr12" onclick="setType('itr12')">ITR12</div>
-            <div class="rt-tab" style="opacity:.4;cursor:default;" title="Coming soon">EMP201</div>
-            <div class="rt-tab" style="opacity:.4;cursor:default;" title="Coming soon">EMP501</div>
+            <div class="rt-tab" data-type="emp201" onclick="setType('emp201')">EMP201</div>
+            <div class="rt-tab" data-type="emp501" onclick="setType('emp501')">EMP501</div>
+            <div class="rt-tab" data-type="coida" onclick="setType('coida')">COIDA</div>
+            <div class="rt-tab" data-type="cipc" onclick="setType('cipc')">CIPC</div>
+            <div class="rt-tab" data-type="audit" onclick="setType('audit')">Audit</div>
           </div>
           <button class="add-return-btn" onclick="addReturn()">＋ New Return</button>
           <button class="btn btn-ghost btn-sm" onclick="openModal('period-modal')" title="Bulk deploy returns">🚀 Bulk Deploy</button>
@@ -667,9 +674,6 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
         <div class="fg"><label>Assigned To</label>
           <select id="ec-assigned">
             <option value="">— Unassigned —</option>
-            <option>Johan Muller</option><option>Jermaine Jansen</option>
-            <option>Keanu van Wyk</option><option>Vonique Bezuidenhoud</option>
-            <option>Maryna Muller</option><option>Damien</option>
           </select>
         </div>
         <div class="fg"><label>Registration Number</label><input id="ec-regno"></div>
@@ -717,6 +721,13 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
         </div>
         <div class="fg"><label>Provisional Tax Payer</label>
           <select id="ec-provtax">
+            <option value="">— Unknown —</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="fg"><label>Employer</label>
+          <select id="ec-employer">
             <option value="">— Unknown —</option>
             <option value="Yes">Yes</option>
             <option value="No">No</option>
@@ -856,8 +867,15 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
           <label>Category *</label>
           <select id="na-category" style="width:100%;">
             <option value="">— Select —</option>
+            <option>IRP6</option>
+            <option>ITR14</option>
+            <option>ITR12</option>
+            <option>EMP201</option>
+            <option>EMP501</option>
+            <option>COIDA</option>
+            <option>CIPC</option>
+            <option>Audit</option>
             <option>Bookkeeping</option>
-            <option>Tax</option>
             <option>Payroll</option>
             <option>Secretarial</option>
             <option>Compliance</option>
@@ -1125,8 +1143,8 @@ const eLabel=t=>ENTITY_LABEL[t]||t||'—';
 const escHtml=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const S_LABEL={todo:'To Do',inprogress:'In Progress',awaiting:'Awaiting Approval',submitted:'Submitted'};
 const S_CLASS={todo:'b-todo',inprogress:'b-inprogress',awaiting:'b-awaiting',submitted:'b-submitted'};
-const T_CLASS={irp6:'t-irp6',itr14:'t-itr14',itr12:'t-itr12'};
-const T_LABEL={irp6:'IRP6',itr14:'ITR14',itr12:'ITR12'};
+const T_CLASS={irp6:'t-irp6',itr14:'t-itr14',itr12:'t-itr12',emp201:'t-emp201',emp501:'t-emp501',coida:'t-coida',cipc:'t-cipc',audit:'t-audit'};
+const T_LABEL={irp6:'IRP6',itr14:'ITR14',itr12:'ITR12',emp201:'EMP201',emp501:'EMP501',coida:'COIDA',cipc:'CIPC',audit:'Audit'};
 
 // ── Date helpers ──────────────────────────────────────────────────────────
 // Accepts: 20260831 → "31 August 2026" or "2026-08-31" → "31 August 2026"
@@ -1356,7 +1374,8 @@ async function loadAll(){
         yearEnd:fbd('FinancialYearEnd')||'',
         taxClearance:fbd('TaxClearance')||'',
         contactName:fbd('ContactPerson')||'',
-        provisionalTaxPayer:fbd('ProvisionalTaxPayer')||''
+        provisionalTaxPayer:fbd('ProvisionalTaxPayer')||'',
+        employer:(()=>{const v=fbd('Employer');return v===true||v==='true'||String(v).toLowerCase()==='yes'?'Yes':'No';})()
       };
     });
     DB.clients.sort((a,b)=>a.companyName.localeCompare(b.companyName));
@@ -1925,8 +1944,8 @@ function tplRenderStepEditor(steps){
   }
   el.innerHTML=steps.map((s,i)=>`
     <div class="tpl-step-row" id="tpl-step-row-${i}">
-      <input type="number" class="tpl-step-seq" value="${s.sequence||((i+1)*10)}" min="1" oninput="tplStepField(${i},'sequence',this.value)" title="Order">
-      <div style="flex:1;">
+      <input type="number" class="tpl-step-seq" value="${s.sequence||((i+1)*10)}" min="1" oninput="tplStepField(${i},'sequence',this.value)" onblur="tplResortSteps()" title="Order">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
         <input class="tpl-step-name" placeholder="Step name *" value="${escHtml(s.title||'')}" oninput="tplStepField(${i},'title',this.value)">
         <textarea class="tpl-step-instr" placeholder="Instructions (optional)" oninput="tplStepField(${i},'instruction',this.value)">${escHtml(s.instruction||'')}</textarea>
       </div>
@@ -1951,6 +1970,11 @@ function tplAddStep(){
 
 function tplDeleteStep(idx){
   _tplEditingSteps.splice(idx,1);
+  tplRenderStepEditor(_tplEditingSteps);
+}
+
+function tplResortSteps(){
+  _tplEditingSteps.sort((a,b)=>(Number(a.sequence)||0)-(Number(b.sequence)||0));
   tplRenderStepEditor(_tplEditingSteps);
 }
 
@@ -2265,6 +2289,199 @@ async function tplExecuteDeploy(){
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  MASS DEPLOY MODULE
+// ══════════════════════════════════════════════════════════════════
+let _massDeployClients=[];
+let _massDeploySelected=new Set();
+
+async function massDeployInit(){
+  try{
+    await tplLoad();
+    const sel=$('mass-deploy-tpl');
+    if(sel){
+      const active=DB_templates.filter(t=>t.active).sort((a,b)=>{
+        if(a.recurring&&!b.recurring)return-1;
+        if(!a.recurring&&b.recurring)return 1;
+        return a.name.localeCompare(b.name);
+      });
+      sel.innerHTML='<option value="">— Select a template —</option>'+
+        active.map(t=>`<option value="${t._spId}">${escHtml(t.name)}${t.recurring?' 🔄':''}${t.clientKey?' (client-specific)':''}</option>`).join('');
+    }
+    const assigneeSel=$('mass-deploy-assignee');
+    if(assigneeSel)assigneeSel.innerHTML='<option value="">— Select —</option>'+_ttAllUsers.map(u=>`<option>${escHtml(u)}</option>`).join('');
+    const teamSel=$('mass-f-assignee-filter');
+    if(teamSel)teamSel.innerHTML='<option value="">All Team Members</option>'+_ttAllUsers.map(u=>`<option>${escHtml(u)}</option>`).join('');
+    const clientList=$('mass-deploy-client-list');
+    if(clientList)clientList.innerHTML='<div class="asn-empty">Select a template to see eligible clients.</div>';
+    const count=$('mass-deploy-selection-count');
+    if(count)count.textContent='';
+    const progress=$('mass-deploy-progress');
+    if(progress){progress.style.display='none';progress.textContent='';}
+    _massDeploySelected.clear();
+  }catch(e){
+    toast('Could not load templates: '+e.message,'error',6000);
+  }
+}
+
+function massDeployTemplateChanged(){
+  const sel=$('mass-deploy-tpl');
+  const tplId=sel?sel.value:'';
+  const info=$('mass-deploy-tpl-info');
+  if(!tplId){
+    if(info)info.style.display='none';
+    const cl=$('mass-deploy-client-list');
+    if(cl)cl.innerHTML='<div class="asn-empty">Select a template to see eligible clients.</div>';
+    _massDeploySelected.clear();
+    return;
+  }
+  const tpl=DB_templates.find(t=>t._spId===tplId);
+  if(tpl&&info){
+    info.style.display='block';
+    const steps=(DB_templateSteps[tplId]||[]).length;
+    info.innerHTML=`📋 <strong>${escHtml(tpl.name)}</strong> · ${escHtml(tpl.category)} · ${tpl.recurring?'Recurring: '+escHtml(tpl.frequency):'One-off'} · ${steps} step${steps!==1?'s':''}${tpl.description?'<br><em>'+escHtml(tpl.description)+'</em>':''}`;
+  }
+  if(tpl&&tpl.defaultAssignee){const as=$('mass-deploy-assignee');if(as)as.value=tpl.defaultAssignee;}
+  _massDeploySelected.clear();
+  massDeployFilterClients();
+}
+
+function massDeployFilterClients(){
+  const tplId=($('mass-deploy-tpl')||{}).value||'';
+  if(!tplId)return;
+  const tpl=DB_templates.find(t=>t._spId===tplId);
+  const fEmployer=($('mass-f-employer')||{}).value||'';
+  const fEntity=($('mass-f-entity')||{}).value||'';
+  const fAssignee=($('mass-f-assignee-filter')||{}).value||'';
+  const fSearch=(($('mass-f-search')||{}).value||'').toLowerCase();
+  let clients=DB.clients.filter(c=>c.clientStatus!=='Inactive');
+  if(tpl&&tpl.clientKey)clients=clients.filter(c=>c.clientKey===tpl.clientKey);
+  clients=clients.filter(c=>{
+    if(fEmployer&&(c.employer||'')!==fEmployer)return false;
+    if(fEntity&&(c.entityType||'')!==fEntity)return false;
+    if(fAssignee&&(c.assignedTo||'').trim().toLowerCase()!==fAssignee.trim().toLowerCase())return false;
+    if(fSearch&&!c.companyName.toLowerCase().includes(fSearch))return false;
+    return true;
+  }).sort((a,b)=>a.companyName.localeCompare(b.companyName));
+  _massDeployClients=clients;
+  renderMassDeployClientList();
+}
+
+function renderMassDeployClientList(){
+  const el=$('mass-deploy-client-list');if(!el)return;
+  const tplId=($('mass-deploy-tpl')||{}).value||'';
+  const period=($('mass-deploy-period')||{}).value?.trim()||'';
+  if(!_massDeployClients.length){
+    el.innerHTML='<div class="asn-empty">No clients match these filters.</div>';
+    const sc=$('mass-deploy-selection-count');if(sc)sc.textContent='';
+    return;
+  }
+  el.innerHTML=_massDeployClients.map(c=>{
+    const checked=_massDeploySelected.has(c.clientKey);
+    const deployKey=tplId+'|'+c.clientKey+'|'+(period||'ADHOC');
+    const isDuplicate=!!period&&DB_assignments.some(a=>a.deploymentKey===deployKey);
+    return`<label style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--rule);cursor:${isDuplicate?'not-allowed':'pointer'};${isDuplicate?'opacity:.5;':''}${checked?'background:#f0fdf4;':''}">
+      <input type="checkbox" ${checked?'checked':''} ${isDuplicate?'disabled':''} onchange="massDeployToggleClient('${c.clientKey}',this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">${escHtml(c.companyName)}</div>
+        <div style="font-size:12px;color:var(--ink-light);">${escHtml(c.assignedTo||'Unassigned')}${c.entityType?' · '+escHtml(c.entityType):''}${c.employer==='Yes'?' · Employer':''}</div>
+      </div>
+      ${isDuplicate?'<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:20px;font-weight:600;">Already deployed</span>':''}
+    </label>`;
+  }).join('');
+  const count=_massDeploySelected.size;
+  const sc=$('mass-deploy-selection-count');
+  if(sc)sc.textContent=count?`${count} client${count!==1?'s':''} selected`:'No clients selected yet.';
+}
+
+function massDeployToggleClient(clientKey,checked){
+  if(checked)_massDeploySelected.add(clientKey);
+  else _massDeploySelected.delete(clientKey);
+  const count=_massDeploySelected.size;
+  const sc=$('mass-deploy-selection-count');
+  if(sc)sc.textContent=count?`${count} client${count!==1?'s':''} selected`:'No clients selected yet.';
+  renderMassDeployClientList();
+}
+
+function massDeploySelectAll(select){
+  const tplId=($('mass-deploy-tpl')||{}).value||'';
+  const period=($('mass-deploy-period')||{}).value?.trim()||'';
+  _massDeployClients.forEach(c=>{
+    const deployKey=tplId+'|'+c.clientKey+'|'+(period||'ADHOC');
+    const isDuplicate=!!period&&DB_assignments.some(a=>a.deploymentKey===deployKey);
+    if(!isDuplicate){if(select)_massDeploySelected.add(c.clientKey);else _massDeploySelected.delete(c.clientKey);}
+  });
+  renderMassDeployClientList();
+}
+
+async function executeMassDeploy(){
+  const tplId=($('mass-deploy-tpl')||{}).value||'';
+  const period=($('mass-deploy-period')||{}).value?.trim()||'';
+  const dueRaw=($('mass-deploy-due')||{}).value?.trim()||'';
+  const assignedTo=($('mass-deploy-assignee')||{}).value||'';
+  if(!tplId){toast('Select a template first','error');return;}
+  if(!dueRaw){toast('Due Date is required','error');return;}
+  if(!assignedTo){toast('Default Assignee is required','error');return;}
+  if(!_massDeploySelected.size){toast('No clients selected','error');return;}
+  const parsedDue=parseInputDate(dueRaw);
+  const dueDisplay=parsedDue?formatDateDisplay(parsedDue):dueRaw;
+  const tpl=DB_templates.find(t=>t._spId===tplId);
+  if(!tpl){toast('Template not found','error');return;}
+  const clients=[..._massDeploySelected].map(ck=>DB.clients.find(c=>c.clientKey===ck)).filter(Boolean);
+  const progressEl=$('mass-deploy-progress');
+  if(progressEl){progressEl.style.display='block';progressEl.textContent='Starting…';}
+  let deployed=0,skipped=0,failed=0;
+  try{
+    const siteId=await getSiteId();
+    await asnLoad(true);
+    for(const client of clients){
+      const deployKey=tplId+'|'+client.clientKey+'|'+(period||'ADHOC');
+      if(DB_assignments.some(a=>a.deploymentKey===deployKey)){skipped++;continue;}
+      try{
+        const asnId=asnNextId();
+        const asnTitle=tpl.name+(period?' — '+period:'');
+        const awf=(dn,val)=>{const wm=asnWriteMap(_asnColMap);const i=wm[dn];return i?{[i]:val}:{[dn]:val};};
+        const asnFields=Object.assign(
+          {Title:asnTitle},
+          awf('AssignmentID',asnId),awf('ClientKey',client.clientKey),
+          awf('AssignedTo',assignedTo),awf('DueDate',dueDisplay),
+          awf('Status','Not Started'),awf('Category',tpl.category),
+          period?awf('Period',period):{},
+          awf('SourceTemplate',tplId),awf('DeploymentKey',deployKey)
+        );
+        const asnResult=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENTS}/items`,{fields:asnFields});
+        const asnSpId=asnResult.id;
+        const tplSteps=DB_templateSteps[tplId]||[];
+        const stepWf=(dn,val)=>{const wm=asnWriteMap(_asnStepsColMap);const i=wm[dn];return i?{[i]:val}:{[dn]:val};};
+        const copiedSteps=[];
+        for(const ts of tplSteps){
+          if(!ts.active)continue;
+          const sf=Object.assign(
+            {Title:ts.title},stepWf('Step',ts.title),stepWf('Assignment',asnSpId),
+            stepWf('Sequence',ts.sequence),stepWf('Instruction',ts.instruction||''),stepWf('Completed',false)
+          );
+          const sr=await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_ASSIGNMENT_STEPS}/items`,{fields:sf});
+          copiedSteps.push({_spId:sr.id,asnId:asnSpId,title:ts.title,sequence:ts.sequence,instruction:ts.instruction||'',completed:false,completedDate:'',completedBy:''});
+        }
+        DB_assignments.push({_spId:asnSpId,assignmentId:asnId,title:asnTitle,clientKey:client.clientKey,assignedTo,dueDate:dueDisplay,status:'Not Started',category:tpl.category,period,currentNote:'',waitingOn:'',sourceTemplate:tplId,deploymentKey,completedDate:'',completedBy:''});
+        DB_assignmentSteps[asnSpId]=copiedSteps;
+        deployed++;
+        if(progressEl)progressEl.textContent=`Deploying… ${deployed} done, ${skipped} skipped, ${failed} failed`;
+      }catch(err){
+        console.error('Mass deploy error for',client.companyName,err);
+        failed++;
+      }
+    }
+    if(progressEl)progressEl.textContent=`✅ Complete: ${deployed} deployed, ${skipped} already existed${failed?' · '+failed+' failed':''}`;
+    toast(`Deployed to ${deployed} client${deployed!==1?'s':''}${skipped?' · '+skipped+' skipped':''}${failed?' · '+failed+' failed':''}`,failed?'error':'success',6000);
+    _massDeploySelected.clear();
+    renderMassDeployClientList();
+    asnOvRenderOverview();
+  }catch(e){
+    toast('Deploy failed: '+e.message,'error',8000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  ASSIGNMENTS OVERLAY
 // ══════════════════════════════════════════════════════════════════
 let _asnOvActiveTab='overview';
@@ -2280,6 +2497,8 @@ async function openAssignmentsOverlay(){
   // Show Templates tab for Admin users only
   const tplTab=$('asn-ov-tab-templates');
   if(tplTab)tplTab.style.display=(_ttUser&&_ttUser.role==='Admin')?'':'none';
+  const deployTab=$('asn-ov-tab-deploy');
+  if(deployTab)deployTab.style.display=(_ttUser&&_ttUser.role==='Admin')?'':'none';
   try{
     await asnLoad();
     asnOvShowTab(_asnOvActiveTab,null,true);
@@ -2309,11 +2528,13 @@ function asnOvShowTab(tab,btn,silent=false){
     if(tab==='all')asnOvRenderAll();
     if(tab==='mywork')asnOvRenderMyWork();
     if(tab==='templates')tplRenderList();
+    if(tab==='deploy')massDeployInit();
   }else{
     if(tab==='overview')asnOvRenderOverview();
     if(tab==='all')asnOvRenderAll();
     if(tab==='mywork')asnOvRenderMyWork();
     if(tab==='templates')tplRenderList();
+    if(tab==='deploy')massDeployInit();
   }
 }
 
@@ -3096,24 +3317,25 @@ function renderDetailsPane(){
   const fields=[
     ['ClientKey',c.clientKey.startsWith('_sp_')?'(pending — see debug panel)':c.clientKey],
     ['Title',c.companyName],
-    ['ClientStatus',c.clientStatus||'Active'],
-    ['AssignedTo',c.assignedTo],
-    ['RegistrationNumber',c.registrationNumber],
-    ['CIPCRenewalMonth',c.cipcRenewalMonth],
-    ['NatureOfBusiness',c.natureOfBusiness],
-    ['BusinessAddress',c.businessAddress],
-    ['TaxNumber',c.taxNumber],
-    ['VATNumber',c.vatNumber],
-    ['PAYENumber',c.payeNumber],
-    ['CustomsCode',c.customsCode],
-    ['SICCode',c.sicCode],
-    ['ProfitCode',c.profitCode],
-    ['UIFNumber',c.uifNumber],
-    ['COIDANumber',c.coidaNumber],
-    ['COIDAClass',c.coidaClass],
-    ['BusinessTel',c.businessTel],
-    ['BankDetails',c.bankDetails],
+    ['Client Status',c.clientStatus||'Active'],
+    ['Assigned To',c.assignedTo],
+    ['Registration Number',c.registrationNumber],
+    ['CIPC Renewal Month',c.cipcRenewalMonth],
+    ['Nature of Business',c.natureOfBusiness],
+    ['Business Address',c.businessAddress],
+    ['Tax Number',c.taxNumber],
+    ['VAT Number',c.vatNumber],
+    ['PAYE Number',c.payeNumber],
+    ['Customs Code',c.customsCode],
+    ['SIC Code',c.sicCode],
+    ['Profit Code',c.profitCode],
+    ['UIF Number',c.uifNumber],
+    ['COIDA Number',c.coidaNumber],
+    ['COIDA Class',c.coidaClass],
+    ['Business Tel',c.businessTel],
+    ['Bank Details',c.bankDetails],
     ['Notes',c.notes],
+    ['Employer',c.employer||'—'],
   ];
   $('detail-grid').innerHTML=fields.map(([label,value])=>
     '<div class="field-row"><div class="field-label">'+label+'</div><div class="field-value">'+escHtml(value||'')+'</div></div>'
@@ -3182,57 +3404,82 @@ function renderReturnList(){
   const rets=clientReturns(activeClientKey,activeType).sort((a,b)=>b.returnPeriod.localeCompare(a.returnPeriod));
   const listEl=$('return-list-area');
   const wizEl=$('wizard-area');
+  const typeLabel=T_LABEL[activeType]||activeType.toUpperCase();
   if(!rets.length){
-    listEl.innerHTML='<div class="no-returns">No '+T_LABEL[activeType]+' returns'+(activePeriod?' for period '+activePeriod:'')+'.<br><button class="add-return-btn" style="margin-top:12px;" onclick="addReturn()">＋ Add Return</button></div>';
-    wizEl.innerHTML='';return;
-  }
+    listEl.innerHTML='<div class="no-returns">No '+typeLabel+' returns'+(activePeriod?' for period '+activePeriod:'')+'.<br><button class="add-return-btn" style="margin-top:12px;" onclick="addReturn()">\uff0b Add Return</button></div>';
+    wizEl.innerHTML='';
+  }else{
     listEl.innerHTML='<div class="return-list">'+rets.map(r=>{
-    const isActive=r.id===activeReturnId;
-    const eid=encodeURIComponent(r.id);
-    return '<div class="return-card'+(isActive?' active':'')+'" data-rid="'+eid+'">'
-      +'<div class="rc-left"><div class="rc-title"><span class="ttag '+T_CLASS[r.returnType]+'">'+T_LABEL[r.returnType]+'</span> '+escHtml(r.returnPeriod)+'</div>'
-      +'<div class="rc-meta">Due: '+(r.dueDate||'—')+' · '+(S_LABEL[r.status]||r.status)+(r.amountPayable?(' · '+Rfmt(r.amountPayable)):'')+'</div></div>'
-      +'<div class="rc-right" style="display:flex;align-items:center;gap:6px;">'
-      +(isActive?'<button class="btn btn-primary btn-sm" data-action="save" data-eid="'+eid+'" title="Save to SharePoint">💾 Save</button>':'')
-      +'<span class="badge '+(S_CLASS[r.status]||'b-todo')+'">'+(S_LABEL[r.status]||r.status)+'</span>'
-      +'<button class="btn-icon" data-action="rename" data-eid="'+eid+'" title="Rename">✏️</button>'
-      +'<button class="btn-icon" data-action="delete" data-eid="'+eid+'" title="Delete" style="color:#991b1b;">🗑</button>'
-      +'</div>'
-      +'</div>';
-  }).join('')+'</div>';
-  listEl.onclick=null;
-  listEl.onclick=function(e){
-    const btn=e.target.closest('[data-action]');
-    if(btn){
-      e.stopPropagation();
-      const eid=btn.dataset.eid||'';
-      if(btn.dataset.action==='rename')renameReturn(eid);
-      else if(btn.dataset.action==='delete')deleteReturnById(eid);
-      else if(btn.dataset.action==='save'){
-        // Save return directly from memory - no wizard open so skip captureForm
-        const retId=decodeURIComponent(eid);
-        const retToSave=DB.returns.find(r=>r.id===retId);
-        if(!retToSave){toast('Return not found','error');return;}
-        if(_saving)return;
-        _saving=true;setSave('saving');
-        spSaveReturn(retToSave)
-          .then(()=>{setSave('saved');toast('✅ Saved to SharePoint','success');renderReturnList();})
-          .catch(e=>{setSave('failed',e.message);toast('⚠ Save failed: '+e.message,'error',8000);})
-          .finally(()=>{_saving=false;});
+      const isActive=r.id===activeReturnId;
+      const eid=encodeURIComponent(r.id);
+      return '<div class="return-card'+(isActive?' active':'')+'" data-rid="'+eid+'">'
+        +'<div class="rc-left"><div class="rc-title"><span class="ttag '+(T_CLASS[r.returnType]||'t-irp6')+'">'+(T_LABEL[r.returnType]||r.returnType)+'</span> '+escHtml(r.returnPeriod)+'</div>'
+        +'<div class="rc-meta">Due: '+(r.dueDate||'\u2014')+' \u00b7 '+(S_LABEL[r.status]||r.status)+(r.amountPayable?(' \u00b7 '+Rfmt(r.amountPayable)):'')+'</div></div>'
+        +'<div class="rc-right" style="display:flex;align-items:center;gap:6px;">'
+        +(isActive?'<button class="btn btn-primary btn-sm" data-action="save" data-eid="'+eid+'" title="Save to SharePoint">\ud83d\udcbe Save</button>':'')
+        +'<span class="badge '+(S_CLASS[r.status]||'b-todo')+'">'+(S_LABEL[r.status]||r.status)+'</span>'
+        +'<button class="btn-icon" data-action="rename" data-eid="'+eid+'" title="Rename">\u270f\ufe0f</button>'
+        +'<button class="btn-icon" data-action="delete" data-eid="'+eid+'" title="Delete" style="color:#991b1b;">\ud83d\uddd1</button>'
+        +'</div>'
+        +'</div>';
+    }).join('')+'</div>';
+    listEl.onclick=null;
+    listEl.onclick=function(e){
+      const btn=e.target.closest('[data-action]');
+      if(btn){
+        e.stopPropagation();
+        const eid=btn.dataset.eid||'';
+        if(btn.dataset.action==='rename')renameReturn(eid);
+        else if(btn.dataset.action==='delete')deleteReturnById(eid);
+        else if(btn.dataset.action==='save'){
+          const retId=decodeURIComponent(eid);
+          const retToSave=DB.returns.find(r=>r.id===retId);
+          if(!retToSave){toast('Return not found','error');return;}
+          if(_saving)return;
+          _saving=true;setSave('saving');
+          spSaveReturn(retToSave)
+            .then(()=>{setSave('saved');toast('\u2705 Saved to SharePoint','success');renderReturnList();})
+            .catch(e=>{setSave('failed',e.message);toast('\u26a0 Save failed: '+e.message,'error',8000);})
+            .finally(()=>{_saving=false;});
+        }
+        return;
       }
-      return;
-    }
-    const item=e.target.closest('[data-rid]');
-    if(!item)return;
-    window.selectReturn(decodeURIComponent(item.dataset.rid||''));
-  };
-  if(activeReturnId){
-    const ret=rets.find(r=>r.id===activeReturnId);
-    if(ret){
-      if(ret.returnType==='irp6')renderWizard(c,ret);
-      else renderITRWizard(c,ret);
+      const item=e.target.closest('[data-rid]');
+      if(!item)return;
+      window.selectReturn(decodeURIComponent(item.dataset.rid||''));
+    };
+    if(activeReturnId){
+      const ret=rets.find(r=>r.id===activeReturnId);
+      if(ret){
+        if(ret.returnType==='irp6')renderWizard(c,ret);
+        else renderITRWizard(c,ret);
+      }else wizEl.innerHTML='';
     }else wizEl.innerHTML='';
-  }else wizEl.innerHTML='';
+  }
+  // Append assignments for this return type category
+  renderReturnTypeAssignments(c.clientKey,activeType);
+}
+
+function renderReturnTypeAssignments(clientKey,returnType){
+  const catMap={irp6:'IRP6',itr14:'ITR14',itr12:'ITR12',emp201:'EMP201',emp501:'EMP501',coida:'COIDA',cipc:'CIPC',audit:'Audit'};
+  const cat=catMap[returnType];
+  if(!cat)return;
+  if(!_asnLoaded){
+    asnLoad().then(()=>renderReturnTypeAssignments(clientKey,returnType)).catch(()=>{});
+    return;
+  }
+  const open=DB_assignments.filter(a=>a.clientKey===clientKey&&a.category===cat&&a.status!=='Complete');
+  const recent=DB_assignments.filter(a=>a.clientKey===clientKey&&a.category===cat&&a.status==='Complete')
+    .sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||'')).slice(0,5);
+  if(!open.length&&!recent.length)return;
+  const listEl=$('return-list-area');
+  const section=document.createElement('div');
+  section.className='returns-asn-section';
+  section.innerHTML=
+    '<div class="returns-asn-header">'+cat+' Assignments</div>'+
+    (open.length?open.map(a=>asnCardHtml(a)).join(''):'')+
+    (recent.length?'<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--ink-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Recently Completed</div>'+recent.map(a=>asnCardHtml(a)).join(''):'');
+  listEl.appendChild(section);
 }
 
 function selectReturn(retId){
@@ -3884,7 +4131,13 @@ function createPeriod(){
 // ── Edit modal ────────────────────────────────────────────────────────────
 function openEditModal(){
   const c=getClient();if(!c)return;
-  // Company fields
+  // Populate Assigned To dynamically from live users
+  const ecAssigned=$('ec-assigned');
+  if(ecAssigned){
+    ecAssigned.innerHTML='<option value="">— Unassigned —</option>'+
+      (_ttAllUsers.length?_ttAllUsers:['Johan Muller','Maryna Muller','Keanu van Wyk','Jermaine Jansen','Damien','Andre','Vonique Bezuidenhoud'])
+      .map(u=>`<option${u===(c.assignedTo||'')?' selected':''}>${escHtml(u)}</option>`).join('');
+  }
   sv('ec-name',c.companyName);
   sv('ec-status',c.clientStatus||'Active');
   sv('ec-assigned',c.assignedTo||'');
@@ -3909,6 +4162,7 @@ function openEditModal(){
   sv('ec-yearend',c.yearEnd||'');
   sv('ec-taxclear',c.taxClearance||'');
   sv('ec-provtax',c.provisionalTaxPayer||'');
+  sv('ec-employer',c.employer||'');
   // Returns list
   const ds=$('ec-del-return');ds.innerHTML='<option value="">— Select return —</option>';
   clientReturns(activeClientKey).forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=T_LABEL[r.returnType]+' '+r.returnPeriod+' — '+(S_LABEL[r.status]||r.status);ds.appendChild(o);});
@@ -3950,6 +4204,7 @@ async function saveClientEdit(){
   c.yearEnd=gv('ec-yearend');
   c.taxClearance=gv('ec-taxclear');
   c.provisionalTaxPayer=gv('ec-provtax');
+  c.employer=gv('ec-employer');
   // Save to SharePoint Tutin_Client_Register
   if(c._spId){
     try{
@@ -3984,6 +4239,7 @@ async function saveClientEdit(){
       fields[fi('EntityType')]=c.entityType||'';
       fields[fi('FinancialYearEnd')]=c.yearEnd||'';
       fields[fi('ContactPerson')]=c.contactName||'';
+      fields[fi('Employer')]=c.employer==='Yes';
       // Remove undefined keys
       Object.keys(fields).forEach(k=>{if(!k||k==='undefined')delete fields[k];});
       await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_CLIENTS+'/items/'+c._spId+'/fields',fields);
@@ -6079,6 +6335,7 @@ initAuth();
         <button class="asn-ov-tab" onclick="asnOvShowTab('all',this)">All Assignments</button>
         <button class="asn-ov-tab" onclick="asnOvShowTab('mywork',this)">My Work</button>
         <button class="asn-ov-tab" id="asn-ov-tab-templates" onclick="asnOvShowTab('templates',this)" style="display:none;">Templates</button>
+        <button class="asn-ov-tab" id="asn-ov-tab-deploy" onclick="asnOvShowTab('deploy',this)" style="display:none;">Deploy</button>
       </nav>
     </div>
   </div>
@@ -6140,6 +6397,71 @@ initAuth();
       </div>
     </div>
 
+    <!-- ── DEPLOY TAB ── -->
+    <div class="asn-ov-panel" id="asn-ov-panel-deploy">
+      <div style="max-width:1100px;margin:auto;">
+        <div class="tt-card" style="margin-bottom:16px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Step 1 — Select Template</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="fg" style="flex:1;min-width:240px;"><label>Template</label>
+              <select id="mass-deploy-tpl" onchange="massDeployTemplateChanged()" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;">
+                <option value="">— Select a template —</option>
+              </select>
+            </div>
+            <div class="fg" style="flex:1;min-width:180px;"><label>Period <span style="font-weight:400;font-size:11px;">(for duplicate protection)</span></label>
+              <input id="mass-deploy-period" placeholder="e.g. September 2026" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;" oninput="massDeployFilterClients()">
+            </div>
+            <div class="fg" style="flex:1;min-width:160px;"><label>Due Date *</label>
+              <input id="mass-deploy-due" placeholder="e.g. 30 Sep 2026" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;" onblur="formatDateInput(this);">
+            </div>
+            <div class="fg" style="flex:1;min-width:160px;"><label>Default Assignee *</label>
+              <select id="mass-deploy-assignee" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+          </div>
+          <div id="mass-deploy-tpl-info" style="display:none;margin-top:10px;padding:10px;background:var(--surface);border-radius:6px;font-size:13px;color:var(--ink-mid);"></div>
+        </div>
+        <div class="tt-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="font-size:15px;font-weight:700;flex:1;">Step 2 — Select Clients</div>
+            <button class="btn btn-ghost btn-sm" onclick="massDeploySelectAll(true)">Select All Visible</button>
+            <button class="btn btn-ghost btn-sm" onclick="massDeploySelectAll(false)">Clear All</button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+            <select id="mass-f-employer" onchange="massDeployFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Clients</option>
+              <option value="Yes">Employers Only</option>
+              <option value="No">Non-Employers</option>
+            </select>
+            <select id="mass-f-entity" onchange="massDeployFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Entity Types</option>
+              <option value="Company">Company</option><option value="CC">CC</option>
+              <option value="SoleProp">Sole Proprietor</option><option value="Individual">Individual</option><option value="Trust">Trust</option>
+            </select>
+            <select id="mass-f-assignee-filter" onchange="massDeployFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
+              <option value="">All Team Members</option>
+            </select>
+            <input id="mass-f-search" placeholder="🔍 Search clients…" oninput="massDeployFilterClients()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;flex:1;min-width:160px;">
+          </div>
+          <div id="mass-deploy-client-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--rule);border-radius:6px;background:white;">
+            <div class="asn-empty">Select a template first.</div>
+          </div>
+          <div id="mass-deploy-selection-count" style="font-size:13px;color:var(--ink-light);margin-top:8px;"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:8px;border:1px solid var(--rule);padding:14px 16px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;">Step 3 — Deploy</div>
+            <div style="font-size:12px;color:var(--ink-light);margin-top:2px;">Duplicate assignments are automatically skipped.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div id="mass-deploy-progress" style="font-size:13px;color:var(--ink-mid);display:none;"></div>
+            <button class="btn btn-primary" onclick="executeMassDeploy()">▶ Deploy to Selected Clients</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── TEMPLATES TAB ── -->
     <div class="asn-ov-panel" id="asn-ov-panel-templates">
       <div style="max-width:1100px;margin:auto;">
@@ -6149,8 +6471,7 @@ initAuth();
             <div style="font-size:15px;font-weight:700;flex:1;">Assignment Templates</div>
             <select id="tpl-f-category" onchange="tplRenderList()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
               <option value="">All Categories</option>
-              <option>Bookkeeping</option><option>Tax</option><option>Payroll</option>
-              <option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
+              <option>IRP6</option><option>ITR14</option><option>ITR12</option><option>EMP201</option><option>EMP501</option><option>COIDA</option><option>CIPC</option><option>Audit</option><option>Bookkeeping</option><option>Payroll</option><option>Secretarial</option><option>Compliance</option><option>Internal</option><option>Other</option>
             </select>
             <select id="tpl-f-type" onchange="tplRenderList()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
               <option value="">All Types</option>
