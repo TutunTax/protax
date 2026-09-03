@@ -2710,12 +2710,15 @@ function asnOvMiniRow(a){
 
 function asnOvRenderAll(){
   const el=$('asn-ov-all-list');if(!el)return;
+  const completedEl=$('asn-ov-all-completed');
   const fStatus=($('asn-f-status')||{}).value||'';
   const fAssignee=($('asn-f-assignee')||{}).value||'';
   const fCategory=($('asn-f-category')||{}).value||'';
   const fSearch=(($('asn-f-search')||{}).value||'').toLowerCase();
   const fOverdue=($('asn-f-overdue')||{}).checked;
+  // Open list — always excludes Complete
   let list=DB_assignments.filter(a=>{
+    if(a.status==='Complete')return false;
     if(fStatus&&a.status!==fStatus)return false;
     if(fAssignee&&a.assignedTo!==fAssignee)return false;
     if(fCategory&&a.category!==fCategory)return false;
@@ -2723,48 +2726,63 @@ function asnOvRenderAll(){
     if(fSearch&&!(a.title.toLowerCase().includes(fSearch)||a.clientKey.toLowerCase().includes(fSearch)||(a.currentNote||'').toLowerCase().includes(fSearch)))return false;
     return true;
   });
-  // Sort: overdue first, then by status, then due date
   list.sort((a,b)=>{
     const ao=asnIsOverdue(a),bo=asnIsOverdue(b);
     if(ao&&!bo)return-1;if(!ao&&bo)return 1;
     return asnParseDueDate(a.dueDate)-asnParseDueDate(b.dueDate);
   });
-  if(!list.length){el.innerHTML='<div class="asn-empty">No assignments match these filters.</div>';return;}
-  el.innerHTML=list.map(a=>{
-    const client=DB.clients.find(c=>c.clientKey===a.clientKey);
-    const clientName=client?client.companyName:a.clientKey;
-    return`<div class="asn-ov-all-row" onclick="asnOvJumpToClient('${a.clientKey}','${a._spId}')">
-      <div style="flex:1;">
-        <div class="asn-ov-all-client">${escHtml(clientName)}</div>
-        <div class="asn-ov-row-title">${escHtml(a.title)}</div>
-        <div class="asn-ov-row-meta">
-          <span>📋 ${escHtml(a.category||'—')}</span>
-          <span>👤 ${escHtml(a.assignedTo||'—')}</span>
-          <span>📅 ${escHtml(a.dueDate||'—')}</span>
-          ${a.waitingOn?'<span>⏳ '+escHtml(a.waitingOn)+'</span>':''}
-        </div>
-        ${a.currentNote?`<div class="asn-card-note" style="margin-top:6px;">${escHtml(a.currentNote)}</div>`:''}
+  if(!list.length){el.innerHTML='<div class="asn-empty">No open assignments match these filters.</div>';}
+  else el.innerHTML=list.map(a=>asnOvAllRow(a)).join('');
+  // Completed column — same assignee/category/search filters, sorted by completedDate desc
+  if(completedEl){
+    let done=DB_assignments.filter(a=>{
+      if(a.status!=='Complete')return false;
+      if(fAssignee&&a.assignedTo!==fAssignee)return false;
+      if(fCategory&&a.category!==fCategory)return false;
+      if(fSearch&&!(a.title.toLowerCase().includes(fSearch)||a.clientKey.toLowerCase().includes(fSearch)||(a.currentNote||'').toLowerCase().includes(fSearch)))return false;
+      return true;
+    });
+    done.sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
+    if(!done.length){completedEl.innerHTML='<div class="asn-empty">No completed assignments.</div>';}
+    else completedEl.innerHTML=done.map(a=>asnOvAllRow(a)).join('');
+  }
+}
+
+function asnOvAllRow(a){
+  const client=DB.clients.find(c=>c.clientKey===a.clientKey);
+  const clientName=client?client.companyName:a.clientKey;
+  return`<div class="asn-ov-all-row" onclick="asnOvJumpToClient('${a.clientKey}','${a._spId}')">
+    <div style="flex:1;">
+      <div class="asn-ov-all-client">${escHtml(clientName)}</div>
+      <div class="asn-ov-row-title">${escHtml(a.title)}</div>
+      <div class="asn-ov-row-meta">
+        <span>📋 ${escHtml(a.category||'—')}</span>
+        <span>👤 ${escHtml(a.assignedTo||'—')}</span>
+        <span>📅 ${escHtml(a.dueDate||'—')}</span>
+        ${a.waitingOn?'<span>⏳ '+escHtml(a.waitingOn)+'</span>':''}
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${asnStatusBadge(a)}
-        ${asnStepsPill(a)}
-      </div>
-    </div>`;
-  }).join('');
+      ${a.currentNote?`<div class="asn-card-note" style="margin-top:6px;">${escHtml(a.currentNote)}</div>`:''}
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      ${asnStatusBadge(a)}
+      ${asnStepsPill(a)}
+    </div>
+  </div>`;
 }
 
 function asnOvRenderMyWork(){
   const el=$('asn-ov-mywork-list');if(!el)return;
+  const completedEl=$('asn-ov-mywork-completed');
   const myName=_ttUser?_ttUser.name:'';
   if(!myName){el.innerHTML='<div class="asn-empty">Sign in to see your work.</div>';return;}
   const fStatus=($('mw-f-status')||{}).value||'';
   const fCategory=($('mw-f-category')||{}).value||'';
   const fSearch=(($('mw-f-search')||{}).value||'').toLowerCase();
   const fOverdue=($('mw-f-overdue')||{}).checked;
+  // Open list — always excludes Complete
   let mine=DB_assignments.filter(a=>{
     if(a.assignedTo!==myName)return false;
-    // If no status filter, default to excluding Complete (show open work)
-    if(!fStatus&&a.status==='Complete')return false;
+    if(a.status==='Complete')return false;
     if(fStatus&&a.status!==fStatus)return false;
     if(fCategory&&a.category!==fCategory)return false;
     if(fOverdue&&!asnIsOverdue(a))return false;
@@ -2778,28 +2796,57 @@ function asnOvRenderMyWork(){
   });
   if(!mine.length){
     el.innerHTML=`<div class="asn-empty">${fStatus||fCategory||fSearch||fOverdue?'No assignments match these filters.':'You have no open assignments 🎉'}</div>`;
-    return;
-  }
-  el.innerHTML=mine.map(a=>{
-    const client=DB.clients.find(c=>c.clientKey===a.clientKey);
-    const clientName=client?client.companyName:a.clientKey;
-    return`<div class="asn-ov-all-row" onclick="asnOvJumpToClient('${a.clientKey}','${a._spId}')">
-      <div style="flex:1;">
-        <div class="asn-ov-all-client">${escHtml(clientName)}</div>
-        <div class="asn-ov-row-title">${escHtml(a.title)}</div>
-        <div class="asn-ov-row-meta">
-          <span>📋 ${escHtml(a.category||'—')}</span>
-          <span>📅 ${escHtml(a.dueDate||'—')}</span>
-          ${a.waitingOn?'<span>⏳ '+escHtml(a.waitingOn)+'</span>':''}
+  }else{
+    el.innerHTML=mine.map(a=>{
+      const client=DB.clients.find(c=>c.clientKey===a.clientKey);
+      const clientName=client?client.companyName:a.clientKey;
+      return`<div class="asn-ov-all-row" onclick="asnOvJumpToClient('${a.clientKey}','${a._spId}')">
+        <div style="flex:1;">
+          <div class="asn-ov-all-client">${escHtml(clientName)}</div>
+          <div class="asn-ov-row-title">${escHtml(a.title)}</div>
+          <div class="asn-ov-row-meta">
+            <span>📋 ${escHtml(a.category||'—')}</span>
+            <span>📅 ${escHtml(a.dueDate||'—')}</span>
+            ${a.waitingOn?'<span>⏳ '+escHtml(a.waitingOn)+'</span>':''}
+          </div>
+          ${a.currentNote?`<div class="asn-card-note" style="margin-top:6px;">${escHtml(a.currentNote)}</div>`:''}
         </div>
-        ${a.currentNote?`<div class="asn-card-note" style="margin-top:6px;">${escHtml(a.currentNote)}</div>`:''}
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${asnStatusBadge(a)}
-        ${asnStepsPill(a)}
-      </div>
-    </div>`;
-  }).join('');
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          ${asnStatusBadge(a)}
+          ${asnStepsPill(a)}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Completed column — same category/search filters, sorted by completedDate desc
+  if(completedEl){
+    let done=DB_assignments.filter(a=>{
+      if(a.assignedTo!==myName)return false;
+      if(a.status!=='Complete')return false;
+      if(fCategory&&a.category!==fCategory)return false;
+      if(fSearch&&!(a.title.toLowerCase().includes(fSearch)||(a.currentNote||'').toLowerCase().includes(fSearch)))return false;
+      return true;
+    });
+    done.sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
+    if(!done.length){completedEl.innerHTML='<div class="asn-empty">No completed assignments.</div>';}
+    else completedEl.innerHTML=done.map(a=>{
+      const client=DB.clients.find(c=>c.clientKey===a.clientKey);
+      const clientName=client?client.companyName:a.clientKey;
+      return`<div class="asn-ov-all-row" onclick="asnOvJumpToClient('${a.clientKey}','${a._spId}')">
+        <div style="flex:1;">
+          <div class="asn-ov-all-client">${escHtml(clientName)}</div>
+          <div class="asn-ov-row-title">${escHtml(a.title)}</div>
+          <div class="asn-ov-row-meta">
+            <span>📋 ${escHtml(a.category||'—')}</span>
+            <span>✅ ${escHtml(a.completedDate||'—')}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          ${asnStatusBadge(a)}
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 
 function mwClearFilters(){
@@ -6641,7 +6688,7 @@ initAuth();
 
     <!-- ── ALL ASSIGNMENTS TAB ── -->
     <div class="asn-ov-panel" id="asn-ov-panel-all">
-      <div style="max-width:1100px;margin:auto;">
+      <div style="max-width:1400px;margin:auto;">
         <!-- Filter bar -->
         <div id="asn-ov-filters" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center;">
           <select id="asn-f-status" onchange="asnOvRenderAll()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
@@ -6649,7 +6696,6 @@ initAuth();
             <option>Not Started</option>
             <option>In Progress</option>
             <option>Waiting</option>
-            <option>Complete</option>
           </select>
           <select id="asn-f-assignee" onchange="asnOvRenderAll()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
             <option value="">All Team Members</option>
@@ -6664,20 +6710,29 @@ initAuth();
           </label>
           <button onclick="asnOvClearFilters()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;cursor:pointer;">Clear</button>
         </div>
-        <div id="asn-ov-all-list"></div>
+        <!-- Two column layout -->
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;">
+          <div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-bottom:10px;">Open</div>
+            <div id="asn-ov-all-list"></div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-bottom:10px;">Completed</div>
+            <div id="asn-ov-all-completed"></div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- ── MY WORK TAB ── -->
     <div class="asn-ov-panel" id="asn-ov-panel-mywork">
-      <div style="max-width:800px;margin:auto;">
+      <div style="max-width:1400px;margin:auto;">
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
           <select id="mw-f-status" onchange="asnOvRenderMyWork()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
             <option value="">All Statuses</option>
             <option value="Not Started">Not Started</option>
             <option value="In Progress">In Progress</option>
             <option value="Waiting">Waiting</option>
-            <option value="Complete">Complete</option>
           </select>
           <select id="mw-f-category" onchange="asnOvRenderMyWork()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;">
             <option value="">All Categories</option>
@@ -6691,7 +6746,17 @@ initAuth();
           </label>
           <button onclick="mwClearFilters()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--rule);font-size:13px;background:white;cursor:pointer;">Clear</button>
         </div>
-        <div id="asn-ov-mywork-list"><div class="asn-empty">Loading…</div></div>
+        <!-- Two column layout -->
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;">
+          <div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-bottom:10px;">Open</div>
+            <div id="asn-ov-mywork-list"><div class="asn-empty">Loading…</div></div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-bottom:10px;">Completed</div>
+            <div id="asn-ov-mywork-completed"></div>
+          </div>
+        </div>
       </div>
     </div>
 
