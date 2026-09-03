@@ -1540,13 +1540,7 @@ function renderList(){
   DB.clients.forEach(c=>{
     const inactive=c.clientStatus&&c.clientStatus.toLowerCase()==='inactive';
     if(inactive&&!showInactive)return;
-    if(activeAssignee){
-      const clientVal=(c.assignedTo||'').trim().toLowerCase();
-      const filterVal=activeAssignee.trim().toLowerCase();
-      const filterFirst=filterVal.split(' ')[0];
-      const clientFirst=clientVal.split(' ')[0];
-      if(clientVal!==filterVal&&clientVal!==filterFirst&&clientFirst!==filterFirst)return;
-    }
+    if(activeAssignee&&(c.assignedTo||'').trim()!==activeAssignee.trim())return;
     if(search&&!c.companyName.toLowerCase().includes(search))return;
     if(fe&&(c.entityType||'')!==fe)return;
     const ftc=($('filter-taxclear')||{}).value||'';
@@ -2422,14 +2416,7 @@ function depFilterClients(){
     if(fStatus==='Active'&&c.clientStatus==='Inactive')return false;
     // If template is client-specific, lock to that client
     if(tpl&&tpl.clientKey&&c.clientKey!==tpl.clientKey)return false;
-    // Assignee filter — match full name, first name, or client value starting with filter name
-    if(assignee){
-      const clientVal=(c.assignedTo||'').trim().toLowerCase();
-      const filterVal=assignee.trim().toLowerCase();
-      const filterFirst=filterVal.split(' ')[0];
-      const clientFirst=clientVal.split(' ')[0];
-      if(clientVal!==filterVal&&clientVal!==filterFirst&&clientFirst!==filterFirst)return false;
-    }
+    if(assignee&&(c.assignedTo||'').trim()!==assignee.trim())return false;
     // Employer filter
     if(fEmployer&&(c.employer||'')!==fEmployer)return false;
     // VAT Vendor filter
@@ -3054,15 +3041,9 @@ function openNewAssignmentModal(){
   if(clientRow)clientRow.style.display='none';
   const sel=$('na-assignee');
   if(sel){
-    const users=_ttAllUsers.length?_ttAllUsers:['Johan Muller','Maryna Muller','Keanu van Wyk','Jermaine Jansen','Damien','Andre','Vonique Bezuidenhoud'];
+    const users=_ttAllUsers.length?_ttAllUsers:[];
     sel.innerHTML='<option value="">— Select —</option>'+users.map(u=>`<option>${escHtml(u)}</option>`).join('');
-    if(c.assignedTo){
-      // Try exact match first, then first-name match
-      const exact=users.find(u=>u.toLowerCase()===c.assignedTo.toLowerCase());
-      const firstMatch=users.find(u=>u.split(' ')[0].toLowerCase()===c.assignedTo.toLowerCase());
-      if(exact)sel.value=exact;
-      else if(firstMatch)sel.value=firstMatch;
-    }
+    if(c.assignedTo)sel.value=c.assignedTo;
   }
   ['na-title','na-due','na-period','na-note'].forEach(id=>{const e=$(id);if(e)e.value='';});
   const cat=$('na-category');if(cat)cat.value='';
@@ -4392,6 +4373,13 @@ function createPeriod(){
 // ── Edit modal ────────────────────────────────────────────────────────────
 function openEditModal(){
   const c=getClient();if(!c)return;
+  // Populate Assigned To from live users with exact match selection
+  const ecAssigned=$('ec-assigned');
+  if(ecAssigned){
+    const users=_ttAllUsers.length?_ttAllUsers:[];
+    ecAssigned.innerHTML='<option value="">— Unassigned —</option>'+
+      users.map(u=>`<option value="${escHtml(u)}"${u===(c.assignedTo||'')?' selected':''}>${escHtml(u)}</option>`).join('');
+  }
   // Company fields
   sv('ec-name',c.companyName);
   sv('ec-status',c.clientStatus||'Active');
