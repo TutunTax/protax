@@ -950,17 +950,32 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 
 <!-- ── Assignment Detail Modal ──────────────────────────────────────── -->
 <div id="assignment-detail-modal" class="modal-overlay">
-  <div class="modal modal-lg">
+  <div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:92vh;">
     <div class="modal-head">
       <h3 id="adn-title-heading">Assignment</h3>
       <button class="modal-close" onclick="closeModal('assignment-detail-modal')">✕</button>
     </div>
-    <div class="modal-body" id="adn-body">
-      <!-- populated by renderAssignmentDetail() -->
+    <div class="modal-body" id="adn-body" style="flex:1;overflow-y:auto;">
+      <!-- populated by openAssignmentDetail() -->
     </div>
-    <div class="modal-footer" id="adn-footer">
-      <button class="btn btn-ghost" onclick="closeModal('assignment-detail-modal')">Close</button>
-      <button class="btn btn-primary" id="adn-save-btn" onclick="saveAssignmentDetail()">💾 Save Changes</button>
+    <!-- Sticky Add Step form above footer -->
+    <div id="adn-add-step-form" style="display:none;padding:12px 20px;background:var(--surface);border-top:1px solid var(--rule);">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">New Step</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input id="adn-new-step-name" placeholder="Step name *" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;font-family:inherit;box-sizing:border-box;">
+        <textarea id="adn-new-step-instr" placeholder="Instructions (optional)" style="width:100%;height:54px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost btn-sm" onclick="$('adn-add-step-form').style.display='none'">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="adn-save-step-btn">Add Step</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" id="adn-footer" style="justify-content:space-between;">
+      <button class="btn btn-ghost" id="adn-delete-btn" onclick="deleteAssignment()" style="color:#dc2626;border-color:#fca5a5;display:none;">🗑 Delete</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="closeModal('assignment-detail-modal')">Close</button>
+        <button class="btn btn-primary" id="adn-save-btn" onclick="saveAssignmentDetail()">💾 Save Changes</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1529,7 +1544,8 @@ function renderList(){
       const clientVal=(c.assignedTo||'').trim().toLowerCase();
       const filterVal=activeAssignee.trim().toLowerCase();
       const filterFirst=filterVal.split(' ')[0];
-      if(clientVal!==filterVal&&clientVal!==filterFirst)return;
+      const clientFirst=clientVal.split(' ')[0];
+      if(clientVal!==filterVal&&clientVal!==filterFirst&&clientFirst!==filterFirst)return;
     }
     if(search&&!c.companyName.toLowerCase().includes(search))return;
     if(fe&&(c.entityType||'')!==fe)return;
@@ -2406,12 +2422,13 @@ function depFilterClients(){
     if(fStatus==='Active'&&c.clientStatus==='Inactive')return false;
     // If template is client-specific, lock to that client
     if(tpl&&tpl.clientKey&&c.clientKey!==tpl.clientKey)return false;
-    // Assignee filter — match full name or first name (client register uses short names)
+    // Assignee filter — match full name, first name, or client value starting with filter name
     if(assignee){
       const clientVal=(c.assignedTo||'').trim().toLowerCase();
       const filterVal=assignee.trim().toLowerCase();
       const filterFirst=filterVal.split(' ')[0];
-      if(clientVal!==filterVal&&clientVal!==filterFirst)return false;
+      const clientFirst=clientVal.split(' ')[0];
+      if(clientVal!==filterVal&&clientVal!==filterFirst&&clientFirst!==filterFirst)return false;
     }
     // Employer filter
     if(fEmployer&&(c.employer||'')!==fEmployer)return false;
@@ -2723,7 +2740,7 @@ function asnOvRenderAll(){
   list.sort((a,b)=>{
     const ao=asnIsOverdue(a),bo=asnIsOverdue(b);
     if(ao&&!bo)return-1;if(!ao&&bo)return 1;
-    return(a.dueDate||'').localeCompare(b.dueDate||'');
+    return asnParseDueDate(a.dueDate)-asnParseDueDate(b.dueDate);
   });
   if(!list.length){el.innerHTML='<div class="asn-empty">No assignments match these filters.</div>';return;}
   el.innerHTML=list.map(a=>{
@@ -2770,7 +2787,7 @@ function asnOvRenderMyWork(){
   mine.sort((a,b)=>{
     const ao=asnIsOverdue(a),bo=asnIsOverdue(b);
     if(ao&&!bo)return-1;if(!ao&&bo)return 1;
-    return(a.dueDate||'').localeCompare(b.dueDate||'');
+    return asnParseDueDate(a.dueDate)-asnParseDueDate(b.dueDate);
   });
   if(!mine.length){
     el.innerHTML=`<div class="asn-empty">${fStatus||fCategory||fSearch||fOverdue?'No assignments match these filters.':'You have no open assignments 🎉'}</div>`;
@@ -2919,6 +2936,16 @@ async function asnLoad(force=false){
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
+function asnParseDueDate(raw){
+  if(!raw)return Infinity;
+  const parts=raw.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+  if(!parts)return Infinity;
+  const MNAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const m=MNAMES.indexOf(parts[2]);
+  if(m===-1)return Infinity;
+  return new Date(parseInt(parts[3]),m,parseInt(parts[1])).getTime();
+}
+
 function asnIsOverdue(asn){
   if(!asn.dueDate||asn.status==='Complete')return false;
   const parts=asn.dueDate.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
@@ -3138,6 +3165,10 @@ function openAssignmentDetail(spId){
   const asn=DB_assignments.find(a=>a._spId===spId);
   if(!asn)return;
   _asnDetailId=spId;
+  const addStepForm=$('adn-add-step-form');
+  if(addStepForm)addStepForm.style.display='none';
+  const deleteBtn=$('adn-delete-btn');
+  if(deleteBtn)deleteBtn.style.display=(_ttUser&&_ttUser.role==='Admin')?'':'none';
   const steps=(DB_assignmentSteps[spId]||[]);
   const done=steps.filter(s=>s.completed).length;
   const isComplete=asn.status==='Complete';
@@ -3187,17 +3218,6 @@ function openAssignmentDetail(spId){
         <div style="color:var(--ink-light);font-size:13px;">No steps for this assignment.</div>
         <button class="btn btn-ghost btn-sm" onclick="asnDetailShowAddStep('${spId}')">＋ Add Step</button>
       </div>`}
-    <div id="adn-add-step-form" style="display:none;margin-top:12px;padding:12px;background:var(--surface);border-radius:8px;border:1px solid var(--rule);">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">New Step</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <input id="adn-new-step-name" placeholder="Step name *" style="width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:14px;font-family:inherit;box-sizing:border-box;">
-        <textarea id="adn-new-step-instr" placeholder="Instructions (optional)" style="width:100%;height:60px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;"></textarea>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn btn-ghost btn-sm" onclick="$('adn-add-step-form').style.display='none'">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="asnDetailSaveNewStep('${spId}')">Add Step</button>
-        </div>
-      </div>
-    </div>
   `;
   openModal('assignment-detail-modal');
 }
@@ -3257,6 +3277,9 @@ function asnDetailShowAddStep(spId){
   const instrEl=$('adn-new-step-instr');
   if(nameEl)nameEl.value='';
   if(instrEl)instrEl.value='';
+  // Wire the save button to current spId
+  const saveBtn=$('adn-save-step-btn');
+  if(saveBtn)saveBtn.onclick=()=>asnDetailSaveNewStep(spId);
   form.style.display='block';
   setTimeout(()=>{if(nameEl)nameEl.focus();},50);
 }
