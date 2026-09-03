@@ -116,9 +116,9 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .asn-card{background:var(--white);border-radius:8px;border:1px solid var(--rule);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s;}
 .asn-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .asn-card-row{display:flex;align-items:flex-start;gap:10px;}
-.asn-card-title{font-size:14px;font-weight:700;color:var(--ink);flex:1;}
-.asn-card-meta{font-size:12px;color:var(--ink-light);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;}
-.asn-card-note{font-size:12px;color:var(--ink-mid);margin-top:6px;font-style:italic;border-left:3px solid var(--rule);padding-left:8px;}
+.asn-card-title{font-size:15px;font-weight:700;color:var(--ink);flex:1;}
+.asn-card-meta{font-size:13px;color:var(--ink-light);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;}
+.asn-card-note{font-size:13px;color:var(--ink-mid);margin-top:6px;font-style:italic;border-left:3px solid var(--rule);padding-left:8px;}
 .asn-empty{text-align:center;padding:28px 16px;color:var(--ink-light);font-size:13px;}
 .asn-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
 .asn-badge.not-started{background:#f3f4f6;color:#6b7280;}
@@ -307,12 +307,12 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .asn-ov-stat-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-top:6px;}
 .asn-ov-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule);}
 .asn-ov-row:last-child{border-bottom:none;}
-.asn-ov-row-title{font-size:14px;font-weight:600;flex:1;}
-.asn-ov-row-client{font-size:12px;color:var(--ink-light);margin-top:2px;}
-.asn-ov-row-meta{font-size:12px;color:var(--ink-mid);display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;}
+.asn-ov-row-title{font-size:16px;font-weight:600;flex:1;}
+.asn-ov-row-client{font-size:13px;color:var(--ink-light);margin-top:2px;}
+.asn-ov-row-meta{font-size:13px;color:var(--ink-mid);display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;}
 .asn-ov-all-row{background:#fff;border-radius:8px;border:1px solid var(--rule);padding:12px 16px;margin-bottom:8px;cursor:pointer;display:flex;align-items:flex-start;gap:12px;}
 .asn-ov-all-row:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
-.asn-ov-all-client{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:3px;}
+.asn-ov-all-client{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:3px;}
 
 /* Template list and editor */
 .tpl-card{background:var(--white);border-radius:8px;border:1px solid var(--rule);padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:box-shadow .15s;}
@@ -5922,7 +5922,9 @@ function ttApplyPhrase(btn, targetInputId) {
   const phrase = btn.dataset.phrase;
   const input  = document.getElementById(targetInputId);
   if (!input) return;
-  const cur = input.value.trim();
+  // Only append if a timer is actively running (user is adding context)
+  // Otherwise start fresh so previous saved task doesn't bleed through
+  const cur = (_ttRunningTimer && input.value.trim()) ? input.value.trim() : '';
   input.value = cur ? cur + ' · ' + phrase : phrase;
   // Increment use count in background
   ttIncrementPhraseUse(btn.dataset.id);
@@ -6066,6 +6068,11 @@ async function ttStopTimer() {
     _ttRunningTimer = null;
     ttSetDisplay('00:00:00');
     ttUpdateTimerUI();
+    // Clear the input fields immediately after save
+    const descEl = document.getElementById('tt-desc-input');
+    const clientEl = document.getElementById('tt-client-input');
+    if(descEl) descEl.value = '';
+    if(clientEl) clientEl.value = '';
     if (status) status.textContent = 'Saved ✓';
     setTimeout(() => { if (status) status.textContent = ''; }, 3000);
     // Reload entries
