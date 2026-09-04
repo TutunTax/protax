@@ -351,7 +351,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .tt-btn:disabled{opacity:.4;cursor:not-allowed;}
 
 /* Stats grid */
-.tt-stats-grid{display:grid;grid-template-columns:1fr 320px;gap:32px;align-items:start;}
+.tt-stats-grid{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;}
 @media(max-width:900px){.tt-stats-grid{grid-template-columns:1fr;}}
 .tt-stats-sub{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:600;}
 /* Bar chart: fixed 300px tall, scrolls horizontally if bars too many */
@@ -374,7 +374,34 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .tt-hbar-fill{height:100%;background:#8B1A1A;border-radius:6px;}
 .tt-hbar-value{width:60px;text-align:right;flex-shrink:0;color:#374151;font-weight:600;}
 
-/* Combo box */
+/* ── Timer card: mockup layout ── */
+.tt-timer-card{display:grid;grid-template-columns:260px 1fr 200px;gap:0;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);overflow:hidden;}
+.tt-timer-left{background:#8B1A1A;color:#fff;padding:24px 20px;display:flex;flex-direction:column;justify-content:center;}
+.tt-timer-left-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.75;margin-bottom:6px;}
+.tt-timer-clock{font-size:52px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.04em;line-height:1;color:#fff;margin-bottom:8px;}
+.tt-timer-running-client{font-size:15px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:2px;}
+.tt-timer-started{font-size:12px;opacity:.7;color:#fff;}
+.tt-timer-middle{padding:20px 24px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;border-right:1px solid #f3f4f6;}
+.tt-timer-right{padding:20px 20px;display:flex;flex-direction:column;gap:10px;justify-content:center;}
+/* Quick phrases inline chips */
+.tt-phrases-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px;}
+.tt-phrase-inline-chip{padding:4px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#f9fafb;font-size:13px;cursor:pointer;color:#374151;font-family:inherit;}
+.tt-phrase-inline-chip:hover{background:#fdf2f2;border-color:#8B1A1A;color:#8B1A1A;}
+.tt-phrase-add-chip{padding:4px 12px;border-radius:999px;border:1px dashed #8B1A1A;background:transparent;font-size:13px;cursor:pointer;color:#8B1A1A;font-family:inherit;}
+.tt-phrase-add-chip:hover{background:#fdf2f2;}
+/* Stop/Save and Discard buttons matching mockup */
+.tt-btn-stop{width:100%;padding:14px;background:#8B1A1A;color:#fff;border:2px solid #8B1A1A;border-radius:8px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.tt-btn-stop:hover{background:#6d1515;}
+.tt-btn-discard{width:100%;padding:12px;background:#fff;color:#b91c1c;border:2px solid #fca5a5;border-radius:8px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.tt-btn-discard:hover{background:#fee2e2;}
+@media(max-width:900px){
+  .tt-timer-card{grid-template-columns:1fr;}
+  .tt-timer-left{flex-direction:row;align-items:center;gap:24px;padding:16px 20px;}
+  .tt-timer-right{flex-direction:row;padding:16px 20px;}
+  .tt-timer-right .tt-btn-stop,.tt-timer-right .tt-btn-discard{width:auto;flex:1;}
+}
+
+
 .tt-combo{position:relative;}
 .tt-combo-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:8px;max-height:230px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100;}
 .tt-combo-panel.open{display:block;}
@@ -5848,8 +5875,24 @@ function ttUpdateTimerUI() {
   if (startBtn) startBtn.style.display = running ? 'none' : '';
   if (stopBtn)  stopBtn.style.display  = running ? '' : 'none';
   if (discBtn)  discBtn.style.display  = running ? '' : 'none';
+  // New mockup-style right panel buttons
+  const stopBtnR  = document.getElementById('tt-stop-btn-r');
+  const discBtnR  = document.getElementById('tt-discard-btn-r');
+  const startBtnR = document.getElementById('tt-start-btn-r');
+  if (stopBtnR)  stopBtnR.style.display  = running ? '' : 'none';
+  if (discBtnR)  discBtnR.style.display  = running ? '' : 'none';
+  if (startBtnR) startBtnR.style.display = running ? 'none' : '';
+  // Left panel
+  const leftLabel    = document.getElementById('tt-left-label');
+  const leftClient   = document.getElementById('tt-left-client');
+  const leftStarted  = document.getElementById('tt-left-started');
   if (running && _ttRunningTimer) {
-    if (state) state.textContent = `Timer running — ${_ttRunningTimer.client || 'No client'}`;
+    if (state)      state.textContent = `Timer running — ${_ttRunningTimer.client || 'No client'}`;
+    if (leftLabel)  leftLabel.textContent = 'Timer running';
+    if (leftClient) leftClient.textContent = _ttRunningTimer.client || '';
+    if (leftStarted && _ttRunningTimer.startTime) {
+      leftStarted.textContent = 'Started ' + _ttRunningTimer.startTime.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+    }
     const inp = document.getElementById('tt-client-input');
     if (inp && _ttRunningTimer.client) inp.value = _ttRunningTimer.client;
     const desc = document.getElementById('tt-desc-input');
@@ -5858,7 +5901,10 @@ function ttUpdateTimerUI() {
     const billEl = document.getElementById(bill);
     if (billEl) billEl.checked = true;
   } else {
-    if (state) state.textContent = 'No timer running';
+    if (state)      state.textContent = 'No timer running';
+    if (leftLabel)  leftLabel.textContent = 'No timer running';
+    if (leftClient) leftClient.textContent = '';
+    if (leftStarted) leftStarted.textContent = '';
     ttSetDisplay('00:00:00');
   }
 }
@@ -6078,9 +6124,33 @@ async function ttLoadPhrases() {
       })
       .filter(p => p.email === _ttUser.email && p.phrase)
       .sort((a, b) => b.useCount - a.useCount || a.sortOrder - b.sortOrder);
+    ttRenderInlinePhrases();
   } catch(e) {
     console.warn('ttLoadPhrases:', e.message);
   }
+}
+
+function ttRenderInlinePhrases() {
+  const wrap = document.getElementById('tt-inline-phrases');
+  if (!wrap) return;
+  const chips = _ttPhrases.map(p => {
+    const safe = p.phrase.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<button class="tt-phrase-inline-chip" data-id="${ttEsc(p.id)}" data-phrase="${ttEsc(p.phrase)}" onclick="ttApplyPhrase(this,'tt-desc-input')">${safe}</button>`;
+  }).join('');
+  wrap.innerHTML = chips +
+    `<button class="tt-phrase-add-chip" onclick="ttShowAddPhraseInline()">＋ Add phrase</button>`;
+}
+
+function ttShowAddPhraseInline() {
+  const wrap = document.getElementById('tt-inline-phrases');
+  if (!wrap) return;
+  wrap.innerHTML = `<div style="display:flex;gap:6px;align-items:center;width:100%;">
+    <input id="tt-new-phrase-input" type="text" placeholder="New phrase…" style="flex:1;border:1px solid #d1d5db;border-radius:6px;padding:5px 10px;font-size:13px;font-family:inherit;">
+    <button onclick="ttSaveNewPhrase('tt-desc-input')" style="background:#8B1A1A;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;">Save</button>
+    <button onclick="ttRenderInlinePhrases()" style="background:none;border:1px solid #e5e7eb;padding:5px 10px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+  </div>`;
+  const inp = document.getElementById('tt-new-phrase-input');
+  if (inp) setTimeout(()=>inp.focus(), 50);
 }
 
 function ttRenderPhrasePanel(targetInputId) {
@@ -6171,7 +6241,8 @@ async function ttSaveNewPhrase(targetInputId) {
     };
     const saved = await gPost(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${L_TT_PHRASES}/items`, { fields });
     _ttPhrases.push({ id: saved.id, email: _ttUser.email, phrase, sortOrder: fields.SortOrder, useCount: 0 });
-    ttRenderPhrasePanel(targetInputId); // re-render
+    ttRenderInlinePhrases(); // re-render inline chips
+    ttRenderPhrasePanel(targetInputId); // also re-render if popup is open
   } catch(e) {
     alert('Could not save phrase: ' + e.message);
   }
@@ -6313,12 +6384,21 @@ async function ttDiscardTimer() {
 }
 
 // ── Month stats ─────────────────────────────────────────────────────────
+let _ttMonthOffset = 0; // 0=current month, negative=past months
+
+function ttShiftMonth(delta) {
+  _ttMonthOffset += delta;
+  if (_ttMonthOffset > 0) _ttMonthOffset = 0;
+  ttRenderMonthStats();
+}
+
 function ttRenderMonthStats(stats) {
   // Build stats from _ttEntries (or from provided stats object)
   const now = new Date();
-  const monthPrefix = now.toISOString().substring(0,7);
-  const monthLabel = now.toLocaleString('en-ZA', { month: 'long', year: 'numeric' });
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const target = new Date(now.getFullYear(), now.getMonth() + _ttMonthOffset, 1);
+  const monthPrefix = target.toISOString().substring(0,7);
+  const monthLabel = target.toLocaleString('en-ZA', { month: 'long', year: 'numeric' });
+  const daysInMonth = new Date(target.getFullYear(), target.getMonth()+1, 0).getDate();
   const isAdmin = _ttUser && _ttUser.role === 'Admin';
 
   // Filter entries this month
@@ -6382,7 +6462,7 @@ function ttRenderMonthStats(stats) {
 
   // Total
   const tot = document.getElementById('tt-month-total');
-  if (tot) tot.innerHTML = `<b>${Math.round(totalMine*100)/100}h</b> this month`;
+  if (tot) tot.innerHTML = `<span style="font-size:22px;font-weight:800;color:#8B1A1A;">${Math.round(totalMine*100)/100}h</span> <span style="font-size:15px;color:#6b7280;font-weight:400;">this month</span>`;
 
   // Top clients horizontal bars
   const tcEl = document.getElementById('tt-top-clients');
@@ -7208,62 +7288,79 @@ initAuth();
     <div class="tt-panel active" id="tt-panel-timer">
       <div style="width:96%;max-width:2400px;margin:0 auto;padding:0 0 32px;">
 
-        <!-- ── Timer card: wide horizontal layout ── -->
-        <div class="tt-card" style="margin-bottom:20px;padding:24px 32px;">
-          <div style="display:grid;grid-template-columns:220px 1fr;gap:32px;align-items:center;">
+        <!-- ── Timer card: 3-column mockup layout ── -->
+        <div class="tt-timer-card">
 
-            <!-- Left: clock + status -->
-            <div style="text-align:center;border-right:2px solid #f3f4f6;padding-right:32px;">
-              <div class="tt-timer-display" id="tt-display" style="font-size:56px;margin:0 0 4px;line-height:1;">00:00:00</div>
-              <div class="tt-timer-state" id="tt-state" style="font-size:13px;color:#6b7280;margin-bottom:0;">No timer running</div>
-            </div>
-
-            <!-- Right: controls -->
-            <div>
-              <!-- Client + Description row -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
-                <div>
-                  <label class="tt-label" style="font-size:12px;font-weight:700;margin-bottom:4px;display:block;">Client</label>
-                  <div class="tt-combo" id="tt-client-combo">
-                    <input id="tt-client-input" class="tt-input" style="font-size:14px;padding:9px 12px;" autocomplete="off" placeholder="Search clients…" oninput="ttComboFilter('tt-client-combo')" onfocus="ttComboOpen('tt-client-combo')" onblur="setTimeout(()=>ttComboClose('tt-client-combo'),150)">
-                    <div class="tt-combo-panel" id="tt-client-combo-panel"></div>
-                  </div>
-                </div>
-                <div>
-                  <label class="tt-label" style="font-size:12px;font-weight:700;margin-bottom:4px;display:block;">Description</label>
-                  <div style="display:flex;gap:6px;">
-                    <input id="tt-desc-input" class="tt-input" style="font-size:14px;padding:9px 12px;flex:1;" placeholder="What are you working on?" oninput="ttUpdateTimerMeta()">
-                    <button onclick="ttTogglePhrasePanel('tt-desc-input')" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:600;flex-shrink:0;">⚡ Phrases</button>
-                  </div>
-                </div>
-              </div>
-              <!-- Billable + action buttons row -->
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-                <div class="tt-pill-wrap" style="margin:0;">
-                  <span class="tt-pill-label">Billable?</span>
-                  <div class="tt-pill-toggle">
-                    <input type="radio" name="tt-billable-timer" id="tt-bill-yes" value="Yes">
-                    <label for="tt-bill-yes" onclick="ttUpdateTimerMeta()">Yes</label>
-                    <input type="radio" name="tt-billable-timer" id="tt-bill-no" value="No" checked>
-                    <label for="tt-bill-no" onclick="ttUpdateTimerMeta()">No</label>
-                  </div>
-                </div>
-                <div class="tt-btns" style="margin:0;">
-                  <button class="tt-btn primary" id="tt-start-btn" style="font-size:14px;padding:9px 28px;" onclick="ttStartTimer()">▶ Start</button>
-                  <button class="tt-btn primary" id="tt-stop-btn" style="font-size:14px;padding:9px 28px;display:none;" onclick="ttStopTimer()">⏹ Stop &amp; Save</button>
-                  <button class="tt-btn danger" id="tt-discard-btn" style="display:none;" onclick="ttDiscardTimer()">✕ Discard</button>
-                </div>
-              </div>
-              <div class="tt-status" id="tt-timer-status" style="margin-top:8px;font-size:13px;"></div>
-            </div>
+          <!-- LEFT: Clock + running info (dark red) -->
+          <div class="tt-timer-left">
+            <div class="tt-timer-left-label" id="tt-left-label">No timer running</div>
+            <div class="tt-timer-clock" id="tt-display">00:00:00</div>
+            <div class="tt-timer-running-client" id="tt-left-client"></div>
+            <div class="tt-timer-started" id="tt-left-started"></div>
+            <!-- Hidden state element for compatibility -->
+            <div id="tt-state" style="display:none;"></div>
           </div>
+
+          <!-- MIDDLE: Client, Description, Billable, Quick phrases -->
+          <div class="tt-timer-middle">
+            <!-- Client -->
+            <div>
+              <label class="tt-label">Client</label>
+              <div class="tt-combo" id="tt-client-combo">
+                <input id="tt-client-input" class="tt-input" style="font-size:14px;" autocomplete="off" placeholder="Search clients…" oninput="ttComboFilter('tt-client-combo')" onfocus="ttComboOpen('tt-client-combo')" onblur="setTimeout(()=>ttComboClose('tt-client-combo'),150)">
+                <div class="tt-combo-panel" id="tt-client-combo-panel"></div>
+              </div>
+            </div>
+            <!-- Description -->
+            <div>
+              <label class="tt-label">Description</label>
+              <input id="tt-desc-input" class="tt-input" style="font-size:14px;" placeholder="What are you working on?" oninput="ttUpdateTimerMeta()">
+            </div>
+            <!-- Billable + Quick phrases row -->
+            <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
+              <div>
+                <div class="tt-label" style="margin-bottom:6px;">Billable?</div>
+                <div class="tt-pill-toggle">
+                  <input type="radio" name="tt-billable-timer" id="tt-bill-yes" value="Yes">
+                  <label for="tt-bill-yes" onclick="ttUpdateTimerMeta()">Yes</label>
+                  <input type="radio" name="tt-billable-timer" id="tt-bill-no" value="No" checked>
+                  <label for="tt-bill-no" onclick="ttUpdateTimerMeta()">No</label>
+                </div>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div class="tt-label" style="margin-bottom:6px;">Quick phrases</div>
+                <div class="tt-phrases-wrap" id="tt-inline-phrases">
+                  <span style="font-size:13px;color:#9ca3af;">Loading phrases…</span>
+                </div>
+              </div>
+            </div>
+            <div class="tt-status" id="tt-timer-status" style="margin-top:0;font-size:13px;text-align:left;"></div>
+          </div>
+
+          <!-- RIGHT: Action buttons -->
+          <div class="tt-timer-right">
+            <!-- Start button (shown when idle) -->
+            <button id="tt-start-btn-r" class="tt-btn-stop" onclick="ttStartTimer()">▶ Start</button>
+            <!-- Hidden legacy buttons for JS compatibility -->
+            <button id="tt-start-btn" onclick="ttStartTimer()" style="display:none;"></button>
+            <button id="tt-stop-btn" onclick="ttStopTimer()" style="display:none;"></button>
+            <button id="tt-discard-btn" onclick="ttDiscardTimer()" style="display:none;"></button>
+            <!-- Stop & Discard (shown when running) -->
+            <button id="tt-stop-btn-r" class="tt-btn-stop" onclick="ttStopTimer()" style="display:none;">⏹ Stop &amp; Save</button>
+            <button id="tt-discard-btn-r" class="tt-btn-discard" onclick="ttDiscardTimer()" style="display:none;">✕ Discard</button>
+          </div>
+
         </div>
 
         <!-- ── Monthly dashboard ── -->
-        <div class="tt-card" style="padding:24px 32px;">
-          <!-- Header row: month label + viewing filter -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-            <div id="tt-month-label" style="font-size:22px;font-weight:800;color:#111827;"></div>
+        <div class="tt-card" style="padding:24px 28px;">
+          <!-- Header: month nav + title + viewing filter -->
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button onclick="ttShiftMonth(-1)" style="width:32px;height:32px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">‹</button>
+              <button onclick="ttShiftMonth(1)" style="width:32px;height:32px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">›</button>
+            </div>
+            <div id="tt-month-label" style="font-size:22px;font-weight:800;color:#111827;flex:1;"></div>
             <div id="tt-stats-user-row" class="tt-stats-user-row" style="display:none;margin:0;">
               <label style="font-size:13px;color:#6b7280;font-weight:600;">Viewing:</label>
               <select id="tt-stats-user-select" onchange="ttLoadStatsByUser()" style="margin-left:8px;">
@@ -7273,15 +7370,18 @@ initAuth();
           </div>
 
           <div class="tt-stats-grid">
-            <!-- LEFT: Daily bar chart ~65-70% -->
+            <!-- LEFT: Daily bar chart -->
             <div>
               <div class="tt-stats-sub">Daily hours (my entries)</div>
               <div class="tt-bar-chart" id="tt-daily-bars"></div>
-              <div class="tt-stats-total" id="tt-month-total" style="margin-top:28px;"></div>
+              <div class="tt-stats-total" id="tt-month-total" style="margin-top:28px;font-size:16px;font-weight:700;color:#8B1A1A;"></div>
             </div>
-            <!-- RIGHT: Top clients ~30-35% -->
+            <!-- RIGHT: Top clients -->
             <div>
-              <div class="tt-stats-sub" id="tt-clients-scope-label">Top clients</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <span style="font-size:20px;">👥</span>
+                <span class="tt-stats-sub" id="tt-clients-scope-label" style="margin-bottom:0;">Top clients</span>
+              </div>
               <div id="tt-top-clients"></div>
             </div>
           </div>
