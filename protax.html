@@ -351,24 +351,28 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 .tt-btn:disabled{opacity:.4;cursor:not-allowed;}
 
 /* Stats grid */
-.tt-stats-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;}
-@media(max-width:700px){.tt-stats-grid{grid-template-columns:1fr;}}
-.tt-stats-sub{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;font-weight:600;}
-.tt-bar-chart{position:relative;height:160px;border-bottom:2px solid #e5e7eb;display:flex;align-items:flex-end;gap:2px;padding:0 2px;margin-bottom:24px;}
-.tt-bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;position:relative;}
-.tt-bar-col{flex:1;display:flex;align-items:flex-end;justify-content:center;}
-.tt-bar{width:85%;background:#8B1A1A;border-radius:3px 3px 0 0;min-height:0;opacity:.85;cursor:pointer;transition:opacity .1s;position:relative;}
+.tt-stats-grid{display:grid;grid-template-columns:1fr 320px;gap:32px;align-items:start;}
+@media(max-width:900px){.tt-stats-grid{grid-template-columns:1fr;}}
+.tt-stats-sub{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-weight:600;}
+/* Bar chart: fixed 300px tall, scrolls horizontally if bars too many */
+.tt-bar-chart{position:relative;height:300px;border-bottom:2px solid #e5e7eb;display:flex;align-items:flex-end;padding:40px 0 30px;overflow-x:auto;overflow-y:visible;}
+/* Each bar column: min 28px wide, flexible up to full space */
+.tt-bar-outer{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;flex:1 1 0;min-width:28px;height:230px;position:relative;}
+.tt-bar{width:65%;background:#8B1A1A;border-radius:3px 3px 0 0;opacity:.85;cursor:pointer;transition:opacity .15s;}
 .tt-bar:hover,.tt-bar.today{opacity:1;}
 .tt-bar.today{background:#111827;}
-.tt-bar-lbl{font-size:10px;color:transparent;text-align:center;line-height:1.3;white-space:nowrap;margin-top:3px;position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);}
-.tt-bar-lbl.has-hours{color:#374151;font-weight:700;font-size:10px;}
-.tt-stats-total{text-align:center;font-size:13px;color:#6b7280;margin-top:6px;}
+/* Label above bar */
+.tt-bar-val{position:absolute;top:-26px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#374151;white-space:nowrap;line-height:1;}
+/* Day number below baseline */
+.tt-bar-day{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:9px;color:#9ca3af;white-space:nowrap;line-height:1;}
+.tt-bar-day.today-lbl{color:#111827;font-weight:700;}
+.tt-stats-total{font-size:15px;color:#6b7280;margin-top:8px;}
 .tt-stats-total b{color:#111827;}
-.tt-hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px;}
-.tt-hbar-label{width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;}
-.tt-hbar-track{flex:1;background:#fdf2f2;border-radius:6px;height:14px;overflow:hidden;}
+.tt-hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px;}
+.tt-hbar-label{width:160px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;}
+.tt-hbar-track{flex:1;background:#fdf2f2;border-radius:6px;height:16px;overflow:hidden;}
 .tt-hbar-fill{height:100%;background:#8B1A1A;border-radius:6px;}
-.tt-hbar-value{width:54px;text-align:right;flex-shrink:0;color:#6b7280;}
+.tt-hbar-value{width:60px;text-align:right;flex-shrink:0;color:#374151;font-weight:600;}
 
 /* Combo box */
 .tt-combo{position:relative;}
@@ -6345,21 +6349,28 @@ function ttRenderMonthStats(stats) {
   const lbl = document.getElementById('tt-month-label');
   if (lbl) lbl.textContent = monthLabel;
 
-  // Bar chart — bars sized in px relative to chart container height
+  // Bar chart — labels above bars, day numbers below baseline
   const barsEl = document.getElementById('tt-daily-bars');
   if (barsEl) {
-    const CHART_H = 160;
+    const BAR_H = 230; // matches .tt-bar-outer height
     const maxH = Math.max(...daily.map(d=>d.hours), 0.01);
     const todayStr = now.toISOString().substring(0,10);
     barsEl.innerHTML = daily.map(d => {
-      const barPx = d.hours > 0 ? Math.max(Math.round((d.hours / maxH) * CHART_H), 4) : 0;
+      const barPx = d.hours > 0 ? Math.max(Math.round((d.hours / maxH) * BAR_H), 4) : 0;
       const isToday = d.date === todayStr;
       const hasHours = d.hours > 0;
-      const lbl = hasHours ? (d.hours >= 1 ? (Math.round(d.hours*10)/10)+'h' : Math.round(d.hours*60)+'m') : '';
-      return '<div style="height:'+CHART_H+'px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;flex:1;position:relative;" title="'+d.date+': '+(d.hours||0)+'h">'+
-        '<div class="tt-bar'+(isToday?' today':'')+'" style="width:80%;height:'+barPx+'px;border-radius:3px 3px 0 0;"></div>'+
-        (hasHours?'<div style="position:absolute;bottom:-18px;font-size:10px;font-weight:700;color:#374151;white-space:nowrap;">'+lbl+'</div>':'')+
-        '</div>';
+      // Format label: always show hours with 2 decimal places when > 0
+      const valLbl = hasHours ? (Math.round(d.hours*100)/100)+'h' : '';
+      // Day label: show date number + abbreviate day name on today
+      const dayLbl = isToday ? d.day+'*' : d.day;
+      return '<div class="tt-bar-outer" title="'+d.date+': '+(d.hours||0)+'h">'
+        // Value label above bar
+        +(hasHours ? '<div class="tt-bar-val">'+valLbl+'</div>' : '')
+        // The bar itself
+        +'<div class="tt-bar'+(isToday?' today':'')+'" style="height:'+barPx+'px;"></div>'
+        // Day number below baseline
+        +'<div class="tt-bar-day'+(isToday?' today-lbl':'')+'">'+dayLbl+'</div>'
+        +'</div>';
     }).join('');
   }
 
@@ -7189,72 +7200,80 @@ initAuth();
 
     <!-- ── TIMER TAB ── -->
     <div class="tt-panel active" id="tt-panel-timer">
-      <div style="max-width:960px;margin:auto;">
+      <div style="width:96%;max-width:2400px;margin:0 auto;padding:0 0 32px;">
 
-        <!-- Running timer card -->
-        <div class="tt-card" style="margin-bottom:20px;">
-          <div class="tt-timer-display" id="tt-display" style="font-size:64px;margin-bottom:4px;">00:00:00</div>
-          <div class="tt-timer-state" id="tt-state" style="font-size:15px;margin-bottom:20px;">No timer running</div>
+        <!-- ── Timer card: wide horizontal layout ── -->
+        <div class="tt-card" style="margin-bottom:20px;padding:24px 32px;">
+          <div style="display:grid;grid-template-columns:220px 1fr;gap:32px;align-items:center;">
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-            <!-- Client -->
-            <div>
-              <label class="tt-label" style="font-size:13px;font-weight:700;">Client</label>
-              <div class="tt-combo" id="tt-client-combo">
-                <input id="tt-client-input" class="tt-input" style="font-size:15px;padding:10px 12px;" autocomplete="off" placeholder="Search clients…" oninput="ttComboFilter('tt-client-combo')" onfocus="ttComboOpen('tt-client-combo')" onblur="setTimeout(()=>ttComboClose('tt-client-combo'),150)">
-                <div class="tt-combo-panel" id="tt-client-combo-panel"></div>
-              </div>
+            <!-- Left: clock + status -->
+            <div style="text-align:center;border-right:2px solid #f3f4f6;padding-right:32px;">
+              <div class="tt-timer-display" id="tt-display" style="font-size:56px;margin:0 0 4px;line-height:1;">00:00:00</div>
+              <div class="tt-timer-state" id="tt-state" style="font-size:13px;color:#6b7280;margin-bottom:0;">No timer running</div>
             </div>
-            <!-- Description + phrases -->
+
+            <!-- Right: controls -->
             <div>
-              <label class="tt-label" style="font-size:13px;font-weight:700;">Description</label>
-              <div style="position:relative;">
-                <div style="display:flex;gap:6px;align-items:center;">
-                  <input id="tt-desc-input" class="tt-input" style="font-size:15px;padding:10px 12px;flex:1;" placeholder="What are you working on?" oninput="ttUpdateTimerMeta()">
-                  <button onclick="ttTogglePhrasePanel('tt-desc-input')" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:10px 14px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:600;">⚡ Phrases</button>
+              <!-- Client + Description row -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+                <div>
+                  <label class="tt-label" style="font-size:12px;font-weight:700;margin-bottom:4px;display:block;">Client</label>
+                  <div class="tt-combo" id="tt-client-combo">
+                    <input id="tt-client-input" class="tt-input" style="font-size:14px;padding:9px 12px;" autocomplete="off" placeholder="Search clients…" oninput="ttComboFilter('tt-client-combo')" onfocus="ttComboOpen('tt-client-combo')" onblur="setTimeout(()=>ttComboClose('tt-client-combo'),150)">
+                    <div class="tt-combo-panel" id="tt-client-combo-panel"></div>
+                  </div>
+                </div>
+                <div>
+                  <label class="tt-label" style="font-size:12px;font-weight:700;margin-bottom:4px;display:block;">Description</label>
+                  <div style="display:flex;gap:6px;">
+                    <input id="tt-desc-input" class="tt-input" style="font-size:14px;padding:9px 12px;flex:1;" placeholder="What are you working on?" oninput="ttUpdateTimerMeta()">
+                    <button onclick="ttTogglePhrasePanel('tt-desc-input')" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:600;flex-shrink:0;">⚡ Phrases</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-            <!-- Billable -->
-            <div class="tt-pill-wrap" style="margin:0;">
-              <span class="tt-pill-label">Billable?</span>
-              <div class="tt-pill-toggle">
-                <input type="radio" name="tt-billable-timer" id="tt-bill-yes" value="Yes">
-                <label for="tt-bill-yes" onclick="ttUpdateTimerMeta()">Yes</label>
-                <input type="radio" name="tt-billable-timer" id="tt-bill-no" value="No" checked>
-                <label for="tt-bill-no" onclick="ttUpdateTimerMeta()">No</label>
+              <!-- Billable + action buttons row -->
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                <div class="tt-pill-wrap" style="margin:0;">
+                  <span class="tt-pill-label">Billable?</span>
+                  <div class="tt-pill-toggle">
+                    <input type="radio" name="tt-billable-timer" id="tt-bill-yes" value="Yes">
+                    <label for="tt-bill-yes" onclick="ttUpdateTimerMeta()">Yes</label>
+                    <input type="radio" name="tt-billable-timer" id="tt-bill-no" value="No" checked>
+                    <label for="tt-bill-no" onclick="ttUpdateTimerMeta()">No</label>
+                  </div>
+                </div>
+                <div class="tt-btns" style="margin:0;">
+                  <button class="tt-btn primary" id="tt-start-btn" style="font-size:14px;padding:9px 28px;" onclick="ttStartTimer()">▶ Start</button>
+                  <button class="tt-btn primary" id="tt-stop-btn" style="font-size:14px;padding:9px 28px;display:none;" onclick="ttStopTimer()">⏹ Stop &amp; Save</button>
+                  <button class="tt-btn danger" id="tt-discard-btn" style="display:none;" onclick="ttDiscardTimer()">✕ Discard</button>
+                </div>
               </div>
-            </div>
-            <!-- Buttons -->
-            <div class="tt-btns" style="margin:0;">
-              <button class="tt-btn primary" id="tt-start-btn" style="font-size:15px;padding:10px 28px;" onclick="ttStartTimer()">▶ Start</button>
-              <button class="tt-btn primary" id="tt-stop-btn" style="font-size:15px;padding:10px 28px;display:none;" onclick="ttStopTimer()">⏹ Stop &amp; Save</button>
-              <button class="tt-btn danger" id="tt-discard-btn" style="display:none;" onclick="ttDiscardTimer()">✕ Discard</button>
+              <div class="tt-status" id="tt-timer-status" style="margin-top:8px;font-size:13px;"></div>
             </div>
           </div>
-          <div class="tt-status" id="tt-timer-status" style="margin-top:10px;"></div>
         </div>
 
-        <!-- Month stats -->
-        <div class="tt-card">
-          <div id="tt-stats-user-row" class="tt-stats-user-row" style="display:none;">
-            <label>Viewing:</label>
-            <select id="tt-stats-user-select" onchange="ttLoadStatsByUser()">
-              <option value="">— Select user —</option>
-            </select>
+        <!-- ── Monthly dashboard ── -->
+        <div class="tt-card" style="padding:24px 32px;">
+          <!-- Header row: month label + viewing filter -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div id="tt-month-label" style="font-size:22px;font-weight:800;color:#111827;"></div>
+            <div id="tt-stats-user-row" class="tt-stats-user-row" style="display:none;margin:0;">
+              <label style="font-size:13px;color:#6b7280;font-weight:600;">Viewing:</label>
+              <select id="tt-stats-user-select" onchange="ttLoadStatsByUser()" style="margin-left:8px;">
+                <option value="">— Select user —</option>
+              </select>
+            </div>
           </div>
-          <div id="tt-month-label" class="tt-section-title" style="margin-top:0;font-size:20px;font-weight:700;margin-bottom:16px;"></div>
+
           <div class="tt-stats-grid">
-            <!-- Daily bar chart -->
+            <!-- LEFT: Daily bar chart ~65-70% -->
             <div>
               <div class="tt-stats-sub">Daily hours (my entries)</div>
               <div class="tt-bar-chart" id="tt-daily-bars"></div>
-              <div class="tt-stats-total" id="tt-month-total" style="font-size:15px;margin-top:10px;"></div>
+              <div class="tt-stats-total" id="tt-month-total" style="margin-top:28px;"></div>
             </div>
-            <!-- Top clients horizontal bars -->
+            <!-- RIGHT: Top clients ~30-35% -->
             <div>
               <div class="tt-stats-sub" id="tt-clients-scope-label">Top clients</div>
               <div id="tt-top-clients"></div>
