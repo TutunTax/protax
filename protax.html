@@ -6396,9 +6396,12 @@ function ttRenderMonthStats(stats) {
   // Build stats from _ttEntries (or from provided stats object)
   const now = new Date();
   const target = new Date(now.getFullYear(), now.getMonth() + _ttMonthOffset, 1);
-  const monthPrefix = target.toISOString().substring(0,7);
-  const monthLabel = target.toLocaleString('en-ZA', { month: 'long', year: 'numeric' });
-  const daysInMonth = new Date(target.getFullYear(), target.getMonth()+1, 0).getDate();
+  // Use local year/month — never toISOString() which converts to UTC and can shift the month
+  const targetYear  = target.getFullYear();
+  const targetMonth = target.getMonth(); // 0-based
+  const monthPrefix = targetYear + '-' + String(targetMonth + 1).padStart(2, '0');
+  const monthLabel  = target.toLocaleString('en-ZA', { month: 'long', year: 'numeric' });
+  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
   const isAdmin = _ttUser && _ttUser.role === 'Admin';
 
   // Filter entries this month
@@ -6440,7 +6443,7 @@ function ttRenderMonthStats(stats) {
   if (barsEl) {
     const BAR_H = 230; // matches .tt-bar-outer height
     const maxH = Math.max(...daily.map(d=>d.hours), 0.01);
-    const todayStr = now.toISOString().substring(0,10);
+    const todayStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     barsEl.innerHTML = daily.map(d => {
       const barPx = d.hours > 0 ? Math.max(Math.round((d.hours / maxH) * BAR_H), 4) : 0;
       const isToday = d.date === todayStr;
