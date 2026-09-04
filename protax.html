@@ -560,12 +560,23 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
       <p>Choose a client from the sidebar to view their details.</p>
     </div>
     <div id="client-view" style="display:none;flex-direction:column;">
-      <!-- Client header bar -->
-      <div id="client-header">
-        <div id="client-header-title">—</div>
-        <div id="client-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openEditModal()">✏️ Edit</button>
+      <!-- Rich client header -->
+      <div id="client-header" style="background:var(--white);border-bottom:1px solid var(--rule);padding:16px 24px;flex-shrink:0;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+          <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
+            <div id="ch-avatar" style="width:48px;height:48px;border-radius:12px;background:#fdeced;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🏢</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div id="ch-name" style="font-size:22px;font-weight:800;color:var(--ink);"></div>
+                <span id="ch-status-badge" style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;"></span>
+              </div>
+              <div id="ch-meta" style="font-size:13px;color:var(--ink-mid);margin-top:3px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openEditModal()" style="flex-shrink:0;">✏️ Edit</button>
         </div>
+        <!-- Status chips -->
+        <div id="ch-chips" style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;"></div>
       </div>
 
       <!-- Navigation tabs -->
@@ -576,14 +587,10 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
         <div class="cnav-tab" onclick="showClientPane('notes')" id="tab-notes">Notes</div>
       </div>
 
-      <!-- Details pane: centre + directors -->
+      <!-- Details pane: single scrollable area -->
       <div id="pane-details" style="display:flex;flex:1;overflow:hidden;">
-        <div id="detail-col">
-          <div class="field-grid" id="detail-grid"></div>
-        </div>
-        <div id="directors-col">
-          <div class="dir-header">Directors / Members</div>
-          <div id="directors-list"></div>
+        <div id="detail-col" style="flex:1;overflow-y:auto;background:var(--surface);border-right:none;">
+          <div id="detail-grid"></div>
         </div>
       </div>
 
@@ -1640,7 +1647,53 @@ function renderClientView(){
   if(!c){$('empty-state').style.display='flex';$('client-view').style.display='none';return;}
   $('empty-state').style.display='none';
   $('client-view').style.display='flex';
-  $('client-header-title').textContent=c.companyName+(c.entityType?' — '+eLabel(c.entityType):'');
+  // Avatar icon by entity type
+  const avatarMap={Company:'🏢',CC:'🏢',SoleProp:'👤',Individual:'👤',Trust:'🤝'};
+  const av=$('ch-avatar');if(av)av.textContent=avatarMap[c.entityType]||'🏢';
+  // Name
+  const nm=$('ch-name');if(nm)nm.textContent=c.companyName;
+  // Status badge
+  const sb=$('ch-status-badge');
+  if(sb){
+    const active=(c.clientStatus||'Active')==='Active';
+    sb.textContent=c.clientStatus||'Active';
+    sb.style.background=active?'#dcfce7':'#fee2e2';
+    sb.style.color=active?'#166534':'#991b1b';
+  }
+  // Meta line
+  const meta=$('ch-meta');
+  if(meta){
+    const parts=[];
+    if(c.entityType)parts.push(escHtml(eLabel(c.entityType)));
+    if(c.assignedTo)parts.push('Assigned to <strong>'+escHtml(c.assignedTo)+'</strong>');
+    if(c.registrationNumber)parts.push('Reg: '+escHtml(c.registrationNumber));
+    if(c.yearEnd)parts.push('YE '+escHtml(c.yearEnd));
+    meta.innerHTML=parts.join('<span style="color:var(--rule);margin:0 2px;">|</span>');
+  }
+  // Status chips
+  const chips=$('ch-chips');
+  if(chips){
+    const chip=(label,val,pos)=>{
+      const yes=val==='Yes'||val===true;
+      const neutral=!val||val===''||val==='No'||val==='Not Registered'||val==='—';
+      const bg=yes?'#dcfce7':neutral?'#f3f4f6':'#fef9c3';
+      const color=yes?'#166534':neutral?'#6b7280':'#854d0e';
+      const icon=yes?'✅':neutral?'—':'⚠️';
+      return`<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:${bg};border:1px solid ${yes?'#bbf7d0':neutral?'#e5e7eb':'#fef08a'};">
+        <span style="font-size:14px;">${icon}</span>
+        <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${color};opacity:.7;">${label}</div>
+        <div style="font-size:12px;font-weight:700;color:${color};">${pos}</div></div></div>`;
+    };
+    const provTax=c.provisionalTaxPayer||'No';
+    const vatStatus=c.vatVendor&&c.vatVendor!=='Not Registered'&&c.vatVendor!==''?c.vatVendor:'Not registered';
+    const employer=c.employer||'No';
+    const taxClear=c.taxClearance||'No';
+    chips.innerHTML=
+      chip('Provisional Tax',provTax,provTax==='Yes'?'Yes':'No')+
+      chip('VAT',vatStatus!=='Not registered'?'Yes':'No',vatStatus)+
+      chip('Employer',employer,employer||'No')+
+      chip('Tax Clearance',taxClear,taxClear==='Yes'?'Yes':'No');
+  }
   updateReturnTypeTabs(c);
   showClientPane(activePane);
 }
@@ -3601,55 +3654,127 @@ async function runSetupLists(){
 
 function renderDetailsPane(){
   const c=getClient();if(!c)return;
-  const val=(v)=>v&&v!=='—'?escHtml(v):'<span style="color:var(--ink-light);">—</span>';
-  const row=(label,value)=>`<div class="field-row"><div class="field-label">${label}</div><div class="field-value" style="font-size:15px;">${val(value)}</div></div>`;
-  const section=(icon,title,rows)=>`
-    <div style="margin-bottom:20px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--accent);">
-        <span style="font-size:18px;">${icon}</span>
-        <span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);">${title}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
-        ${rows}
-      </div>
+
+  // Helper: copy icon
+  const copyBtn=(val)=>`<button onclick="navigator.clipboard.writeText('${escHtml(val)}');toast('Copied','success',1500);" title="Copy" style="background:none;border:none;cursor:pointer;color:var(--ink-light);font-size:13px;padding:2px 4px;border-radius:4px;margin-left:4px;" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color='var(--ink-light)'">⧉</button>`;
+
+  // Helper: field row in a card
+  const frow=(label,value,copyable)=>{
+    if(!value||value==='—')return '';
+    const cp=copyable&&value?copyBtn(value):'';
+    return`<div style="display:flex;padding:8px 0;border-bottom:1px solid var(--rule);gap:8px;">
+      <div style="font-size:12px;color:var(--ink-light);min-width:140px;flex-shrink:0;padding-top:1px;">${label}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--ink);flex:1;">${escHtml(value)}${cp}</div>
     </div>`;
-  const fullrow=(label,value)=>`<div class="field-row" style="grid-column:1/-1;"><div class="field-label">${label}</div><div class="field-value" style="font-size:15px;">${val(value)}</div></div>`;
-  $('detail-grid').innerHTML=
-    section('🏢','Identity',
-      row('Client Key', c.clientKey.startsWith('_sp_')?'(pending)':c.clientKey)+
-      row('Status', c.clientStatus||'Active')+
-      row('Entity Type', c.entityType)+
-      row('Assigned To', c.assignedTo)+
-      row('Registration Number', c.registrationNumber)+
-      row('CIPC Renewal Month', c.cipcRenewalMonth)+
-      fullrow('Nature of Business', c.natureOfBusiness)+
-      fullrow('Business Address', c.businessAddress)
-    )+
-    section('📞','Contact',
-      row('Business Tel', c.businessTel)+
-      row('Contact Person', c.contactName)+
-      fullrow('Notes', c.notes)
-    )+
-    section('💰','Tax & Regulatory',
-      row('Tax Number', c.taxNumber)+
-      row('VAT Number', c.vatNumber)+
-      row('PAYE Number', c.payeNumber)+
-      row('UIF Number', c.uifNumber)+
-      row('COIDA Number', c.coidaNumber)+
-      row('COIDA Class', c.coidaClass)+
-      row('Customs Code', c.customsCode)+
-      row('SIC Code', c.sicCode)+
-      row('Profit Code', c.profitCode)+
-      row('Financial Year End', c.yearEnd)+
-      row('Tax Clearance', c.taxClearance)+
-      row('Bank Details', c.bankDetails)
-    )+
-    section('⚙️','Classification',
-      row('Provisional Tax Payer', c.provisionalTaxPayer)+
-      row('Employer', c.employer)+
-      fullrow('VAT Vendor', c.vatVendor)
-    );
-  renderDirectors(c.clientKey);
+  };
+
+  // Helper: section card
+  const card=(icon,title,content,extra)=>`
+    <div style="background:var(--white);border:1px solid var(--rule);border-radius:10px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--rule);background:var(--surface);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">${icon}</span>
+          <span style="font-size:13px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">${title}</span>
+        </div>
+      </div>
+      <div style="padding:4px 16px 12px;">${content}</div>
+      ${extra||''}
+    </div>`;
+
+  // Yes/No chip for SARS section
+  const yn=(v)=>{
+    const yes=v==='Yes';
+    return`<span style="background:${yes?'#dcfce7':'#f3f4f6'};color:${yes?'#166534':'#6b7280'};padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">${yes?'✅ Yes':'No'}</span>`;
+  };
+
+  const ynRow=(label,val)=>{
+    if(!val)return'';
+    return`<div style="display:flex;padding:8px 0;border-bottom:1px solid var(--rule);gap:8px;align-items:center;">
+      <div style="font-size:12px;color:var(--ink-light);min-width:140px;flex-shrink:0;">${label}</div>
+      <div>${yn(val)}</div>
+    </div>`;
+  };
+
+  // Build director rows for contact card
+  const dirs=getDirs(c.clientKey);
+  const dirHTML=dirs.length
+    ?dirs.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rule);">
+        <div><div style="font-size:13px;font-weight:700;color:var(--ink);">${escHtml(d.name)}</div>
+        <div style="font-size:11px;color:var(--ink-light);">${d.idNumber?'ID: '+escHtml(d.idNumber):''}${d.interest?' · '+d.interest+'%':''}</div></div>
+        <button class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="openEditDirectorModal('${d._spId}')">✏️</button>
+      </div>`).join('')
+    :'<div style="color:var(--ink-light);font-size:13px;padding:12px 0;">No directors captured.</div>';
+
+  // Employer/regulatory: suppress all-empty
+  const hasRegulatory=c.payeNumber||c.uifNumber||c.coidaNumber||c.coidaClass||c.customsCode;
+  const regContent=hasRegulatory
+    ? frow('PAYE number',c.payeNumber,true)+frow('UIF number',c.uifNumber,true)+frow('COIDA number',c.coidaNumber,true)+frow('COIDA class',c.coidaClass)+frow('Customs code',c.customsCode)
+    : '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px;color:#1e40af;">ℹ️ Not registered for PAYE, UIF or COIDA.</div>';
+
+  // Banking: only show card if data exists
+  const bankCard=c.bankDetails?card('🏦','Banking Details',frow('Bank details',c.bankDetails)):
+    `<div style="background:var(--white);border:1px solid var(--rule);border-radius:10px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--rule);background:var(--surface);">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🏦</span><span style="font-size:13px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">Banking Details</span></div>
+      </div>
+      <div style="padding:12px 16px;"><div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;font-size:13px;color:#1e40af;">ℹ️ No bank details captured.</div></div>
+    </div>`;
+
+  // Additional / internal card
+  const addlContent=
+    `<div style="padding:4px 0 8px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-bottom:6px;">Classification</div>
+    ${frow('VAT vendor',c.vatVendor)}${frow('Employer',c.employer)}</div>
+    <div style="padding:4px 0 8px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-bottom:6px;">Internal</div>
+    <div style="display:flex;padding:8px 0;border-bottom:1px solid var(--rule);gap:8px;align-items:center;">
+      <div style="font-size:12px;color:var(--ink-light);min-width:140px;">Client key</div>
+      <div style="font-size:14px;font-weight:600;color:var(--ink);">${escHtml(c.clientKey.startsWith('_sp_')?'(pending)':c.clientKey)} ${c.clientKey.startsWith('_sp_')?'':copyBtn(c.clientKey)}</div>
+    </div>
+    <div style="display:flex;padding:8px 0;border-bottom:1px solid var(--rule);gap:8px;align-items:center;">
+      <div style="font-size:12px;color:var(--ink-light);min-width:140px;">Status</div>
+      <div><span style="background:${(c.clientStatus||'Active')==='Active'?'#dcfce7':'#fee2e2'};color:${(c.clientStatus||'Active')==='Active'?'#166534':'#991b1b'};padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">${escHtml(c.clientStatus||'Active')}</span></div>
+    </div>
+    ${frow('Assigned to',c.assignedTo)}
+    </div>`;
+
+  $('detail-grid').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:16px;">
+
+      <!-- Row 1 -->
+      ${card('🏢','Company Information',
+        frow('Entity type',c.entityType)+
+        frow('Registration number',c.registrationNumber,true)+
+        frow('Nature of business',c.natureOfBusiness)+
+        frow('CIPC renewal month',c.cipcRenewalMonth)+
+        frow('Financial year end',c.yearEnd)+
+        frow('Business address',c.businessAddress)
+      )}
+
+      ${card('👤','Contact Details',
+        frow('Contact person',c.contactName)+
+        frow('Business tel',c.businessTel)+
+        frow('Notes',c.notes)+
+        `<div style="margin-top:12px;"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);margin-bottom:6px;border-top:1px solid var(--rule);padding-top:10px;">👥 Directors / Members</div>${dirHTML}</div>
+        <button onclick="openAddDirectorModal()" class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;">＋ Add Director / Member</button>`
+      )}
+
+      ${card('📅','Key Dates & Internal',addlContent)}
+
+      <!-- Row 2 -->
+      ${card('🏛','SARS Information',
+        frow('Income tax number',c.taxNumber,true)+
+        ynRow('Provisional tax payer',c.provisionalTaxPayer)+
+        frow('VAT number',c.vatNumber,true)+
+        frow('VAT status',c.vatVendor||'Not registered')+
+        ynRow('Tax clearance',c.taxClearance)+
+        frow('Profit code',c.profitCode)+
+        frow('SIC code',c.sicCode)
+      )}
+
+      ${card('💼','Employer & Regulatory',regContent)}
+
+      ${bankCard}
+
+    </div>`;
 }
 
 function renderDirectors(clientKey){
