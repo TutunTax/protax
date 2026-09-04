@@ -6404,14 +6404,18 @@ function ttRenderMonthStats(stats) {
   const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
   const isAdmin = _ttUser && _ttUser.role === 'Admin';
 
+  // Who are we viewing? null = all users (admin), string = specific user
+  const selectedUser = stats && stats.targetUser ? stats.targetUser : null;
+  // For non-admin, always show own data only
+  const viewUser = isAdmin ? selectedUser : (_ttUser ? _ttUser.name : '');
+
   // Filter entries this month
   const monthEntries = _ttEntries.filter(e => e.date && e.date.startsWith(monthPrefix));
 
-  // Daily hours (my entries)
-  const targetName = stats && stats.targetUser ? stats.targetUser : (_ttUser ? _ttUser.name : '');
+  // Daily hours — filtered to viewUser (or all if viewUser is null/admin viewing all)
   const dailyMap = {};
   monthEntries.forEach(e => {
-    if (e.user === targetName) {
+    if (!viewUser || e.user === viewUser) {
       dailyMap[e.date] = (dailyMap[e.date] || 0) + e.hours;
     }
   });
@@ -6421,15 +6425,15 @@ function ttRenderMonthStats(stats) {
     daily.push({ date: key, day: d, hours: Math.round((dailyMap[key] || 0)*100)/100 });
   }
 
-  // Top clients
+  // Top clients — same filter as daily
   const byClient = {};
   monthEntries.forEach(e => {
-    if (isAdmin || e.user === targetName) {
+    if (!viewUser || e.user === viewUser) {
       byClient[e.client] = (byClient[e.client] || 0) + e.hours;
     }
   });
   const topClients = Object.entries(byClient)
-    .sort((a,b) => b[1]-a[1]).slice(0,5)
+    .sort((a,b) => b[1]-a[1]).slice(0,10)
     .map(([c, h]) => ({ client: c, hours: Math.round(h*100)/100 }));
 
   const totalMine = daily.reduce((s,d) => s + d.hours, 0);
@@ -6472,7 +6476,17 @@ function ttRenderMonthStats(stats) {
   if (tcEl) {
     const maxC = Math.max(...topClients.map(c=>c.hours), 0.01);
     const scopeLabel = document.getElementById('tt-clients-scope-label');
-    if (scopeLabel) scopeLabel.textContent = isAdmin ? 'Top clients (all staff)' : 'Top clients (my entries)';
+    if (scopeLabel) {
+      if (!isAdmin) scopeLabel.textContent = 'Top clients (my entries)';
+      else if (!viewUser) scopeLabel.textContent = 'Top clients (all staff)';
+      else scopeLabel.textContent = `Top clients — ${viewUser}`;
+    }
+    const dailyLabel = document.getElementById('tt-daily-hours-label');
+    if (dailyLabel) {
+      if (!isAdmin) dailyLabel.textContent = 'Daily hours (my entries)';
+      else if (!viewUser) dailyLabel.textContent = 'Daily hours (all staff combined)';
+      else dailyLabel.textContent = `Daily hours — ${viewUser}`;
+    }
     if (topClients.length === 0) {
       tcEl.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:10px 0;">No entries this month</div>';
     } else {
@@ -7375,7 +7389,7 @@ initAuth();
           <div class="tt-stats-grid">
             <!-- LEFT: Daily bar chart -->
             <div>
-              <div class="tt-stats-sub">Daily hours (my entries)</div>
+              <div class="tt-stats-sub" id="tt-daily-hours-label">Daily hours (my entries)</div>
               <div class="tt-bar-chart" id="tt-daily-bars"></div>
               <div class="tt-stats-total" id="tt-month-total" style="margin-top:28px;font-size:16px;font-weight:700;color:#8B1A1A;"></div>
             </div>
