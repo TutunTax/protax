@@ -5954,28 +5954,38 @@ async function ttLoadPhrases() {
 }
 
 function ttRenderPhrasePanel(targetInputId) {
-  // Remove any existing panel
   document.querySelectorAll('.tt-phrase-panel').forEach(el => el.remove());
   const input = document.getElementById(targetInputId);
   if (!input) return;
   const panel = document.createElement('div');
   panel.className = 'tt-phrase-panel';
-  panel.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-top:8px;';
+  panel.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-top:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;';
   const chips = _ttPhrases.map(p => {
     const safe = p.phrase.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return `<button class="tt-phrase-chip" data-id="${ttEsc(p.id)}" data-phrase="${ttEsc(p.phrase)}"
-      style="display:inline-block;margin:3px;padding:4px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9f9f9;font-size:13px;cursor:pointer;"
-      onclick="ttApplyPhrase(this,\'${targetInputId}\')">${safe}</button>`;
+    const eid = ttEsc(p.id);
+    const eph = ttEsc(p.phrase);
+    const tid = targetInputId.replace(/'/g,"\\'");
+    return '<button class="tt-phrase-chip" data-id="'+eid+'" data-phrase="'+eph+'" style="display:inline-block;margin:3px;padding:4px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#f9f9f9;font-size:13px;cursor:pointer;" onclick="ttApplyPhrase(this,\''+tid+'\')">'+safe+'</button>';
   }).join('');
-  panel.innerHTML = `
-    <div style="font-size:12px;color:#888;margin-bottom:8px;">Click to append · <span style="cursor:pointer;color:#840811;" onclick="this.closest('.tt-phrase-panel').querySelector('.tt-phrase-new').style.display=\'\'">+ Add phrase</span></div>
-    <div>${chips || '<span style="font-size:13px;color:#aaa;">No saved phrases yet</span>'}</div>
-    <div class="tt-phrase-new" style="display:none;margin-top:10px;display:flex;gap:6px;align-items:center;">
-      <input id="tt-new-phrase-input" type="text" placeholder="New phrase…" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:13px;">
-      <button onclick="ttSaveNewPhrase(\'${targetInputId}\')" style="background:#840811;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;">Save</button>
-    </div>`;
-  // Insert after input's parent
-  input.closest('div') ? input.closest('div').appendChild(panel) : input.parentNode.insertBefore(panel, input.nextSibling);
+  const tid2 = targetInputId.replace(/'/g,"\\'");
+  panel.innerHTML =
+    '<div style="font-size:12px;color:#888;margin-bottom:8px;">Click to append &middot; <span style="cursor:pointer;color:#840811;" onclick="this.nextElementSibling.style.display=\'flex\'">+ Add phrase</span></div>'+
+    '<div>'+(chips||'<span style="font-size:13px;color:#aaa;">No saved phrases yet</span>')+'</div>'+
+    '<div class="tt-phrase-new" style="display:none;margin-top:10px;gap:6px;align-items:center;">'+
+      '<input id="tt-new-phrase-input" type="text" placeholder="New phrase\u2026" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:13px;">'+
+      '<button onclick="ttSaveNewPhrase(\''+tid2+'\')" style="background:#840811;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;">Save</button>'+
+    '</div>';
+  // Insert directly after the input/textarea — never walk up the DOM
+  input.parentNode.insertBefore(panel, input.nextSibling);
+  // Close when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', function _pClose(e) {
+      if (!panel.contains(e.target) && e.target !== input) {
+        panel.remove();
+        document.removeEventListener('click', _pClose);
+      }
+    });
+  }, 10);
 }
 
 function ttTogglePhrasePanel(targetInputId) {
