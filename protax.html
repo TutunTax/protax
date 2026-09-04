@@ -6089,7 +6089,7 @@ function ttRenderPhrasePanel(targetInputId) {
   if (!input) return;
   const panel = document.createElement('div');
   panel.className = 'tt-phrase-panel';
-  panel.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-top:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;';
+  panel.style.cssText = 'position:fixed;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:99999;min-width:280px;max-width:420px;';
   const chips = _ttPhrases.map(p => {
     const safe = p.phrase.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const eid = ttEsc(p.id);
@@ -6105,8 +6105,14 @@ function ttRenderPhrasePanel(targetInputId) {
       '<input id="tt-new-phrase-input" type="text" placeholder="New phrase\u2026" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:13px;">'+
       '<button onclick="ttSaveNewPhrase(\''+tid2+'\')" style="background:#840811;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;">Save</button>'+
     '</div>';
-  // Insert directly after the input/textarea — never walk up the DOM
-  input.parentNode.insertBefore(panel, input.nextSibling);
+  // Position below the input using fixed coordinates
+  document.body.appendChild(panel);
+  const rect = input.getBoundingClientRect();
+  const panelW = 420;
+  let left = rect.left;
+  if (left + panelW > window.innerWidth - 12) left = window.innerWidth - panelW - 12;
+  panel.style.left = Math.max(8, left) + 'px';
+  panel.style.top = (rect.bottom + 6) + 'px';
   // Close when clicking outside
   setTimeout(() => {
     document.addEventListener('click', function _pClose(e) {
