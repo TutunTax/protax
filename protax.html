@@ -493,6 +493,140 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   .tt-card{border:0;box-shadow:none;padding:0;}
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE LAYOUT  ≤768px
+   Strategy: isMobile flag set on load; body.mobile class gates all rules
+   ═══════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+
+  /* ── Reset base overflow so mobile can scroll ── */
+  html,body{overflow:auto;}
+
+  /* ── Hide desktop-only elements ── */
+  body.mobile #topbar-staff,
+  body.mobile #asn-btn,
+  body.mobile #tt-btn,
+  body.mobile #setup-btn,
+  body.mobile #sync-bar,
+  body.mobile #sidebar,
+  body.mobile #empty-state{display:none!important;}
+
+  /* ── Topbar: brand + auth pill only ── */
+  body.mobile #topbar{padding:0 14px;gap:10px;}
+
+  /* ── Body wrap: single column, full height minus topbar + bottomnav ── */
+  body.mobile #body-wrap{flex-direction:column;height:calc(100vh - 52px - 56px);overflow:hidden;}
+
+  /* ── Main area fills body-wrap ── */
+  body.mobile #main{height:100%;overflow:hidden;}
+
+  /* ── Mobile bottom navigation ── */
+  #mob-nav{
+    display:none;
+    position:fixed;bottom:0;left:0;right:0;height:56px;
+    background:white;border-top:1px solid var(--rule);
+    flex-direction:row;align-items:stretch;z-index:9999;
+  }
+  body.mobile #mob-nav{display:flex;}
+  .mob-nav-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;border:none;background:transparent;cursor:pointer;
+    font-size:10px;font-weight:600;color:var(--ink-light);font-family:inherit;
+    padding:6px 4px;transition:color .15s;border-top:2px solid transparent;
+  }
+  .mob-nav-btn .mob-nav-icon{font-size:20px;line-height:1;}
+  .mob-nav-btn.active{color:var(--accent);border-top-color:var(--accent);}
+
+  /* ── Mobile screen: base ── */
+  .mob-screen{
+    display:none;flex-direction:column;height:100%;overflow:hidden;
+  }
+  .mob-screen.active{display:flex;}
+
+  /* ── Clients screen ── */
+  #mob-clients-screen{}
+  #mob-client-search-wrap{padding:10px 12px;border-bottom:1px solid var(--rule);background:white;flex-shrink:0;}
+  #mob-client-search{
+    width:100%;padding:10px 14px;border:1px solid var(--rule);border-radius:8px;
+    font-size:16px;font-family:inherit;background:var(--surface);outline:none;
+  }
+  #mob-client-search:focus{border-color:var(--accent);background:white;}
+  #mob-client-list{flex:1;overflow-y:auto;padding:0;}
+  .mob-cl-item{
+    display:flex;align-items:center;gap:12px;
+    padding:14px 16px;border-bottom:1px solid var(--rule);
+    cursor:pointer;background:white;
+  }
+  .mob-cl-item:active{background:var(--accent-dim);}
+  .mob-cl-avatar{
+    width:38px;height:38px;border-radius:10px;background:var(--accent-dim);
+    display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+  }
+  .mob-cl-name{font-size:15px;font-weight:600;color:var(--ink);line-height:1.3;}
+  .mob-cl-sub{font-size:12px;color:var(--ink-light);margin-top:2px;}
+  .mob-cl-arrow{margin-left:auto;color:var(--ink-light);font-size:18px;flex-shrink:0;}
+
+  /* ── Client detail screen ── */
+  #mob-detail-screen{}
+  #mob-detail-header{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 14px;border-bottom:1px solid var(--rule);
+    background:white;flex-shrink:0;
+  }
+  #mob-back-btn{
+    background:none;border:none;cursor:pointer;font-size:22px;
+    color:var(--accent);padding:4px;flex-shrink:0;line-height:1;
+  }
+  #mob-detail-name{font-size:16px;font-weight:700;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #mob-detail-body{flex:1;overflow-y:auto;padding:12px;}
+
+  /* Client detail cards on mobile */
+  #mob-detail-body .det-card{
+    background:white;border-radius:10px;border:1px solid var(--rule);
+    padding:14px;margin-bottom:12px;
+  }
+  #mob-detail-body .det-card-title{
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--ink-light);margin-bottom:10px;
+  }
+  #mob-detail-body .det-row{
+    display:flex;flex-direction:column;gap:2px;padding:8px 0;
+    border-bottom:1px solid var(--rule);
+  }
+  #mob-detail-body .det-row:last-child{border-bottom:none;padding-bottom:0;}
+  #mob-detail-body .det-label{font-size:11px;color:var(--ink-light);font-weight:600;}
+  #mob-detail-body .det-val{font-size:14px;color:var(--ink);font-weight:500;}
+  #mob-detail-body .det-copy{
+    background:none;border:none;cursor:pointer;font-size:14px;
+    color:var(--ink-light);padding:0 0 0 6px;
+  }
+
+  /* ── My Work screen ── */
+  #mob-mywork-screen{}
+  #mob-mywork-body{flex:1;overflow-y:auto;padding:12px;}
+  .mob-asn-card{
+    background:white;border-radius:10px;border:1px solid var(--rule);
+    padding:14px;margin-bottom:10px;
+  }
+  .mob-asn-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+  .mob-asn-meta{font-size:12px;color:var(--ink-light);}
+  .mob-asn-status{
+    display:inline-block;padding:2px 8px;border-radius:10px;
+    font-size:11px;font-weight:700;margin-top:6px;
+  }
+
+  /* ── TutinTime on mobile: hide Reports + Admin tabs ── */
+  body.mobile #tt-overlay{padding-bottom:56px;}
+  body.mobile #tt-tab-admin{display:none!important;}
+  body.mobile button[onclick="ttShowTab('reports',this)"]{display:none!important;}
+
+  /* ── Assignments overlay on mobile: hide desktop-only tabs ── */
+  body.mobile #asn-ov-tab-templates{display:none!important;}
+  body.mobile #asn-ov-tab-deploy{display:none!important;}
+  body.mobile button[onclick="openNewAssignmentOverlayModal()"]{display:none!important;}
+  body.mobile .asn-ov-tab[onclick="asnOvShowTab('all',this)"]{display:none!important;}
+}
 </style>
 </head>
 
@@ -6914,6 +7048,242 @@ async function ttToggleUser(id, currentlyActive) {
 
 // ttBootstrap is called directly from initAuth() after loadAll() completes.
 
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE SUPPORT
+// ═══════════════════════════════════════════════════════════════════════════
+
+var isMobile = false;
+
+function mobDetect() {
+  isMobile = window.innerWidth <= 768 || ('ontouchstart' in window && window.innerWidth <= 1024);
+  if (isMobile) {
+    document.body.classList.add('mobile');
+  } else {
+    document.body.classList.remove('mobile');
+  }
+}
+
+// Run on load and on resize
+mobDetect();
+window.addEventListener('resize', function() {
+  const wasMobile = isMobile;
+  mobDetect();
+  if (isMobile !== wasMobile && isMobile) {
+    // Just switched to mobile — render client list
+    mobRenderClientList();
+  }
+});
+
+// ── Screen navigation ──────────────────────────────────────────────────────
+
+var _mobCurrentScreen = 'clients';
+
+function mobShowScreen(name) {
+  if (!isMobile) return;
+  _mobCurrentScreen = name;
+
+  // If timer or log — open TutinTime overlay at correct tab
+  if (name === 'timer' || name === 'log') {
+    openTT().then(function() {
+      if (name === 'log') {
+        ttShowTab('entries', document.querySelector('.tt-tab[onclick*="entries"]'));
+      } else {
+        ttShowTab('timer', document.querySelector('.tt-tab[onclick*="timer"]'));
+      }
+    });
+    mobSetActiveNav(name);
+    return;
+  }
+
+  // If mywork — open Assignments overlay at My Work tab
+  if (name === 'mywork') {
+    openAssignmentsOverlay().then(function() {
+      asnOvShowTab('mywork', document.querySelector('.asn-ov-tab[onclick*="mywork"]'));
+    });
+    mobSetActiveNav(name);
+    return;
+  }
+
+  // Clients: show mob-clients-screen
+  document.querySelectorAll('.mob-screen').forEach(function(s) { s.classList.remove('active'); });
+  var screen = document.getElementById('mob-' + name + '-screen');
+  if (screen) screen.classList.add('active');
+  mobSetActiveNav(name);
+
+  if (name === 'clients') {
+    mobRenderClientList();
+  }
+}
+
+function mobSetActiveNav(name) {
+  document.querySelectorAll('.mob-nav-btn').forEach(function(b) { b.classList.remove('active'); });
+  var btn = document.getElementById('mob-nav-' + name);
+  if (btn) btn.classList.add('active');
+}
+
+// ── Client list ────────────────────────────────────────────────────────────
+
+function mobRenderClientList() {
+  var el = document.getElementById('mob-client-list');
+  if (!el) return;
+  var q = (document.getElementById('mob-client-search') || {value:''}).value.toLowerCase().trim();
+  var clients = (DB && DB.clients) ? DB.clients : [];
+  // Active clients only, sorted by name
+  var list = clients
+    .filter(function(c) { return (c.clientStatus || 'Active') === 'Active'; })
+    .filter(function(c) {
+      if (!q) return true;
+      return (c.companyName || '').toLowerCase().includes(q);
+    })
+    .sort(function(a,b) { return (a.companyName||'').localeCompare(b.companyName||''); });
+
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--ink-light);font-size:14px;">' + (q ? 'No clients match your search.' : 'No clients loaded yet.') + '</div>';
+    return;
+  }
+
+  var avatarMap = {Company:'🏢',CC:'🏢',SoleProp:'👤',Individual:'👤',Trust:'🤝'};
+  el.innerHTML = list.map(function(c) {
+    var av = avatarMap[c.entityType] || '🏢';
+    var sub = [c.entityType ? c.entityType : '', c.assignedTo ? 'Assigned: ' + c.assignedTo : ''].filter(Boolean).join(' · ');
+    return '<div class="mob-cl-item" data-ck="' + encodeURIComponent(c.clientKey||'') + '">' +
+      '<div class="mob-cl-avatar">' + av + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="mob-cl-name">' + escHtml(c.companyName||'') + '</div>' +
+        (sub ? '<div class="mob-cl-sub">' + escHtml(sub) + '</div>' : '') +
+      '</div>' +
+      '<div class="mob-cl-arrow">›</div>' +
+    '</div>';
+  }).join('');
+
+  // Delegated tap handler
+  el.onclick = function(e) {
+    var item = e.target.closest('[data-ck]');
+    if (!item) return;
+    var ck = decodeURIComponent(item.dataset.ck || '');
+    if (ck) mobOpenClientDetail(ck);
+  };
+}
+
+// ── Client detail ──────────────────────────────────────────────────────────
+
+function mobOpenClientDetail(clientKey) {
+  var c = DB.clients.find(function(cl) { return cl.clientKey === clientKey; });
+  if (!c) return;
+
+  // Show detail screen
+  document.querySelectorAll('.mob-screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('mob-detail-screen').classList.add('active');
+
+  // Header name
+  document.getElementById('mob-detail-name').textContent = c.companyName || '';
+
+  // Build detail body
+  var body = document.getElementById('mob-detail-body');
+
+  function row(label, val, copyable) {
+    if (!val || val === '—' || val === '') return '';
+    var copyBtn = copyable ? '<button class="det-copy" onclick="navigator.clipboard.writeText(' + "'" + escHtml(val) + "'" + ')" title="Copy">⧉</button>' : '';
+    return '<div class="det-row"><div class="det-label">' + label + '</div><div class="det-val">' + escHtml(val) + copyBtn + '</div></div>';
+  }
+
+  function chip(label, val, pos) {
+    var yes = val === 'Yes' || val === true;
+    var neutral = !val || val === '' || val === 'No' || val === 'Not Registered' || val === '—';
+    var bg = yes ? '#dcfce7' : neutral ? '#f3f4f6' : '#fef9c3';
+    var color = yes ? '#166534' : neutral ? '#6b7280' : '#854d0e';
+    var icon = yes ? '✅' : neutral ? '—' : '⚠️';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:' + bg + ';margin-bottom:6px;">' +
+      '<span>' + icon + '</span>' +
+      '<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:' + color + ';opacity:.7;">' + label + '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:' + color + ';">' + pos + '</div></div></div>';
+  }
+
+  // Status chips
+  var provTax = c.provisionalTaxPayer || 'No';
+  var vatStatus = c.vatVendor && c.vatVendor !== 'Not Registered' && c.vatVendor !== '' ? c.vatVendor : 'Not registered';
+  var employer = c.employer || 'No';
+  var taxClear = c.taxClearance || 'No';
+
+  var chipsHtml =
+    chip('Provisional Tax', provTax, provTax === 'Yes' ? 'Yes' : 'No') +
+    chip('VAT', vatStatus !== 'Not registered' ? 'Yes' : 'No', vatStatus) +
+    chip('Employer', employer, employer || 'No') +
+    chip('Tax Clearance', taxClear, taxClear === 'Yes' ? 'Yes' : 'No');
+
+  body.innerHTML =
+    // Status chips card
+    '<div class="det-card"><div class="det-card-title">Status</div>' + chipsHtml + '</div>' +
+
+    // Company card
+    '<div class="det-card"><div class="det-card-title">🏢 Company</div>' +
+      row('Entity Type', c.entityType) +
+      row('Assigned To', c.assignedTo) +
+      row('Registration No', c.registrationNumber, true) +
+      row('Nature of Business', c.natureOfBusiness) +
+      row('Business Address', c.businessAddress) +
+      row('Year End', c.yearEnd) +
+      row('CIPC Renewal', c.cipcRenewalMonth) +
+    '</div>' +
+
+    // SARS card
+    '<div class="det-card"><div class="det-card-title">🏛 SARS</div>' +
+      row('Tax Number', c.taxNumber, true) +
+      row('VAT Number', c.vatNumber, true) +
+      row('PAYE Number', c.payeNumber, true) +
+      row('UIF Number', c.uifNumber) +
+      row('COIDA Number', c.coidaNumber) +
+      row('COIDA Class', c.coidaClass) +
+    '</div>' +
+
+    // Contact card
+    '<div class="det-card"><div class="det-card-title">📞 Contact</div>' +
+      row('Business Tel', c.businessTel) +
+      row('Notes', c.notes) +
+    '</div>';
+}
+
+function mobBackToClients() {
+  document.querySelectorAll('.mob-screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('mob-clients-screen').classList.add('active');
+  mobSetActiveNav('clients');
+}
+
+// ── Hook: after DB loads, render mobile client list if on mobile ───────────
+
+var _mobOrigRenderList = null;
+(function() {
+  // Wrap renderList to also refresh mobile list when data changes
+  var orig = typeof renderList === 'function' ? renderList : null;
+  if (orig) {
+    window.renderList = function() {
+      orig.apply(this, arguments);
+      if (isMobile) mobRenderClientList();
+    };
+  }
+})();
+
+// Also hook closeTT and closeAssignmentsOverlay to return to correct nav state on mobile
+var _origCloseTT = typeof closeTT === 'function' ? closeTT : null;
+window.closeTT = function() {
+  if (_origCloseTT) _origCloseTT.apply(this, arguments);
+  if (isMobile) {
+    // Return bottom nav active state to whichever screen we came from
+    mobSetActiveNav('clients');
+    _mobCurrentScreen = 'clients';
+  }
+};
+
+var _origCloseAsn = typeof closeAssignmentsOverlay === 'function' ? closeAssignmentsOverlay : null;
+window.closeAssignmentsOverlay = function() {
+  if (_origCloseAsn) _origCloseAsn.apply(this, arguments);
+  if (isMobile) {
+    mobSetActiveNav('clients');
+    _mobCurrentScreen = 'clients';
+  }
+};
+
+
 initAuth();
 
 </script>
@@ -7713,5 +8083,46 @@ initAuth();
 
   </div><!-- /tt-body -->
 </div><!-- /tt-overlay -->
+
+<!-- ── Mobile bottom navigation bar ── -->
+<div id="mob-nav">
+  <button class="mob-nav-btn active" id="mob-nav-clients" onclick="mobShowScreen('clients')">
+    <span class="mob-nav-icon">👥</span>Clients
+  </button>
+  <button class="mob-nav-btn" id="mob-nav-mywork" onclick="mobShowScreen('mywork')">
+    <span class="mob-nav-icon">📋</span>My Work
+  </button>
+  <button class="mob-nav-btn" id="mob-nav-timer" onclick="mobShowScreen('timer')">
+    <span class="mob-nav-icon">⏱</span>Timer
+  </button>
+  <button class="mob-nav-btn" id="mob-nav-log" onclick="mobShowScreen('log')">
+    <span class="mob-nav-icon">📒</span>Log
+  </button>
+</div>
+
+<!-- ── Mobile: Clients screen ── -->
+<div class="mob-screen active" id="mob-clients-screen">
+  <div id="mob-client-search-wrap">
+    <input id="mob-client-search" type="search" placeholder="🔍 Search clients…" oninput="mobRenderClientList()" autocomplete="off">
+  </div>
+  <div id="mob-client-list"></div>
+</div>
+
+<!-- ── Mobile: Client detail screen ── -->
+<div class="mob-screen" id="mob-detail-screen">
+  <div id="mob-detail-header">
+    <button id="mob-back-btn" onclick="mobBackToClients()">‹</button>
+    <div id="mob-detail-name"></div>
+  </div>
+  <div id="mob-detail-body"></div>
+</div>
+
+<!-- ── Mobile: My Work screen ── -->
+<div class="mob-screen" id="mob-mywork-screen">
+  <div id="mob-mywork-body">
+    <div id="mob-mywork-list"></div>
+  </div>
+</div>
+
 </body>
 </html>
