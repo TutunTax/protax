@@ -494,6 +494,10 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
 }
 
 
+/* ── Mobile nav + screens: hidden by default on ALL screen sizes ── */
+#mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:white;border-top:1px solid var(--rule);flex-direction:row;align-items:stretch;z-index:9999;}
+.mob-screen{display:none;flex-direction:column;height:100%;overflow:hidden;}
+
 /* ═══════════════════════════════════════════════════════════
    MOBILE LAYOUT  ≤768px
    Strategy: isMobile flag set on load; body.mobile class gates all rules
@@ -521,14 +525,9 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   /* ── Main area fills body-wrap ── */
   body.mobile #main{height:100%;overflow:hidden;}
 
-  /* ── Mobile bottom navigation ── */
-  #mob-nav{
-    display:none;
-    position:fixed;bottom:0;left:0;right:0;height:56px;
-    background:white;border-top:1px solid var(--rule);
-    flex-direction:row;align-items:stretch;z-index:9999;
-  }
+  /* ── Show mobile nav and screens when on mobile ── */
   body.mobile #mob-nav{display:flex;}
+  body.mobile .mob-screen.active{display:flex;}
   .mob-nav-btn{
     flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:2px;border:none;background:transparent;cursor:pointer;
@@ -537,12 +536,6 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
   }
   .mob-nav-btn .mob-nav-icon{font-size:20px;line-height:1;}
   .mob-nav-btn.active{color:var(--accent);border-top-color:var(--accent);}
-
-  /* ── Mobile screen: base ── */
-  .mob-screen{
-    display:none;flex-direction:column;height:100%;overflow:hidden;
-  }
-  .mob-screen.active{display:flex;}
 
   /* ── Clients screen ── */
   #mob-clients-screen{}
@@ -1718,7 +1711,7 @@ function renderList(){
     if(inactive&&!showInactive)return;
     if(activeAssignee&&(c.assignedTo||'').trim()!==activeAssignee.trim())return;
     if(search&&!c.companyName.toLowerCase().includes(search))return;
-    if(fe&&(c.entityType||'')!==fe)return;
+    if(fe&&(c.entityType||'').toLowerCase()!==fe.toLowerCase())return;
     const ftc=($('filter-taxclear')||{}).value||'';
     if(ftc&&(c.taxClearance||'')!==ftc)return;
     const cRets=DB.returns.filter(r=>r.clientKey===c.clientKey);
