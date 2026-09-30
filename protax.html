@@ -3513,6 +3513,33 @@ async function saveAssignmentDetail(){
   }
 }
 
+async function deleteAssignment(){
+  const spId=_asnDetailId;
+  const asn=DB_assignments.find(a=>a._spId===spId);
+  if(!asn){toast('Assignment not found','error');return;}
+  if(!(_ttUser&&_ttUser.role==='Admin')){toast('Only Admin users can delete assignments','error');return;}
+  const steps=DB_assignmentSteps[spId]||[];
+  if(!confirm('Delete "'+(asn.assignmentId?asn.assignmentId+' — ':'')+asn.title+'"'+(steps.length?' and its '+steps.length+' step'+(steps.length!==1?'s':''):'')+'?\n\nThis cannot be undone.'))return;
+  try{
+    const siteId=await getSiteId();
+    const base='https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/';
+    for(const st of steps){
+      if(st._spId)await gDelete(base+L_ASSIGNMENT_STEPS+'/items/'+st._spId);
+    }
+    await gDelete(base+L_ASSIGNMENTS+'/items/'+spId);
+    const i=DB_assignments.findIndex(a=>a._spId===spId);
+    if(i>-1)DB_assignments.splice(i,1);
+    delete DB_assignmentSteps[spId];
+    closeModal('assignment-detail-modal');
+    toast('Assignment deleted','success');
+    if($('asn-open-list'))renderAssignmentsPane();
+    if($('asn-ov-panel-all')){asnOvRenderOverview();if($('asn-ov-panel-all').classList.contains('active'))asnOvRenderAll();}
+  }catch(e){
+    console.error('deleteAssignment:',e);
+    toast('Delete failed: '+e.message,'error',6000);
+  }
+}
+
 function asnDetailShowAddStep(spId){
   const form=$('adn-add-step-form');
   if(!form)return;
@@ -4916,12 +4943,20 @@ async function saveEditDirector(){
     setSave('saved');
     toast('✅ Director saved','success');
     closeModal('edit-director-modal');
-    renderDirectors(_editDirClientKey);
+    if($('directors-list'))renderDirectors(_editDirClientKey);
+    if(typeof renderDetailsPane==='function'&&activeClientKey===_editDirClientKey)renderDetailsPane();
   }catch(e){
     setSave('failed',e.message);
     toast('⚠ Save failed: '+e.message,'error',8000);
     console.error('saveEditDirector:',e);
   }
+}
+
+function openEditDirectorModal(spId){
+  const dirs=getDirs(activeClientKey);
+  const idx=dirs.findIndex(d=>d._spId===spId);
+  if(idx<0){toast('Director not found','error');return;}
+  showEditDirector(activeClientKey,idx);
 }
 
 function renameReturn(encodedId){
@@ -5872,44 +5907,8 @@ function ttPopulateCombos() {
   });
 
   // Report multi-select combo
-  const rptPanel = document.getElementById('tt-rpt-client-combo-panel');
-  if (rptPanel) {
-    _ttComboItems['tt-rpt-client-combo-panel'] = [..._ttClients];
-    const toolbarHtml = '<div class="tt-multicombo-toolbar">' +
-      '<button class="tt-btn" style="font-size:12px;padding:4px 8px;" id="tt-rpt-btn-all">All</button>' +
-      '<button class="tt-btn" style="font-size:12px;padding:4px 8px;" id="tt-rpt-btn-none">None</button>' +
-      '</div>';
-    const rowsHtml = _ttClients.map((c, i) => {
-      const safe = c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-      const checked = _ttSelectedReportClients.includes(c) ? ' checked' : '';
-      return `<div class="tt-checkrow"><input type="checkbox" data-idx="${i}"${checked}><label>${safe}</label></div>`;
-    }).join('');
-    rptPanel.innerHTML = toolbarHtml + rowsHtml;
-
-    // Bind All/None buttons
-    const btnAll = document.getElementById('tt-rpt-btn-all');
-    const btnNone = document.getElementById('tt-rpt-btn-none');
-    if (btnAll) btnAll.onclick = () => { ttComboSelectAll(); };
-    if (btnNone) btnNone.onclick = () => { ttComboClearAll(); };
-
-    // Bind checkbox changes via delegation
-    if (!rptPanel._ttBound) {
-      rptPanel._ttBound = true;
-      rptPanel.addEventListener('change', function(e) {
-        const cb = e.target.closest('input[type="checkbox"][data-idx]');
-        if (!cb) return;
-        const list = _ttComboItems['tt-rpt-client-combo-panel'] || [];
-        const name = list[parseInt(cb.dataset.idx)];
-        if (name !== undefined) {
-          const idx = _ttSelectedReportClients.indexOf(name);
-          if (cb.checked && idx === -1) _ttSelectedReportClients.push(name);
-          else if (!cb.checked && idx !== -1) _ttSelectedReportClients.splice(idx, 1);
-          ttUpdateRptClientLabel();
-        }
-      });
-    }
-    ttUpdateRptClientLabel();
-  }
+  ttRptRender('');
+  ttUpdateRptClientLabel();
 
   // Entries client filter <select>
   const ecf = document.getElementById('tt-entries-client-filter');
@@ -5924,7 +5923,55 @@ function ttPopulateCombos() {
   }
 }
 
+// Report multi-select combo: checkbox rows, optionally filtered by typed text
+function ttRptRender(q) {
+  const rptPanel = document.getElementById('tt-rpt-client-combo-panel');
+  if (!rptPanel) return;
+  q = (q || '').toLowerCase();
+  const filtered = q ? _ttClients.filter(c => c.toLowerCase().includes(q)) : [..._ttClients];
+  _ttComboItems['tt-rpt-client-combo-panel'] = filtered;
+  const toolbarHtml = '<div class="tt-multicombo-toolbar">' +
+    '<button type="button" class="tt-btn" style="font-size:12px;padding:4px 8px;" id="tt-rpt-btn-all">All</button>' +
+    '<button type="button" class="tt-btn" style="font-size:12px;padding:4px 8px;" id="tt-rpt-btn-none">None</button>' +
+    '</div>';
+  const rowsHtml = filtered.length === 0
+    ? '<div class="tt-combo-empty">No matches</div>'
+    : filtered.map((c, i) => {
+        const safe = c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        const checked = _ttSelectedReportClients.includes(c) ? ' checked' : '';
+        return `<div class="tt-checkrow"><label style="display:flex;align-items:center;gap:8px;width:100%;cursor:pointer;"><input type="checkbox" data-idx="${i}"${checked}><span>${safe}</span></label></div>`;
+      }).join('');
+  rptPanel.innerHTML = toolbarHtml + rowsHtml;
+  rptPanel.classList.add('open');
+  document.getElementById('tt-rpt-btn-all').onclick = () => { _ttSelectedReportClients = [..._ttClients]; ttRptRender(ttRptQuery()); ttUpdateRptClientLabel(); };
+  document.getElementById('tt-rpt-btn-none').onclick = () => { _ttSelectedReportClients = []; ttRptRender(ttRptQuery()); ttUpdateRptClientLabel(); };
+  if (!rptPanel._ttBound) {
+    rptPanel._ttBound = true;
+    // keep focus in the input while clicking inside the panel so it doesn't close
+    rptPanel.addEventListener('mousedown', function(e) { e.preventDefault(); });
+    rptPanel.addEventListener('change', function(e) {
+      const cb = e.target.closest('input[type="checkbox"][data-idx]');
+      if (!cb) return;
+      const list = _ttComboItems['tt-rpt-client-combo-panel'] || [];
+      const name = list[parseInt(cb.dataset.idx)];
+      if (name === undefined) return;
+      const idx = _ttSelectedReportClients.indexOf(name);
+      if (cb.checked && idx === -1) _ttSelectedReportClients.push(name);
+      else if (!cb.checked && idx !== -1) _ttSelectedReportClients.splice(idx, 1);
+      ttUpdateRptClientLabel();
+    });
+  }
+}
+let _ttRptTyped = '';
+function ttRptQuery() { return _ttRptTyped; }
+function ttRptTyping() {
+  const inp = document.getElementById('tt-rpt-client-input');
+  _ttRptTyped = inp ? inp.value : '';
+  ttRptRender(_ttRptTyped);
+}
+
 function ttComboOpen(id) {
+  if (id === 'tt-rpt-client-combo') { _ttRptTyped = ''; ttRptRender(''); return; }
   const panel = document.getElementById(id + '-panel');
   if (panel) panel.classList.add('open');
   ttComboFilter(id);
@@ -5932,6 +5979,7 @@ function ttComboOpen(id) {
 function ttComboClose(id) {
   const p = document.getElementById(id + '-panel');
   if (p) p.classList.remove('open');
+  if (id === 'tt-rpt-client-combo') { _ttRptTyped = ''; ttUpdateRptClientLabel(); }
 }
 function ttComboFilter(id) {
   const inp = document.getElementById(id.replace('-combo','') + '-input');
@@ -5984,11 +6032,11 @@ function ttUpdateRptClientLabel() {
   if (_ttSelectedReportClients.length === 0 || _ttSelectedReportClients.length === _ttClients.length) {
     lbl.textContent = '';
     const inp = document.getElementById('tt-rpt-client-input');
-    if (inp) inp.value = '';
+    if (inp && document.activeElement !== inp) inp.value = '';
   } else {
     lbl.textContent = 'Selected: ' + _ttSelectedReportClients.join(', ');
     const inp = document.getElementById('tt-rpt-client-input');
-    if (inp) inp.value = `${_ttSelectedReportClients.length} client${_ttSelectedReportClients.length > 1 ? 's' : ''} selected`;
+    if (inp && document.activeElement !== inp) inp.value = `${_ttSelectedReportClients.length} client${_ttSelectedReportClients.length > 1 ? 's' : ''} selected`;
   }
 }
 
@@ -7952,7 +8000,7 @@ initAuth();
           <div style="flex:1;min-width:200px;">
             <label class="tt-label">Clients</label>
             <div class="tt-combo" id="tt-rpt-client-combo">
-              <input id="tt-rpt-client-input" class="tt-input" autocomplete="off" placeholder="All clients" oninput="ttComboFilter('tt-rpt-client-combo')" onfocus="ttComboOpen('tt-rpt-client-combo')" onblur="setTimeout(()=>ttComboClose('tt-rpt-client-combo'),150)">
+              <input id="tt-rpt-client-input" class="tt-input" autocomplete="off" placeholder="All clients" oninput="ttRptTyping()" onfocus="ttComboOpen('tt-rpt-client-combo')" onblur="setTimeout(()=>ttComboClose('tt-rpt-client-combo'),150)">
               <div class="tt-combo-panel" id="tt-rpt-client-combo-panel"></div>
             </div>
           </div>
