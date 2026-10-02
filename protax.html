@@ -1004,6 +1004,7 @@ body{font-family:'Inter','Segoe UI',sans-serif;background:var(--surface);color:v
         <div class="fg"><label>ID Number</label><input id="ed-idnumber"></div>
         <div class="fg"><label>Personal Tax Number</label><input id="ed-taxno"></div>
       </div>
+      <div class="form-grid" id="ed-extra" style="margin-top:14px;"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-primary" onclick="saveEditDirector()">💾 Save Director</button>
@@ -1508,6 +1509,7 @@ async function loadAll(){
     }
     clientColMap = await getColMap(L_CLIENTS);
     dirColMap          = await getColMap(L_DIRECTORS);
+    try{ await loadDirColsMeta(); }catch(e){ console.warn('Directors column metadata failed:',e.message); dirColsMeta=[]; }
     const retColMap    = await getColMap(L_RETURNS);
     // Build clean display->internal map for saves (exclude __rev__ entries)
     _retFieldsByDisplay={};
@@ -1607,7 +1609,8 @@ async function loadAll(){
         phone:fbd('Phone','Tel','Mobile','Cell')||'',
         email:fbd('Email')||'',
         idNumber:fbd('IDNumber')||'',
-        personalTaxNo:fbd('PersonalTaxNo','TaxNumber')||''
+        personalTaxNo:fbd('PersonalTaxNo','TaxNumber')||'',
+        _f:f
       });
     });
     DB.directors=dirsByKey;
@@ -3883,10 +3886,15 @@ function renderDetailsPane(){
   // Build director rows for contact card
   const dirs=getDirs(c.clientKey);
   const dirHTML=dirs.length
-    ?dirs.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rule);">
-        <div><div style="font-size:13px;font-weight:700;color:var(--ink);">${escHtml(d.name)}</div>
-        <div style="font-size:11px;color:var(--ink-light);">${d.idNumber?'ID: '+escHtml(d.idNumber):''}${d.interest?' · '+d.interest+'%':''}</div></div>
-        <button class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="openEditDirectorModal('${d._spId}')">✏️</button>
+    ?dirs.map(d=>`<div style="padding:8px 0;border-bottom:1px solid var(--rule);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="cursor:pointer;flex:1;min-width:0;" onclick="toggleDirDetails('${d._spId}')" title="Show / hide all details">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);"><span id="dir-arr-${d._spId}" style="display:inline-block;width:14px;color:var(--ink-light);">${_dirExpanded.has(d._spId)?'▾':'▸'}</span>${escHtml(d.name)}</div>
+            <div style="font-size:11px;color:var(--ink-light);padding-left:14px;">${d.idNumber?'ID: '+escHtml(d.idNumber):''}${d.interest?' · '+d.interest+'%':''}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="openEditDirectorModal('${d._spId}')">✏️</button>
+        </div>
+        <div id="dir-det-${d._spId}" style="display:${_dirExpanded.has(d._spId)?'block':'none'};margin:8px 0 2px 14px;padding:8px 10px;background:var(--surface);border-radius:6px;">${dirDetailsHtml(d)}</div>
       </div>`).join('')
     :'<div style="color:var(--ink-light);font-size:13px;padding:12px 0;">No directors captured.</div>';
 
@@ -4892,6 +4900,59 @@ async function saveClientEdit(){
   _ttClients = DB.clients.map(c=>c.companyName).filter(Boolean).sort();
 }
 
+// ── Directors: all list columns ───────────────────────────────────────────
+let dirColsMeta=[];            // extra (non built-in) editable/visible columns of Tutin_Directors_Register
+const _dirExpanded=new Set();  // spIds of directors expanded in the UI
+const _DIR_BUILTIN=['title','clientkey','clientname','role','interest','phone','email','idnumber','personaltaxno'];
+const _DIR_SKIP=['contenttype','attachments','edit','docicon','linktitle','linktitlenomenu','created','modified','author','editor','itemchildcount','folderchildcount','appauthor','appeditor','complianceassetid','id'];
+function _dirNorm(x){return String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+
+async function loadDirColsMeta(){
+  const siteId=await getSiteId();
+  const d=await gGet('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_DIRECTORS+'/columns?$top=200');
+  dirColsMeta=[];
+  (d.value||[]).forEach(col=>{
+    const name=col.name||'';
+    if(!name||name.startsWith('_')||col.hidden||col.calculated)return;
+    const disp=col.displayName||col.title||name;
+    if(_DIR_SKIP.includes(_dirNorm(name))||_DIR_BUILTIN.includes(_dirNorm(name))||_DIR_BUILTIN.includes(_dirNorm(disp)))return;
+    let kind=null,choices=[],multi=false,dateOnly=false,ro=!!col.readOnly;
+    if(col.text){kind=col.text.allowMultipleLines?'multiline':'text';if(col.text.textType==='richText')ro=true;}
+    else if(col.number){kind='number';}
+    else if(col.currency){kind='number';}
+    else if(col.boolean){kind='boolean';}
+    else if(col.dateTime){kind='date';dateOnly=col.dateTime.format==='dateOnly';}
+    else if(col.choice){kind='choice';choices=col.choice.choices||[];}
+    else return; // lookup / person / etc. not supported
+    dirColsMeta.push({name,displayName:disp,kind,choices,dateOnly,readOnly:ro});
+  });
+  console.log('Director extra columns:',dirColsMeta.map(c=>c.displayName+' ('+c.kind+')'));
+}
+
+function _dirFmtVal(m,v){
+  if(v==null||v==='')return '';
+  if(Array.isArray(v))return v.join(', ');
+  if(m.kind==='boolean')return (v===true||v==='true'||v==='Yes')?'Yes':'No';
+  if(m.kind==='date'){const dt=new Date(v);if(isNaN(dt))return String(v);return m.dateOnly?String(v).slice(0,10):dt.toLocaleString('en-ZA');}
+  return String(v);
+}
+
+// All details for one director (built-in fields + every other column in the list)
+function dirDetailsHtml(d){
+  const rows=[
+    ['Role',d.role],['Interest / Shareholding',d.interest&&d.interest!=='0'?d.interest+'%':''],['ID Number',d.idNumber],
+    ['Personal Tax Number',d.personalTaxNo],['Phone',d.phone],['Email',d.email]
+  ];
+  dirColsMeta.forEach(m=>rows.push([m.displayName,_dirFmtVal(m,(d._f||{})[m.name])]));
+  return rows.map(r=>`<div style="display:flex;gap:8px;padding:3px 0;font-size:12px;"><div style="flex:0 0 42%;color:var(--ink-light);">${escHtml(r[0])}</div><div style="flex:1;color:var(--ink);white-space:pre-wrap;word-break:break-word;">${r[1]?escHtml(String(r[1])):'<span style="color:var(--ink-light);">—</span>'}</div></div>`).join('');
+}
+function toggleDirDetails(spId){
+  if(_dirExpanded.has(spId))_dirExpanded.delete(spId);else _dirExpanded.add(spId);
+  const box=document.getElementById('dir-det-'+spId),arr=document.getElementById('dir-arr-'+spId);
+  if(box)box.style.display=_dirExpanded.has(spId)?'block':'none';
+  if(arr)arr.textContent=_dirExpanded.has(spId)?'▾':'▸';
+}
+
 // ── Edit Director ─────────────────────────────────────────────────────────
 let _editDirClientKey=null;
 let _editDirIndex=null;
@@ -4909,6 +4970,22 @@ function showEditDirector(clientKey, index){
   document.getElementById('ed-email').value=d.email||'';
   document.getElementById('ed-idnumber').value=d.idNumber||'';
   document.getElementById('ed-taxno').value=d.personalTaxNo||'';
+  const ex=document.getElementById('ed-extra');
+  ex.innerHTML=dirColsMeta.map((m,i)=>{
+    const v=(d._f||{})[m.name];const id='ed-x-'+i;
+    const lab=escHtml(m.displayName);
+    if(m.readOnly||Array.isArray(v))return `<div class="fg"><label>${lab}</label><input value="${escHtml(_dirFmtVal(m,v))}" disabled></div>`;
+    if(m.kind==='multiline')return `<div class="fg full"><label>${lab}</label><textarea id="${id}">${escHtml(v==null?'':String(v))}</textarea></div>`;
+    if(m.kind==='choice')return `<div class="fg"><label>${lab}</label><select id="${id}"><option value=""></option>${m.choices.map(c=>`<option value="${escHtml(c)}"${c===v?' selected':''}>${escHtml(c)}</option>`).join('')}${v&&!m.choices.includes(v)?`<option value="${escHtml(v)}" selected>${escHtml(v)}</option>`:''}</select></div>`;
+    if(m.kind==='boolean')return `<div class="fg"><label>${lab}</label><select id="${id}"><option value=""></option><option value="true"${v===true?' selected':''}>Yes</option><option value="false"${v===false?' selected':''}>No</option></select></div>`;
+    if(m.kind==='number')return `<div class="fg"><label>${lab}</label><input id="${id}" type="number" step="any" value="${v==null?'':escHtml(String(v))}"></div>`;
+    if(m.kind==='date'){
+      let val='';
+      if(v){ if(m.dateOnly)val=String(v).slice(0,10); else{const dt=new Date(v);if(!isNaN(dt)){const z=n=>String(n).padStart(2,'0');val=dt.getFullYear()+'-'+z(dt.getMonth()+1)+'-'+z(dt.getDate())+'T'+z(dt.getHours())+':'+z(dt.getMinutes());}} }
+      return `<div class="fg"><label>${lab}</label><input id="${id}" type="${m.dateOnly?'date':'datetime-local'}" value="${val}"></div>`;
+    }
+    return `<div class="fg"><label>${lab}</label><input id="${id}" value="${escHtml(v==null?'':String(v))}"></div>`;
+  }).join('');
   openModal('edit-director-modal');
 }
 
@@ -4938,6 +5015,18 @@ async function saveEditDirector(){
     fields[fi('Email')]=d.email;
     fields[fi('IDNumber')]=d.idNumber;
     fields[fi('PersonalTaxNo')]=d.personalTaxNo;
+    // Extra columns from the SharePoint list
+    dirColsMeta.forEach((m,i)=>{
+      const el=document.getElementById('ed-x-'+i);
+      if(!el||m.readOnly)return;
+      const raw=el.value;let out;
+      if(m.kind==='number')out=raw===''?null:Number(raw);
+      else if(m.kind==='boolean')out=raw===''?null:(raw==='true');
+      else if(m.kind==='date')out=raw===''?null:(m.dateOnly?raw+'T00:00:00Z':new Date(raw).toISOString());
+      else out=raw.trim();
+      fields[m.name]=out;
+      d._f=d._f||{};d._f[m.name]=out;
+    });
     Object.keys(fields).forEach(k=>{if(!k||k==='undefined')delete fields[k];});
     await gPatch('https://graph.microsoft.com/v1.0/sites/'+siteId+'/lists/'+L_DIRECTORS+'/items/'+d._spId+'/fields',fields);
     setSave('saved');
